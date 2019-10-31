@@ -4,8 +4,11 @@
 #include <fc/filesystem.hpp>
 #include <fc/exception/exception.hpp>
 
+#include "config.hpp"
+
 int main(int argc, char **argv) {
     try {
+        app().set_version(GeneralServer::example::config::version);
         std::cout << u8"example " << appbase::app().version_string() << std::endl;
 
         auto root = fc::app_path();
