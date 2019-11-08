@@ -12,7 +12,8 @@ int main(int argc, char **argv) {
         std::cout << u8"example " << appbase::app().version_string() << std::endl;
 
         auto root = fc::app_path();
-
+        app().set_default_data_dir(root / "example/data" );
+        app().set_default_config_dir(root / "example/config" );
         if (!appbase::app().initialize(argc, argv))
             return -1;
         appbase::app().startup();

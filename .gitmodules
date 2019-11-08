@@ -4,3 +4,6 @@
 [submodule "libraries/fc"]
 	path = libraries/fc
 	url = git@github.com:rise-worlds/fc-1.git
+[submodule "libraries/wabt"]
+	path = libraries/wabt
+	url = https://github.com/WebAssembly/wabt
