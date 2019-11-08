@@ -5,8 +5,10 @@
 
 #include <iostream>
 #include "config.hpp"
+#include "wabt.hpp"
 
 using namespace appbase;
+using namespace example::wabt;
 
 int main(int argc, char **argv) {
     try {
