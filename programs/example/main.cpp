@@ -1,10 +1,12 @@
 #include <appbase/application.hpp>
-#include <iostream>
 #include <boost/exception/diagnostic_information.hpp>
 #include <fc/filesystem.hpp>
 #include <fc/exception/exception.hpp>
 
+#include <iostream>
 #include "config.hpp"
+
+using namespace appbase;
 
 int main(int argc, char **argv) {
     try {
