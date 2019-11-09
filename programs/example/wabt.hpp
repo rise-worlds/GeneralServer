@@ -21,7 +21,7 @@ namespace example {
     namespace wabt {
         class wabt_test {
         public:
-            void init() {
+            void Init() {
                 HostModule* host_module = m_env.AppendHostModule("host");
                 m_executor = MakeUnique<Executor>(&m_env);
                 std::pair<Memory*, Index> pair = host_module->AppendMemoryExport("mem", Limits(1));
@@ -45,6 +45,10 @@ namespace example {
                 ReadBinaryOptions options;
                 return ReadBinaryInterp(&m_env, data.data(), data.size(), options, &errors,
                                         &m_module);
+            }
+
+            interp::ExecResult Run() {
+                return m_executor->RunExportByName(m_module, "rot13", {});
             }
 
             std::string string_data;
