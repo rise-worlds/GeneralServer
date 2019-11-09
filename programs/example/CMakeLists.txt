@@ -19,7 +19,11 @@ endif()
 
 configure_file(config.hpp.in config.hpp ESCAPE_QUOTES)
 
-target_include_directories(example PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories(example 
+                          PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
+                          ${CMAKE_SOURCE_DIR}/libraries/wabt
+                          ${CMAKE_BINARY_DIR}/libraries/wabt
+                          )
 
 if(UNIX)
   if(APPLE)
@@ -37,4 +41,4 @@ else()
   set(build_id_flag "")
 endif()
 
-target_link_libraries( example appbase fc ${CMAKE_DL_LIBS} ${PLATFORM_SPECIFIC_LIBS} )
+target_link_libraries( example appbase fc wabt ${CMAKE_DL_LIBS} ${PLATFORM_SPECIFIC_LIBS} )

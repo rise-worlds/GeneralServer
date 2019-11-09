@@ -1,10 +1,14 @@
 #include <appbase/application.hpp>
-#include <iostream>
 #include <boost/exception/diagnostic_information.hpp>
 #include <fc/filesystem.hpp>
 #include <fc/exception/exception.hpp>
 
+#include <iostream>
 #include "config.hpp"
+#include "wabt.hpp"
+
+using namespace appbase;
+using namespace example::wabt;
 
 int main(int argc, char **argv) {
     try {
