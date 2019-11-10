@@ -1,4 +1,5 @@
 add_subdirectory(appbase)
+add_subdirectory(chainbase)
 add_subdirectory(fc)
 
 #turn tools&tests off; not needed for library build
