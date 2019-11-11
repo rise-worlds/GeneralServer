@@ -40,10 +40,9 @@ int main(int argc, char **argv) {
         test.Init();
         test.LoadModule(data);
         test.Run();
-        // auto result = test->RunExportByName(module_, "rot13", {});
-        // std::cout << interp::Result::Ok == result << std::endl;
-        // result = test->RunExportByName(module_, "rot13", {});
-        // std::cout << interp::Result::Ok == result << std::endl;
+        std::cout << test.string_data << std::endl;
+        test.Run();
+        std::cout << test.string_data << std::endl;
 
         auto root = fc::app_path();
         app().set_default_data_dir(root / "example/data" );

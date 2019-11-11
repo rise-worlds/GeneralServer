@@ -21,6 +21,9 @@ namespace example {
     namespace wabt {
         class wabt_test {
         public:
+            ~wabt_test() {
+                m_executor.reset();
+            }
             void Init() {
                 HostModule* host_module = m_env.AppendHostModule("host");
                 m_executor = MakeUnique<Executor>(&m_env);
@@ -35,9 +38,6 @@ namespace example {
                     "buf_done", {{Type::I32, Type::I32}, {}},
                     std::bind(&wabt_test::BufDoneCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
                 m_memory = pair.first;
-            }
-            ~wabt_test() {
-                m_executor.reset();
             }
 
             ::wabt::Result LoadModule(const std::vector<uint8_t>& data) {
