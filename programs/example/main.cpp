@@ -67,17 +67,17 @@ int main(int argc, char **argv) {
         // test.Run();
         // std::cout << test.string_data << std::endl;
 
-        constexpr uint128_t mask = uint128_t(0xFC00000000000000ull) << 63;
+        constexpr uint128_t mask = uint128_t(0xFC00000000000000ull) << 64;
         std::cout << mask << std::endl;
 
         name test1;
         test1.set("abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz");
         std::string test1_str = test1;
-        std::cout << test1_str << std::endl;
+        std::cout << test1_str << ": " << test1_str.length() << std::endl;
         name_t test2 = test1;
-        std::cout << test2[0] << ", " << test2[1] << std::endl;
+        std::cout << std::string(test1) << ": " << (uint64_t)test1.length() << ": " << test2[0] << ", " << test2[1] << std::endl;
         name test3("eosio.token");
-        std::cout << std::string(test3) << ": " << test3.value[0] << ", " << test3.value[1] << std::endl;
+        std::cout << std::string(test3) << ": " << (uint64_t)test1.length() << ": " << test3.value[0] << ", " << test3.value[1] << std::endl;
 
         auto root = fc::app_path();
         app().set_default_data_dir(root / "example/data" );

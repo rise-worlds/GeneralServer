@@ -58,6 +58,7 @@ public:
 
     void set(const char *str);
     std::string to_string() const { return std::string(*this); }
+    constexpr uint8_t length()const ;
 
     operator std::string() const;
     operator name_t() const { return value; }
@@ -90,25 +91,28 @@ name::operator std::string() const
     {
         if( tmp == 0 ) break;
         auto index = (tmp & mask) >> 122;
-        str[i] = charmap[index];
+        str[i] = charmap[index & 0x3Full];
     }
-    if (i == 21 && tmp != 0 && value[1] != 0) {
-        uint128_t index = ((tmp & mask) >> 122) & 0x30;
+    if (i == 21 && (tmp != 0 || value[1] != 0)) {
+        i = 22;
+        tmp = ((tmp & mask) >> 122) & 0x30;
+        tmp |= (value[1] & mask) >> 124;
+        str[i] = charmap[tmp & 0x3Full];
         tmp = value[1];
-        index |= (tmp & mask) >> 124;
-        str[i] = charmap[index];
         tmp <<= 4;
-        for (i = 22; i < 42; ++i, tmp <<= 6) {
+        for (; i < 42; ++i, tmp <<= 6) {
             if( tmp == 0 ) break;
             auto index = (tmp & mask) >> 122;
-            str[i] = charmap[index];
+            str[i] = charmap[index & 0x3Full];
         }
         if (i == 42 && tmp != 0)
         {
             auto index = (tmp & mask) >> 124;
-            str[i] = charmap[index & 0x3f];
+            str[i] = charmap[index & 0x3Full];
         }
     }
+    
+    return str.substr(0, i + 1);
 
     // uint128_t tmp = value[1];
     // uint32_t i = 0;
@@ -138,6 +142,47 @@ name::operator std::string() const
     // }
 
     // boost::algorithm::trim_right_if(str, [](char c) { return c == '.'; });
-    return str;
+    // return str;
 }
+
+constexpr uint8_t name::length()const {
+    // constexpr uint64_t mask = 0xF800000000000000ull;
+
+    // if( value.at(0) == 0 && value.at(1) == 0 )
+    //     return 0;
+
+    // uint8_t l = 0;
+    // uint8_t i = 0;
+    // for( auto v = value; i < 13; ++i, v <<= 5 ) {
+    //     if( (v & mask) > 0 ) {
+    //         l = i;
+    //     }
+    // }
+    constexpr uint128_t mask = uint128_t(0xF800000000000000ull) << 64;
+
+    uint128_t tmp = value[0];
+    uint8_t i = 0;
+    uint8_t l = 0;
+    for (; i < 21; ++i, tmp <<= 6)
+    {
+        if ( (tmp & mask) > 0 ) l = i;
+    }
+    if (tmp != 0 || value[1] != 0) {
+        i = 22;
+        tmp = ((tmp & mask) >> 122) & 0x30;
+        tmp |= (value[1] & mask) >> 124;
+        if ( (tmp & mask) > 0 ) l = i;
+        tmp = value[1];
+        tmp <<= 4;
+        for (; i < 42; ++i, tmp <<= 6) {
+            if ( (tmp & mask) > 0 ) l = i;
+        }
+        if (i == 42 && tmp != 0)
+        {
+            if ( (tmp & mask) > 0 ) l = i;
+        }
+    }
+    return l + 1;
+}
+
 } // namespace example
