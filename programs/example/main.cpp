@@ -7,6 +7,7 @@
 #include "config.hpp"
 #include "wabt.hpp"
 #include "name.hpp"
+#include "muilt_index.hpp"
 
 using namespace appbase;
 using namespace example;
@@ -32,6 +33,9 @@ std::ostream& operator<<( std::ostream& dest, __uint128_t value )
     }
     return dest;
 }
+
+//name test = "test"_n;
+//name_t test_t = "test"_t;
 
 int main(int argc, char **argv) {
     try {
@@ -67,17 +71,39 @@ int main(int argc, char **argv) {
         // test.Run();
         // std::cout << test.string_data << std::endl;
 
-        constexpr uint128_t mask = uint128_t(0xFC00000000000000ull) << 64;
-        std::cout << mask << std::endl;
+        // constexpr uint128_t mask = uint128_t(0xFC00000000000000ull) << 64;
+        // std::cout << mask << std::endl;
 
-        name test1;
-        test1.set("abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz");
-        std::string test1_str = test1;
-        std::cout << test1_str << ": " << test1_str.length() << std::endl;
-        name_t test2 = test1;
-        std::cout << std::string(test1) << ": " << (uint64_t)test1.length() << ": " << test2[0] << ", " << test2[1] << std::endl;
-        name test3("eosio.token");
-        std::cout << std::string(test3) << ": " << (uint64_t)test1.length() << ": " << test3.value[0] << ", " << test3.value[1] << std::endl;
+        // name test1 = "test1"_n;
+        // test1.set("abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz");
+        // std::string test1_str = test1;
+        // std::cout << test1_str << ": " << test1_str.length() << std::endl;
+        // name_t test2 = test1;
+        // std::cout << std::string(test1) << ": " << (uint64_t)test1.length() << ": " << test2[0] << ", " << test2[1] << std::endl;
+        // name test3("eosio.token");
+        // std::cout << std::string(test3) << ": " << (uint64_t)test1.length() << ": " << test3.value[0] << ", " << test3.value[1] << std::endl;
+
+        struct record {
+            uint64_t    primary;
+            uint64_t primary_key() const { return primary; }
+        };
+
+        // name test = "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopq"_n;
+        // std::cout << std::string(test) << std::endl;
+//        muilt_index<test, record> table("root"_n, "root"_n);
+//        muilt_index<test_t, record> table("root"_n, "root"_n);
+//        muilt_index<"test"_t, record> table("root"_n, "root"_n);
+//        muilt_index<name("test"), record> table("root"_n, "root"_n);
+//        muilt_index_test<"test"_tuple, record> table;
+//        typedef muilt_index<"abcdefghijklmnopqrstuvwxyzabcdefghijklmnop"_l, "abcdefghijklmnopqrstuvwxyzabcdefghijklmnop"_r, record> Table;
+//        typedef muilt_index<T("abcdefghijklmnopqrstuvwxyzabcdefghijklmnop"), record> Table;
+//        Table table("test"_n, "root"_n);
+//        std::cout << std::string(table._code) << ", " << std::string(table._scope) << ", " << std::string(table._table) << std::endl;
+//        std::cout << (table._code.length()) << ", " << (table._scope.length()) << ", " << (table._table.length()) << std::endl;
+//        std::cout << std::string(Table::TableName) << ", " << Table::TableName.length() << std::endl;
+        name_t temp = {T("abcdefghijklmnopqrstuvwxyzabcdefghijklmnop")};
+        name temp2(T("abcdefghijklmnopqrstuvwxyzabcdefghijklmnop"));
+        std::cout << std::string(temp2) << ", " << temp2.length() << std::endl;
 
         auto root = fc::app_path();
         app().set_default_data_dir(root / "example/data" );

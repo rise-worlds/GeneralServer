@@ -1,13 +1,39 @@
 #pragma once
 #include <string>
+#include <string_view>
 #include <array>
 #include <boost/algorithm/string.hpp>
+#include <boost/assert.hpp>
+#include <boost/hana/tuple.hpp>
+
+namespace hana = boost::hana;
+using uint128_t = __uint128_t;
 
 namespace example
 {
-using uint128_t = __uint128_t;
-typedef std::array<uint128_t, 2UL> key256_t;
-using name_t = key256_t;
+//typedef std::array<uint128_t, 2UL> key256_t;
+//using name_t = key256_t;
+typedef uint128_t name_t[2];
+//struct name_t {
+//    uint128_t value[2];
+//    uint128_t& operator[](int index)
+//    {
+//        assert(index < 2 && index >= 0);
+//        return value[index];
+//    }
+//    uint128_t operator [](int index) const {
+//        assert(index < 2 && index >= 0);
+//        return value[index];
+//    }
+//    friend bool operator==(const name_t &a, const name_t &b) { return a.value[0] == b.value[0] && a.value[1] == b.value[1]; }
+//    friend bool operator!=(const name_t &a, const name_t &b) { return a.value[0] != b.value[0] || a.value[1] != b.value[1]; }
+//    constexpr name_t& operator=(const name_t& v) {
+//        if (&v == this) return *this;
+//        value[0] = v.value[0];
+//        value[1] = v.value[1];
+//        return *this;
+//    }
+//};
 
 static constexpr uint128_t char_to_symbol(char c)
 {
@@ -18,50 +44,34 @@ static constexpr uint128_t char_to_symbol(char c)
     return 0;
 }
 
-// Each char of the string is encoded into 5-bit chunk and left-shifted
-// to its 5-bit slot starting with the highest slot for the first char.
-// The 13th char, if str is long enough, is encoded into 4-bit chunk
-// and placed in the lowest 4 bits. 64 = 12 * 5 + 4
-static constexpr name_t string_to_name(const char *str)
-{
-    name_t name = {0};
-    int i = 0;
-    for (; str[i] && i < 21; ++i)
-    {
-        name[0] |= (char_to_symbol(str[i]) & 0x3F) << (128 - 6 * (i + 1));
-    }
-    if (str[i] && i == 21)
-    {
-        uint128_t symbo = char_to_symbol(str[21]);
-        name[0] |= (symbo & 0x30) >> 4;
-        name[1] |= (symbo & 0x0F) << 124;
-
-		for (i = 22; str[i] && i < 42; ++i)
-		{
-		    name[1] |= (char_to_symbol(str[i]) & 0x3F) << (124 - 6 * (i - 22 + 1));
-		}
-		if (str[i] && i == 42)
-		{
-		    name[1] |= char_to_symbol(str[42]) & 0x0F;
-		}
-    }
-    return name;
-}
-
 class name
 {
 public:
+//    typedef example::name_t name_t;
     name_t value = {0};
 
-    name() {}
-    name(std::string str) { set(str.c_str()); }
+    constexpr name() {}
+    constexpr name(uint128_t l, uint128_t r) { value[0] = l; value[1] = r; }
+    constexpr name(std::string& str) { set(str); }
+    constexpr name(std::string_view str) { set(str); }
+//    constexpr name(name_t& v) { value = v; }
+//    constexpr name(const name_t& v): value(v) {}
 
-    void set(const char *str);
+    constexpr void set(const std::string_view str);
     std::string to_string() const { return std::string(*this); }
-    constexpr uint8_t length()const ;
+    constexpr uint32_t length()const ;
 
-    operator std::string() const;
-    operator name_t() const { return value; }
+    operator const std::string() const;
+//    operator const name_t() const { return value; }
+    constexpr name& operator=(const name& v) {
+        if (&v == this) return *this;
+        value[0] = v.value[0];
+        value[1] = v.value[1];
+        return *this;
+    }
+
+//    const name_t operator&() const { return value; }
+//    const name operator&() const { return this; }
 
     friend bool operator==(const name &a, const name &b) { return a.value == b.value; }
     friend bool operator!=(const name &a, const name &b) { return a.value != b.value; }
@@ -70,23 +80,47 @@ public:
     friend bool operator!=(const name &a, name_t b) { return a.value != b; }
 };
 
-void name::set(const char *str)
+//constexpr name::name(std::string_view str)
+constexpr void name::set(const std::string_view str)
 {
-    const auto len = strnlen(str, 44);
-    value = string_to_name(str);
+    const auto len = str.size(); //strnlen(str, 44);
+    if( str.size() > 43 ) {
+        BOOST_ASSERT_MSG( false, "string is too long to be a valid name" );
+    }
+    if( str.empty() ) {
+        return;
+    }
+    int i = 0;
+    for (; i < 21 && i < len && str[i]; ++i)
+    {
+        value[0] |= (char_to_symbol(str[i]) & 0x3F) << (128 - 6 * (i + 1));
+    }
+    if (i == 21 && i < len && str[i])
+    {
+        uint128_t symbol = char_to_symbol(str[21]);
+        value[0] |= (symbol & 0x30) >> 4;
+        value[1] |= (symbol & 0x0F) << 124;
+
+        for (i = 22; i < 42 && i < len && str[i]; ++i)
+        {
+            value[1] |= (char_to_symbol(str[i]) & 0x3F) << (124 - 6 * (i - 22 + 1));
+        }
+        if (i == 42 && i < len && str[i])
+        {
+            value[1] |= char_to_symbol(str[42]) & 0x0F;
+        }
+    }
 }
 
-name::operator std::string() const
+name::operator const std::string() const
 {
-    constexpr uint128_t mask = uint128_t(0xFC00000000000000ull) << 64;//334965454937798799971759379190646833152U 7B6D23C394CE1558E633275EB34AC6A1C 3D368961C2670A2BEA918B2ED19CDAC86
-    // constexpr auto a = mask >> 64;//18158513697557839872U
-    // constexpr uint128_t mask = uint128_t(0xFCull) << 122;319014718988379809496913694467282698240U
+    constexpr uint128_t mask = uint128_t(0xFC00000000000000ull) << 64;
     static const char *charmap = ".0123456789abcdefghijklmnopqrstuvwxyz...........................";
 
     std::string str(43, '\0');
 
     uint128_t tmp = value[0];
-    uint32_t i = 0;
+    uint8_t i = 0;
     for (; i < 21; ++i, tmp <<= 6)
     {
         if( tmp == 0 ) break;
@@ -94,12 +128,12 @@ name::operator std::string() const
         str[i] = charmap[index & 0x3Full];
     }
     if (i == 21 && (tmp != 0 || value[1] != 0)) {
-        i = 22;
-        tmp = ((tmp & mask) >> 122) & 0x30;
-        tmp |= (value[1] & mask) >> 124;
+//        tmp = ((tmp & mask) >> 122) & 0x30;
+        tmp = (value[0] << 4) & 0x30;
+        tmp |= ((value[1] & mask) >> 124);
         str[i] = charmap[tmp & 0x3Full];
-        tmp = value[1];
-        tmp <<= 4;
+        tmp = value[1] << 4;
+        i = 22;
         for (; i < 42; ++i, tmp <<= 6) {
             if( tmp == 0 ) break;
             auto index = (tmp & mask) >> 122;
@@ -112,52 +146,10 @@ name::operator std::string() const
         }
     }
     
-    return str.substr(0, i + 1);
-
-    // uint128_t tmp = value[1];
-    // uint32_t i = 0;
-    // for (; i < 21; ++i)
-    // {
-    //     char c = charmap[tmp & (i == 0 ? 0x0f : 0x3f)];
-    //     str[42 - i] = c;
-    //     tmp >>= (i == 0 ? 4 : 6);
-    // }
-    // {
-    //     uint128_t index = 0;
-    //     index |= tmp & 0x0F;
-    //     tmp = value[0];
-    //     index |=  (tmp & 0x03) << 4;
-    //     str[42 - i] = charmap[index & 0x3f];
-    //     tmp >>= 2;
-    // }
-    // for (i = 22; i < 42; ++i)
-    // {
-    //     char c = charmap[tmp & 0x3f];
-    //     str[42 - i] = c;
-    //     tmp >>= 6;
-    // }
-    // if (i == 42)
-    // {
-    //     str[42 - i] = charmap[tmp & 0x3f];
-    // }
-
-    // boost::algorithm::trim_right_if(str, [](char c) { return c == '.'; });
-    // return str;
+    return str.substr(0, i);
 }
 
-constexpr uint8_t name::length()const {
-    // constexpr uint64_t mask = 0xF800000000000000ull;
-
-    // if( value.at(0) == 0 && value.at(1) == 0 )
-    //     return 0;
-
-    // uint8_t l = 0;
-    // uint8_t i = 0;
-    // for( auto v = value; i < 13; ++i, v <<= 5 ) {
-    //     if( (v & mask) > 0 ) {
-    //         l = i;
-    //     }
-    // }
+constexpr uint32_t name::length()const {
     constexpr uint128_t mask = uint128_t(0xF800000000000000ull) << 64;
 
     uint128_t tmp = value[0];
@@ -168,12 +160,11 @@ constexpr uint8_t name::length()const {
         if ( (tmp & mask) > 0 ) l = i;
     }
     if (tmp != 0 || value[1] != 0) {
-        i = 22;
         tmp = ((tmp & mask) >> 122) & 0x30;
         tmp |= (value[1] & mask) >> 124;
         if ( (tmp & mask) > 0 ) l = i;
-        tmp = value[1];
-        tmp <<= 4;
+        tmp = value[1] << 4;
+        i = 22;
         for (; i < 42; ++i, tmp <<= 6) {
             if ( (tmp & mask) > 0 ) l = i;
         }
@@ -185,4 +176,40 @@ constexpr uint8_t name::length()const {
     return l + 1;
 }
 
+namespace detail {
+    template <char... Str>
+    struct to_const_char_arr {
+        static constexpr const char value[] = {Str...};
+    };
+}
+
 } // namespace example
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wgnu-string-literal-operator-template"
+template <typename T, T... Str>
+inline constexpr example::name operator""_n() {
+   auto x = example::name{std::string_view{example::detail::to_const_char_arr<Str...>::value, sizeof...(Str)}};
+   return x;
+}
+//template <typename T, T... Str>
+//inline constexpr example::name_t operator""_t() {
+//    auto x = example::name{std::string_view{example::detail::to_const_char_arr<Str...>::value, sizeof...(Str)}};
+//    return x.value;
+//}
+template <typename T, T... Str>
+inline constexpr uint128_t operator""_l() {
+    auto x = example::name{std::string_view{example::detail::to_const_char_arr<Str...>::value, sizeof...(Str)}};
+    return x.value[0];
+}
+template <typename T, T... Str>
+inline constexpr uint128_t operator""_r() {
+    auto x = example::name{std::string_view{example::detail::to_const_char_arr<Str...>::value, sizeof...(Str)}};
+    return x.value[1];
+}
+template <typename T, T... Str>
+inline constexpr hana::tuple<uint128_t, uint128_t> operator""_tuple() {
+    auto x = example::name{std::string_view{example::detail::to_const_char_arr<Str...>::value, sizeof...(Str)}};
+    return hana::make_tuple(x.value[0], x.value[1]);
+}
+#pragma clang diagnostic pop
