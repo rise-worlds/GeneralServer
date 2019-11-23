@@ -13,22 +13,20 @@ using namespace appbase;
 using namespace example;
 using namespace example::wabt;
 
-std::ostream& operator<<( std::ostream& dest, __uint128_t value )
-{
-    std::ostream::sentry s( dest );
-    if ( s ) {
+std::ostream &operator<<(std::ostream &dest, __uint128_t value) {
+    std::ostream::sentry s(dest);
+    if (s) {
         __uint128_t tmp = value;
-        char buffer[ 128 ];
-        char* d = std::end( buffer );
-        do
-        {
-            -- d;
-            *d = "0123456789ABCDEF"[ tmp % 0x0F ];
+        char buffer[128];
+        char *d = std::end(buffer);
+        do {
+            --d;
+            *d = "0123456789ABCDEF"[tmp % 0x0F];
             tmp /= 0x0F;
-        } while ( tmp != 0 );
-        int len = std::end( buffer ) - d;
-        if ( dest.rdbuf()->sputn( d, len ) != len ) {
-            dest.setstate( std::ios_base::badbit );
+        } while (tmp != 0);
+        int len = std::end(buffer) - d;
+        if (dest.rdbuf()->sputn(d, len) != len) {
+            dest.setstate(std::ios_base::badbit);
         }
     }
     return dest;
@@ -36,6 +34,7 @@ std::ostream& operator<<( std::ostream& dest, __uint128_t value )
 
 //name test = "test"_n;
 //name_t test_t = "test"_t;
+//char tablename[] = "abcdefghijklmnopqrstuvwxyz\0";
 
 int main(int argc, char **argv) {
     try {
@@ -74,17 +73,59 @@ int main(int argc, char **argv) {
         // constexpr uint128_t mask = uint128_t(0xFC00000000000000ull) << 64;
         // std::cout << mask << std::endl;
 
-        // name test1 = "test1"_n;
+//         name test1 = "test1"_n;
         // test1.set("abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz");
         // std::string test1_str = test1;
         // std::cout << test1_str << ": " << test1_str.length() << std::endl;
         // name_t test2 = test1;
         // std::cout << std::string(test1) << ": " << (uint64_t)test1.length() << ": " << test2[0] << ", " << test2[1] << std::endl;
-        // name test3("eosio.token");
-        // std::cout << std::string(test3) << ": " << (uint64_t)test1.length() << ": " << test3.value[0] << ", " << test3.value[1] << std::endl;
+        name test3("eosio.token");
+        name suffix;
+        std::cout << std::string(test3) << ": " << (uint64_t) test3.length() << ": " << test3.value[0] << ", "
+                  << test3.value[1] << std::endl;
+        suffix = test3.suffix();
+        std::cout << std::string(suffix) << ": " << (uint64_t) suffix.length() << ": " << suffix.value[0] << ", "
+                  << suffix.value[1] << std::endl;
+        test3 = name("eosio.tokentokentokentokentokentokentoken");
+        std::cout << std::string(test3) << ": " << (uint64_t) test3.length() << ": " << test3.value[0] << ", "
+                  << test3.value[1] << std::endl;
+        suffix = test3.suffix();
+        std::cout << std::string(suffix) << ": " << (uint64_t) suffix.length() << ": " << suffix.value[0] << ", "
+                  << suffix.value[1] << std::endl;
+        test3 = name("eosioeosioeosioeosioeosio.token");
+        std::cout << std::string(test3) << ": " << (uint64_t) test3.length() << ": " << test3.value[0] << ", "
+                  << test3.value[1] << std::endl;
+        suffix = test3.suffix();
+        std::cout << std::string(suffix) << ": " << (uint64_t) suffix.length() << ": " << suffix.value[0] << ", "
+                  << suffix.value[1] << std::endl;
+        test3 = name("eosioeosioeosioeosioe.token");
+        std::cout << std::string(test3) << ": " << (uint64_t) test3.length() << ": " << test3.value[0] << ", "
+                  << test3.value[1] << std::endl;
+        suffix = test3.suffix();
+        std::cout << std::string(suffix) << ": " << (uint64_t) suffix.length() << ": " << suffix.value[0] << ", "
+                  << suffix.value[1] << std::endl;
+        test3 = name("eosioeosioeosioeosioeo.token");
+        std::cout << std::string(test3) << ": " << (uint64_t) test3.length() << ": " << test3.value[0] << ", "
+                  << test3.value[1] << std::endl;
+        suffix = test3.suffix();
+        std::cout << std::string(suffix) << ": " << (uint64_t) suffix.length() << ": " << suffix.value[0] << ", "
+                  << suffix.value[1] << std::endl;
+        test3 = name("eosioeosioeosioeosioeos.token");
+        std::cout << std::string(test3) << ": " << (uint64_t) test3.length() << ": " << test3.value[0] << ", "
+                  << test3.value[1] << std::endl;
+        suffix = test3.suffix();
+        std::cout << std::string(suffix) << ": " << (uint64_t) suffix.length() << ": " << suffix.value[0] << ", "
+                  << suffix.value[1] << std::endl;
+        test3 = name("eosio.tokentokentokentokentokentokentokentoken");
+        std::cout << std::string(test3) << ": " << (uint64_t) test3.length() << ": " << test3.value[0] << ", "
+                  << test3.value[1] << std::endl;
+        suffix = test3.suffix();
+        std::cout << std::string(suffix) << ": " << (uint64_t) suffix.length() << ": " << suffix.value[0] << ", "
+                  << suffix.value[1] << std::endl;
 
         struct record {
-            uint64_t    primary;
+            uint64_t primary;
+
             uint64_t primary_key() const { return primary; }
         };
 
@@ -98,23 +139,30 @@ int main(int argc, char **argv) {
 //        typedef muilt_index<"abcdefghijklmnopqrstuvwxyzabcdefghijklmnop"_l, "abcdefghijklmnopqrstuvwxyzabcdefghijklmnop"_r, record> Table;
 //        typedef muilt_index<T("abcdefghijklmnopqrstuvwxyzabcdefghijklmnop"), record> Table;
 //        Table table("test"_n, "root"_n);
-//        std::cout << std::string(table._code) << ", " << std::string(table._scope) << ", " << std::string(table._table) << std::endl;
-//        std::cout << (table._code.length()) << ", " << (table._scope.length()) << ", " << (table._table.length()) << std::endl;
 //        std::cout << std::string(Table::TableName) << ", " << Table::TableName.length() << std::endl;
-        name_t temp = {T("abcdefghijklmnopqrstuvwxyzabcdefghijklmnop")};
-        name temp2(T("abcdefghijklmnopqrstuvwxyzabcdefghijklmnop"));
-        std::cout << std::string(temp2) << ", " << temp2.length() << std::endl;
+//        name_t temp = {T("abcdefghijklmnopqrstuvwxyzabcdefghijklmnop")};
+//        name temp2(T("abcdefghijklmnopqrstuvwxyzabcdefghijklmnop"));
+//        std::cout << std::string(temp2) << ", " << temp2.length() << std::endl;
+
+//        muilt_index_test<("abcdefghijklmnopqrstuvwxyzabcdefghijklmnop"), record> table("test"_n, "root"_n);
+//        muilt_index_test<("abcdefghijklmnopqrstuvwxyzabcdefghijklmnop"), record> table("test"_n, "root"_n);
+//        constexpr static const char tablename[] = "abcdefghijklmnopqrstuvwxyz\0";
+//        muilt_index_test<tablename, record> table("test"_n, "root"_n);
+//        std::cout << std::string(table._code) << ", " << std::string(table._scope) << ", " << std::string(table._table)
+//                  << std::endl;
+//        std::cout << (table._code.length()) << ", " << (table._scope.length()) << ", " << (table._table.length())
+//                  << std::endl;
 
         auto root = fc::app_path();
-        app().set_default_data_dir(root / "example/data" );
-        app().set_default_config_dir(root / "example/config" );
+        app().set_default_data_dir(root / "example/data");
+        app().set_default_config_dir(root / "example/config");
         if (!appbase::app().initialize(argc, argv))
             return -1;
         appbase::app().startup();
         appbase::app().exec();
-    } catch( const fc::exception& e ) {
+    } catch (const fc::exception &e) {
         std::cerr << e.to_detail_string() << "\n";
-    } catch( const boost::interprocess::bad_alloc& e ) {
+    } catch (const boost::interprocess::bad_alloc &e) {
         std::cerr << "bad alloc" << "\n";
     } catch (const boost::exception &e) {
         std::cerr << boost::diagnostic_information(e) << "\n";
