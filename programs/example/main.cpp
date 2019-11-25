@@ -2,6 +2,7 @@
 #include <boost/exception/diagnostic_information.hpp>
 #include <fc/filesystem.hpp>
 #include <fc/exception/exception.hpp>
+#include <boost/multiprecision/cpp_int.hpp>
 
 #include <iostream>
 #include "config.hpp"
@@ -41,6 +42,17 @@ int main(int argc, char **argv) {
         app().set_version(GeneralServer::example::config::version);
         std::cout << u8"example " << appbase::app().version_string() << std::endl;
 
+        {
+            using namespace boost::multiprecision::literals;
+            using namespace boost::multiprecision;
+            constexpr std::array<__uint128_t, 2UL> a = {0};
+            constexpr __uint128_t b[2UL] = {0};
+            constexpr boost::multiprecision::uint256_t c = 0x00_cppui256;
+            constexpr std::array<__uint64_t, 4UL> d = {0};
+            constexpr __uint64_t e[4UL] = {0};
+            std::cout << sizeof(a) << ", " << sizeof(b) << ", " << sizeof(c) << ", " << sizeof(d) << ", " << sizeof(e) << std::endl;
+        }
+        
         // std::vector<uint8_t> data = {
         //     0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00, 0x01, 0x14, 0x04, 0x60,
         //     0x02, 0x7f, 0x7f, 0x01, 0x7f, 0x60, 0x02, 0x7f, 0x7f, 0x00, 0x60, 0x01,
@@ -75,53 +87,54 @@ int main(int argc, char **argv) {
 
 //         name test1 = "test1"_n;
         // test1.set("abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz");
+        // std::cout << std::string(test1) << ": " << test1.length() << std::endl;
         // std::string test1_str = test1;
         // std::cout << test1_str << ": " << test1_str.length() << std::endl;
         // name_t test2 = test1;
         // std::cout << std::string(test1) << ": " << (uint64_t)test1.length() << ": " << test2[0] << ", " << test2[1] << std::endl;
-        name test3("eosio.token");
-        name suffix;
-        std::cout << std::string(test3) << ": " << (uint64_t) test3.length() << ": " << test3.value[0] << ", "
-                  << test3.value[1] << std::endl;
-        suffix = test3.suffix();
-        std::cout << std::string(suffix) << ": " << (uint64_t) suffix.length() << ": " << suffix.value[0] << ", "
-                  << suffix.value[1] << std::endl;
-        test3 = name("eosio.tokentokentokentokentokentokentoken");
-        std::cout << std::string(test3) << ": " << (uint64_t) test3.length() << ": " << test3.value[0] << ", "
-                  << test3.value[1] << std::endl;
-        suffix = test3.suffix();
-        std::cout << std::string(suffix) << ": " << (uint64_t) suffix.length() << ": " << suffix.value[0] << ", "
-                  << suffix.value[1] << std::endl;
-        test3 = name("eosioeosioeosioeosioeosio.token");
-        std::cout << std::string(test3) << ": " << (uint64_t) test3.length() << ": " << test3.value[0] << ", "
-                  << test3.value[1] << std::endl;
-        suffix = test3.suffix();
-        std::cout << std::string(suffix) << ": " << (uint64_t) suffix.length() << ": " << suffix.value[0] << ", "
-                  << suffix.value[1] << std::endl;
-        test3 = name("eosioeosioeosioeosioe.token");
-        std::cout << std::string(test3) << ": " << (uint64_t) test3.length() << ": " << test3.value[0] << ", "
-                  << test3.value[1] << std::endl;
-        suffix = test3.suffix();
-        std::cout << std::string(suffix) << ": " << (uint64_t) suffix.length() << ": " << suffix.value[0] << ", "
-                  << suffix.value[1] << std::endl;
-        test3 = name("eosioeosioeosioeosioeo.token");
-        std::cout << std::string(test3) << ": " << (uint64_t) test3.length() << ": " << test3.value[0] << ", "
-                  << test3.value[1] << std::endl;
-        suffix = test3.suffix();
-        std::cout << std::string(suffix) << ": " << (uint64_t) suffix.length() << ": " << suffix.value[0] << ", "
-                  << suffix.value[1] << std::endl;
-        test3 = name("eosioeosioeosioeosioeos.token");
-        std::cout << std::string(test3) << ": " << (uint64_t) test3.length() << ": " << test3.value[0] << ", "
-                  << test3.value[1] << std::endl;
-        suffix = test3.suffix();
-        std::cout << std::string(suffix) << ": " << (uint64_t) suffix.length() << ": " << suffix.value[0] << ", "
-                  << suffix.value[1] << std::endl;
-        test3 = name("eosio.tokentokentokentokentokentokentokentoken");
-        std::cout << std::string(test3) << ": " << (uint64_t) test3.length() << ": " << test3.value[0] << ", "
-                  << test3.value[1] << std::endl;
-        suffix = test3.suffix();
-        std::cout << std::string(suffix) << ": " << (uint64_t) suffix.length() << ": " << suffix.value[0] << ", "
-                  << suffix.value[1] << std::endl;
+        // name test3("eosio.token");
+        // name suffix;
+        // std::cout << std::string(test3) << ": " << (uint64_t) test3.length() << ": " << test3.value[0] << ", "
+        //           << test3.value[1] << std::endl;
+        // suffix = test3.suffix();
+        // std::cout << std::string(suffix) << ": " << (uint64_t) suffix.length() << ": " << suffix.value[0] << ", "
+        //           << suffix.value[1] << std::endl;
+        // test3 = name("eosio.tokentokentokentokentokentokentoken");
+        // std::cout << std::string(test3) << ": " << (uint64_t) test3.length() << ": " << test3.value[0] << ", "
+        //           << test3.value[1] << std::endl;
+        // suffix = test3.suffix();
+        // std::cout << std::string(suffix) << ": " << (uint64_t) suffix.length() << ": " << suffix.value[0] << ", "
+        //           << suffix.value[1] << std::endl;
+        // test3 = name("eosioeosioeosioeosioeosio.token");
+        // std::cout << std::string(test3) << ": " << (uint64_t) test3.length() << ": " << test3.value[0] << ", "
+        //           << test3.value[1] << std::endl;
+        // suffix = test3.suffix();
+        // std::cout << std::string(suffix) << ": " << (uint64_t) suffix.length() << ": " << suffix.value[0] << ", "
+        //           << suffix.value[1] << std::endl;
+        // test3 = name("eosioeosioeosioeosioe.token");
+        // std::cout << std::string(test3) << ": " << (uint64_t) test3.length() << ": " << test3.value[0] << ", "
+        //           << test3.value[1] << std::endl;
+        // suffix = test3.suffix();
+        // std::cout << std::string(suffix) << ": " << (uint64_t) suffix.length() << ": " << suffix.value[0] << ", "
+        //           << suffix.value[1] << std::endl;
+        // test3 = name("eosioeosioeosioeosioeo.token");
+        // std::cout << std::string(test3) << ": " << (uint64_t) test3.length() << ": " << test3.value[0] << ", "
+        //           << test3.value[1] << std::endl;
+        // suffix = test3.suffix();
+        // std::cout << std::string(suffix) << ": " << (uint64_t) suffix.length() << ": " << suffix.value[0] << ", "
+        //           << suffix.value[1] << std::endl;
+        // test3 = name("eosioeosioeosioeosioeos.token");
+        // std::cout << std::string(test3) << ": " << (uint64_t) test3.length() << ": " << test3.value[0] << ", "
+        //           << test3.value[1] << std::endl;
+        // suffix = test3.suffix();
+        // std::cout << std::string(suffix) << ": " << (uint64_t) suffix.length() << ": " << suffix.value[0] << ", "
+        //           << suffix.value[1] << std::endl;
+        // test3 = name("eosio.tokentokentokentokentokentokentokentoken");
+        // std::cout << std::string(test3) << ": " << (uint64_t) test3.length() << ": " << test3.value[0] << ", "
+        //           << test3.value[1] << std::endl;
+        // suffix = test3.suffix();
+        // std::cout << std::string(suffix) << ": " << (uint64_t) suffix.length() << ": " << suffix.value[0] << ", "
+        //           << suffix.value[1] << std::endl;
 
         struct record {
             uint64_t primary;
@@ -129,8 +142,10 @@ int main(int argc, char **argv) {
             uint64_t primary_key() const { return primary; }
         };
 
-        // name test = "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopq"_n;
-        // std::cout << std::string(test) << std::endl;
+        name test = "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopq"_n;
+        std::cout << std::string(test) << ": " << test.length() << std::endl;
+        std::string test_str = test;
+        std::cout << test_str << ": " << test_str.length() << std::endl;
 //        muilt_index<test, record> table("root"_n, "root"_n);
 //        muilt_index<test_t, record> table("root"_n, "root"_n);
 //        muilt_index<"test"_t, record> table("root"_n, "root"_n);

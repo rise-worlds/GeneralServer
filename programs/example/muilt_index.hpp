@@ -1,6 +1,7 @@
 #include <boost/hana.hpp>
 
 #include "name.hpp"
+#include "namev2.hpp"
 
 namespace hana = boost::hana;
 
@@ -99,7 +100,7 @@ namespace example
         struct index {
             static constexpr name IndexName = name(IndexName_L, IndexName_R);
         public:
-            typedef Extractor  secondary_extractor_type;
+            typedef Extractor secondary_extractor_type;
             typedef typename std::decay<decltype( Extractor()(nullptr) )>::type secondary_key_type;
 
             constexpr static bool validate_index_name( name n ) {

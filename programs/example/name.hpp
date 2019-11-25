@@ -6,10 +6,10 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/assert.hpp>
 #include <boost/hana/tuple.hpp>
-
 namespace hana = boost::hana;
 using uint128_t = __uint128_t;
 
+#if 0
 namespace example {
 //typedef std::array<uint128_t, 2UL> key256_t;
 //using name_t = key256_t;
@@ -306,3 +306,4 @@ inline constexpr hana::tuple<uint128_t, uint128_t> operator ""_tuple() {
 }
 
 #pragma clang diagnostic pop
+#endif
