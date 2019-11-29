@@ -26,7 +26,15 @@ namespace example {
     class name {
     public:
 //    typedef example::name_t name_t;
-        uint256_t value = {0};
+        union 
+        {
+            /* data */
+            std::array<uint8_t, 32> bytes;
+            std::array<uint32_t, 8> dwords;
+            std::array<uint64_t, 4> qwords;
+            uint256_t value = {0};
+        };
+        
 
         constexpr name() {}
 

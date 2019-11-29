@@ -143,6 +143,16 @@ int main(int argc, char **argv) {
         };
 
         name test = "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopq"_n;
+        std::cout << std::hex << std::showbase << test.value << std::endl;
+        example::uint256_t v = 0x00_cppui256;
+        std::cout << std::hex << std::showbase << v << std::endl;
+        // memcpy(&v, &test.qwords, sizeof(uint64_t)*4);
+        // v.backend().resize(4, 1);
+        import_bits(v, test.qwords.begin(), test.qwords.end(), 0, false);
+        std::cout << std::hex << std::showbase << v << std::endl;
+        std::cout << std::hex << std::showbase << test.qwords[0] << ", " << test.qwords[1] << ", " << test.qwords[2] << ", " << test.qwords[3] << std::endl;
+        auto limbs = v.backend().limbs();
+        std::cout << std::hex << std::showbase << limbs[0] << ", " << limbs[1] << ", " << limbs[2] << ", " << limbs[3] << std::endl;
         std::cout << std::string(test) << ": " << test.length() << std::endl;
         std::string test_str = test;
         std::cout << test_str << ": " << test_str.length() << std::endl;
