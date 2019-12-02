@@ -52,6 +52,22 @@ int main(int argc, char **argv) {
             constexpr __uint64_t e[4UL] = {0};
             std::cout << sizeof(a) << ", " << sizeof(b) << ", " << sizeof(c) << ", " << sizeof(d) << ", " << sizeof(e) << std::endl;
         }
+        {
+            name test;
+            test.value = 0xFC00000000000000000000000000000000000000000000000000000000000000_cppui256;
+            name test2;
+            test2.qwords[0] = 0xFC00000000000000ull;
+            name test3;
+            test3.qwords[1] = 0xFC00000000000000ull;
+            name test4;
+            test4.qwords[2] = 0xFC00000000000000ull;
+            name test5;
+            test5.qwords[3] = 0xFC00000000000000ull;
+            std::cout << std::boolalpha << (test == test2) << std::endl;
+            std::cout << std::boolalpha << (test == test3) << std::endl;
+            std::cout << std::boolalpha << (test == test4) << std::endl;
+            std::cout << std::boolalpha << (test == test5) << std::endl;
+        }
         
         // std::vector<uint8_t> data = {
         //     0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00, 0x01, 0x14, 0x04, 0x60,

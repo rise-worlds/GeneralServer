@@ -32,6 +32,7 @@ namespace example {
             std::array<uint8_t, 32> bytes;
             std::array<uint32_t, 8> dwords;
             std::array<uint64_t, 4> qwords;
+            std::array<__uint128_t, 2> qtwords;
             uint256_t value = {0};
         };
         
@@ -83,8 +84,8 @@ namespace example {
 //    const name_t operator&() const { return value; }
 //    const name operator&() const { return this; }
 
-        friend bool operator==(const name &a, const name &b) { return a.value == b.value; }
-        friend bool operator!=(const name &a, const name &b) { return a.value != b.value; }
+        friend bool operator==(const name &a, const name &b) { return a.qwords == b.qwords; }
+        friend bool operator!=(const name &a, const name &b) { return a.qwords != b.qwords; }
 
         // friend bool operator==(const name &a, name_t b) { return a.value == b; }
         // friend bool operator!=(const name &a, name_t b) { return a.value != b; }
@@ -204,20 +205,26 @@ inline constexpr example::name operator ""_n() {
 }
 
 //template <typename T, T... Str>
-//inline constexpr example::name_t operator""_t() {
+//inline constexpr example::name_t operator""_n() {
 //    auto x = example::name{std::string_view{example::detail::to_const_char_arr<Str...>::value, sizeof...(Str)}};
 //    return x.value;
 //}
+
+template <typename T, T... Str>
+inline constexpr std::string_view operator""_str() {
+   return std::string_view{example::detail::to_const_char_arr<Str...>::value, sizeof...(Str)};
+}
+
 template<typename T, T... Str>
 inline constexpr uint128_t operator ""_l() {
     auto x = example::name{std::string_view{example::detail::to_const_char_arr<Str...>::value, sizeof...(Str)}};
-    return ((uint128_t*)&x.value)[0];
+    return x.qtwords[0];
 }
 
 template<typename T, T... Str>
 inline constexpr uint128_t operator ""_r() {
     auto x = example::name{std::string_view{example::detail::to_const_char_arr<Str...>::value, sizeof...(Str)}};
-    return ((uint128_t*)&x.value)[1];
+    return x.qtwords[1];
 }
 
 #define T(table) table##_l, table##_r
