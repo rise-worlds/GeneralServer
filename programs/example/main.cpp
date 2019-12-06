@@ -8,7 +8,9 @@
 #include "config.hpp"
 #include "wabt.hpp"
 #include "name.hpp"
-#include "muilt_index.hpp"
+#include "namev2.hpp"
+#include "namev3.hpp"
+// #include "muilt_index.hpp"
 
 using namespace appbase;
 using namespace example;
@@ -67,6 +69,22 @@ int main(int argc, char **argv) {
             std::cout << std::boolalpha << (test == test3) << std::endl;
             std::cout << std::boolalpha << (test == test4) << std::endl;
             std::cout << std::boolalpha << (test == test5) << std::endl;
+        }
+        {
+            name test;
+            std::array<__uint64_t, 4UL> d = {132006384, 140722526948008, 140410012754416, 140410012877168};
+            example::uint256_t v = 0x00_cppui256;
+            import_bits(v, d.begin(), d.end(), 0, false);
+            std::cout << v.str(0, std::ios::showbase | std::ios::hex) << std::endl;
+            test = v;
+            std::cout << std::string(test) << ": " << test.length() << std::endl;
+            d = {7599208978170986800, 3933715074956227603, 1398778696791611201, 1855275629436276};
+            import_bits(v, d.begin(), d.end(), 0, false);
+            std::cout << v.str(0, std::ios::showbase | std::ios::hex) << std::endl;
+            test = v;
+            std::cout << std::string(test) << ": " << test.length() << std::endl;
+            test.set("abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz");
+            std::cout << std::string(test) << ": " << test.length() << std::endl;
         }
         
         // std::vector<uint8_t> data = {
@@ -169,6 +187,7 @@ int main(int argc, char **argv) {
         std::cout << std::hex << std::showbase << test.qwords[0] << ", " << test.qwords[1] << ", " << test.qwords[2] << ", " << test.qwords[3] << std::endl;
         auto limbs = v.backend().limbs();
         std::cout << std::hex << std::showbase << limbs[0] << ", " << limbs[1] << ", " << limbs[2] << ", " << limbs[3] << std::endl;
+        std::cout << std::resetiosflags(std::ios::showbase | std::ios::hex);
         std::cout << std::string(test) << ": " << test.length() << std::endl;
         std::string test_str = test;
         std::cout << test_str << ": " << test_str.length() << std::endl;

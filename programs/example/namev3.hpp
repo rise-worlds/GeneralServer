@@ -8,18 +8,47 @@
 #include <boost/multiprecision/cpp_int.hpp>
 
 using uint128_t = __uint128_t;
-#if 0
+
 namespace example {
 
     using namespace boost::multiprecision::literals;
     // using namespace boost::multiprecision;
     using boost::multiprecision::uint256_t;
 
-    static constexpr uint256_t char_to_symbol(char c) {
-        if (c >= 'a' && c <= 'z')
-            return (c - 'a') + 11;
-        if (c >= '0' && c <= '9')
-            return (c - '0') + 1;
+    static const char decode_map[51] = ".-0123456789abcdefghijklmnopqrstuvwxyz_:<>[]{}()`~";
+    static constexpr uint64_t char_to_symbol(char c) {
+        if( c == '~' )
+            return (c - '~') + 49;
+        if( c == '`' )
+            return (c - '`') + 48;
+        if( c == ')' )
+            return (c - ')') + 47;
+        if( c == '(' )
+            return (c - '(') + 46;
+        if( c == '}' )
+            return (c - '}') + 45;
+        if( c == '{' )
+            return (c - '{') + 44;
+        if( c == ']' )
+            return (c - ']') + 43;
+        if( c == '[' )
+            return (c - '[') + 42;
+        if( c == '>' )
+            return (c - '>') + 41;
+        if( c == '<' )
+            return (c - '<') + 40;
+        if( c == ':' )
+            return (c - ':') + 39;
+        if( c == '_' )
+            return (c - '_') + 38;
+        if( c >= 'A' && c <= 'Z' )
+            return (c - 'A') + 12;
+        if( c >= 'a' && c <= 'z' )
+            return (c - 'a') + 12;
+        if( c >= '0' && c <= '9' )
+            return (c - '0') + 2;
+        if( c == '-' )
+            return (c - '-') + 1;
         return 0;
     }
 
@@ -33,7 +62,7 @@ namespace example {
             std::array<uint32_t, 8> dwords;
             std::array<uint64_t, 4> qwords;
             std::array<__uint128_t, 2> qtwords;
-            uint256_t value = {0};
+            uint256_t value = {0x00_cppui256};
         };
         
 
@@ -62,18 +91,18 @@ namespace example {
         //     value[1] = v[1];
         // }
 
-        constexpr void set(const std::string_view str);
+        void set(const std::string_view str);
 
         std::string to_string() const { return std::string(*this); }
 
-        constexpr uint32_t length() const;
+        uint32_t length() const;
 
-        constexpr name suffix();
+        name suffix();
 
         operator const std::string() const;
 
 //    operator const name_t() const { return value; }
-        constexpr name &operator=(const name &v) {
+        name &operator=(const name &v) {
             if (&v == this) return *this;
             // value[0] = v.value[0];
             // value[1] = v.value[1];
@@ -91,80 +120,66 @@ namespace example {
         // friend bool operator!=(const name &a, name_t b) { return a.value != b; }
     };
 
-//constexpr name::name(std::string_view str)
-    constexpr void name::set(const std::string_view str) {
+    void name::set(const std::string_view str) {
         const auto len = str.size(); //strnlen(str, 44);
-//    BOOST_ASSERT_MSG( len > 43, "string is too long to be a valid name" );
         if (len == 0) {
             return;
         }
+        value = 0x00_cppui256;
         int i = 0;
-        for (; i < 42 && i < len && str[i]; ++i) {
-            value |= (char_to_symbol(str[i]) & 0x3F) << (256 - 6 * (i + 1));
-        }
-        if (i == 42 && i < len && str[i]) {
-            value |= char_to_symbol(str[42]) & 0x0F;
+        for ( ; str[i] && i < 42; ++i) {
+            uint256_t c = (char_to_symbol(str[i]) & 0x3f);
+            c <<= (4 + (6 * i));
+            value |= c;
         }
     }
 
     name::operator const std::string() const {
-        constexpr uint256_t mask = 0xFC00000000000000000000000000000000000000000000000000000000000000_cppui256;
-        constexpr static const char *charmap = ".0123456789abcdefghijklmnopqrstuvwxyz...........................";
-
         std::string str(44, '\0');
 
         uint256_t tmp = value;
-        uint8_t i = 0;
-        for (; i < 42; ++i, tmp <<= 6) {
-            if (tmp == 0) break;
-            auto index = static_cast<uint8_t>((tmp & mask) >> 250);
-            str[i] = charmap[index & 0x3Full];
-        }
-        if (i == 42 && tmp != 0) {
-            auto index = static_cast<uint8_t>((tmp & mask) >> 252);
-            str[i] = charmap[index & 0x3Full];
-            ++i;
+        uint8_t i = 0, l = 0;
+        tmp >>= 4;
+        for( ; i < 42; ++i ) {
+            char c = decode_map[static_cast<uint8_t >(tmp & 0x3f)];
+            if (c != '.') l = i;
+            str[i] = c;
+            tmp >>= 6;
         }
 
-        return str.substr(0, i);
+        // boost::algorithm::trim_right_if( str, []( char c ){ return c == '.'; } );
+        return str.substr(0, l + 1);
     }
 
-    constexpr uint32_t name::length() const {
-        constexpr uint256_t mask = 0xFC00000000000000000000000000000000000000000000000000000000000000_cppui256;
-
+    uint32_t name::length() const {
         uint256_t tmp = value;
+        tmp >>= 4;
         uint8_t i = 0;
         uint8_t l = 0;
-        for (; i < 42; ++i, tmp <<= 6) {
-            if ((tmp & mask) > 0) l = i;
+        for (; i < 42; ++i, tmp >>= 6) {
+            if ((tmp & 0x3f) > 0) l = i;
         }
-        if (i == 42 && tmp != 0) {
-            if ((tmp & mask) > 0) l = i;
-        }
+
         return l + 1;
     }
 
-    constexpr name name::suffix() {
-        uint32_t index = 1;
+    name name::suffix() {
         uint32_t remaining_bits_after_last_actual_dot = 0;
         uint32_t tmp = 0;
-        uint256_t a = value;//(value >> remaining_bits);
-        for (int32_t remaining_bits = 250;
-             remaining_bits > 4; remaining_bits -= 6, ++index) { // Note: remaining_bits must remain signed integer
-            // Get characters one-by-one in name in order from left to right (not including the 13th character)
-            a = a >> remaining_bits;
-            auto c = static_cast<uint8_t>(a & 0x3Full);
-            if (!c) { // if this character is a dot
-                tmp = index;
+        for( int32_t remaining_bits = 4; remaining_bits < 252; remaining_bits += 6 ) { // Note: remaining_bits must remain signed integer
+            // Get characters one-by-one in name in order from left to right
+            auto c = (value >> remaining_bits) & 0x3Full;
+            if( !c ) { // if this character is a dot
+                tmp = static_cast<uint32_t>(remaining_bits);
             } else { // if this character is not a dot
                 remaining_bits_after_last_actual_dot = tmp;
             }
         }
 
-        uint256_t thirteenth_character = static_cast<uint8_t>(value & 0x0Full);
-        if (thirteenth_character) { // if 13th character is not a dot
-            remaining_bits_after_last_actual_dot = 41;
-        }
+        // uint256_t thirteenth_character = static_cast<uint8_t>(value & 0x0Full);
+        // if (thirteenth_character) { // if 13th character is not a dot
+        //     remaining_bits_after_last_actual_dot = 41;
+        // }
 
         if (remaining_bits_after_last_actual_dot ==
             0) // there is no actual dot in the %name other than potentially leading dots
@@ -181,7 +196,7 @@ namespace example {
         uint256_t mask = (uint256_t(0x01ull) << remaining_bits_after_last_actual_dot) - 0x10ull;
         uint32_t shift = 256 - remaining_bits_after_last_actual_dot;
         uint256_t suffix = (value & mask) << (shift);
-        suffix += (thirteenth_character << (shift - 2));
+        // suffix += (thirteenth_character << (shift - 2));
         
         return name{suffix};
     }
@@ -236,4 +251,3 @@ inline constexpr uint128_t operator ""_r() {
 // }
 
 #pragma clang diagnostic pop
-#endif
