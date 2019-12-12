@@ -2,7 +2,6 @@
 #include <boost/multiprecision/cpp_int.hpp>
 #include <vector>
 #include <tuple>
-#include <boost/hana.hpp>
 #include <functional>
 #include <utility>
 #include <type_traits>

@@ -3,6 +3,7 @@
 #include <fc/filesystem.hpp>
 #include <fc/exception/exception.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
+#include <boost/compressed_pair.hpp>
 
 #include <iostream>
 #include "config.hpp"
@@ -11,6 +12,7 @@
 #include "namev2.hpp"
 #include "namev3.hpp"
 // #include "muilt_index.hpp"
+#include "muilit_indexv2.hpp"
 
 using namespace appbase;
 using namespace example;
@@ -85,6 +87,25 @@ int main(int argc, char **argv) {
             std::cout << std::string(test) << ": " << test.length() << std::endl;
             test.set("abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz");
             std::cout << std::string(test) << ": " << test.length() << std::endl;
+        }
+        {
+            boost::compressed_pair<__uint128_t, __uint128_t> test_pair(1, 1);
+            std::cout << sizeof(test_pair) << std::endl;
+        }
+
+        {
+            
+            struct Test{
+                uint64_t primary;
+                uint64_t secondary;
+                uint64_t primary_key() const { return primary; }
+                uint64_t get_secondary() const { return secondary; }
+            };
+            typedef multi_index<100, Test, indexed_by<101, 102, const_mem_fun<Test, uint64_t, &Test::get_secondary>>> Table;
+            Table table(200, 201);
+            std::cout << Table::table_name << std::endl;
+            std::cout << table._code << std::endl;
+            std::cout << table._scope << std::endl;
         }
         
         // std::vector<uint8_t> data = {
@@ -170,27 +191,27 @@ int main(int argc, char **argv) {
         // std::cout << std::string(suffix) << ": " << (uint64_t) suffix.length() << ": " << suffix.value[0] << ", "
         //           << suffix.value[1] << std::endl;
 
-        struct record {
-            uint64_t primary;
+        // {
+        //     struct record {
+        //         uint64_t primary;
 
-            uint64_t primary_key() const { return primary; }
-        };
-
-        name test = "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopq"_n;
-        std::cout << std::hex << std::showbase << test.value << std::endl;
-        example::uint256_t v = 0x00_cppui256;
-        std::cout << std::hex << std::showbase << v << std::endl;
-        // memcpy(&v, &test.qwords, sizeof(uint64_t)*4);
-        // v.backend().resize(4, 1);
-        import_bits(v, test.qwords.begin(), test.qwords.end(), 0, false);
-        std::cout << std::hex << std::showbase << v << std::endl;
-        std::cout << std::hex << std::showbase << test.qwords[0] << ", " << test.qwords[1] << ", " << test.qwords[2] << ", " << test.qwords[3] << std::endl;
-        auto limbs = v.backend().limbs();
-        std::cout << std::hex << std::showbase << limbs[0] << ", " << limbs[1] << ", " << limbs[2] << ", " << limbs[3] << std::endl;
-        std::cout << std::resetiosflags(std::ios::showbase | std::ios::hex);
-        std::cout << std::string(test) << ": " << test.length() << std::endl;
-        std::string test_str = test;
-        std::cout << test_str << ": " << test_str.length() << std::endl;
+        //         uint64_t primary_key() const { return primary; }
+        //     };
+        // name test = "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopq"_n;
+        // std::cout << std::hex << std::showbase << test.value << std::endl;
+        // example::uint256_t v = 0x00_cppui256;
+        // std::cout << std::hex << std::showbase << v << std::endl;
+        // // memcpy(&v, &test.qwords, sizeof(uint64_t)*4);
+        // // v.backend().resize(4, 1);
+        // import_bits(v, test.qwords.begin(), test.qwords.end(), 0, false);
+        // std::cout << std::hex << std::showbase << v << std::endl;
+        // std::cout << std::hex << std::showbase << test.qwords[0] << ", " << test.qwords[1] << ", " << test.qwords[2] << ", " << test.qwords[3] << std::endl;
+        // auto limbs = v.backend().limbs();
+        // std::cout << std::hex << std::showbase << limbs[0] << ", " << limbs[1] << ", " << limbs[2] << ", " << limbs[3] << std::endl;
+        // std::cout << std::resetiosflags(std::ios::showbase | std::ios::hex);
+        // std::cout << std::string(test) << ": " << test.length() << std::endl;
+        // std::string test_str = test;
+        // std::cout << test_str << ": " << test_str.length() << std::endl;
 //        muilt_index<test, record> table("root"_n, "root"_n);
 //        muilt_index<test_t, record> table("root"_n, "root"_n);
 //        muilt_index<"test"_t, record> table("root"_n, "root"_n);
@@ -212,7 +233,7 @@ int main(int argc, char **argv) {
 //                  << std::endl;
 //        std::cout << (table._code.length()) << ", " << (table._scope.length()) << ", " << (table._table.length())
 //                  << std::endl;
-
+        //}
         auto root = fc::app_path();
         app().set_default_data_dir(root / "example/data");
         app().set_default_config_dir(root / "example/config");
