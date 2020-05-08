@@ -1,8 +1,16 @@
 cmake_minimum_required(VERSION 3.10)
 project(GeneralServer)
 
+if ("${CMAKE_INSTALL_PREFIX}" STREQUAL "/usr/local")
+   message(WARNING "CMAKE_INSTALL_PREFIX is set to /usr/local. This is not recommended.")
+endif()
+
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/libraries/fc/CMakeModules")
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules")
+
+if (UNIX AND APPLE)
+   list(APPEND CMAKE_PREFIX_PATH "/usr/local/opt/gettext")
+endif()
 
 include( GNUInstallDirs )
 include( VersionMacros )
