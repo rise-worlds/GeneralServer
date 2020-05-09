@@ -1,6 +1,8 @@
 #include <appbase/application.hpp>
 
 #include <potato/http_plugin/http_plugin.hpp>
+#include <potato/net_plugin/net_plugin.hpp>
+#include <potato/producer_plugin/producer_plugin.hpp>
 
 #include <iostream>
 #include <boost/exception/diagnostic_information.hpp>
@@ -20,7 +22,7 @@ int main(int argc, char **argv) {
                 .default_unix_socket_path = "",
                 .default_http_port = 8888
             });
-        if (!app().initialize(argc, argv))
+        if (!app().initialize<chain_plugin, net_plugin, producer_plugin>(argc, argv))
         {
             const auto& opts = app().get_options();
             if( opts.count("help") || opts.count("version") || opts.count("full-version") || opts.count("print-default-config") ) {
