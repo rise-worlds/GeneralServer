@@ -4,19 +4,23 @@
 #include <potato/net_plugin/net_plugin.hpp>
 #include <potato/producer_plugin/producer_plugin.hpp>
 
-#include <iostream>
 #include <boost/exception/diagnostic_information.hpp>
 #include <fc/filesystem.hpp>
 #include <fc/exception/exception.hpp>
+#include <boost/multiprecision/cpp_int.hpp>
+#include <boost/compressed_pair.hpp>
+
+#include <iostream>
+#include "config.hpp"
 
 using namespace appbase;
 using namespace potato;
 
 int main(int argc, char **argv) {
     try {
-        std::cout << u8"example " << app().version_string() << std::endl;
 
-        auto root = fc::app_path();
+        app().set_version(GeneralServer::example::config::version);
+        std::cout << u8"example " << app().version_string() << std::endl;
 
         http_plugin::set_defaults({
                 .default_unix_socket_path = "",
@@ -35,7 +39,7 @@ int main(int argc, char **argv) {
         app().exec();
     } catch( const fc::exception& e ) {
         std::cerr << e.to_detail_string() << "\n";
-    } catch( const boost::interprocess::bad_alloc& e ) {
+    } catch (const boost::interprocess::bad_alloc &e) {
         std::cerr << "bad alloc" << "\n";
     } catch (const boost::exception &e) {
         std::cerr << boost::diagnostic_information(e) << "\n";

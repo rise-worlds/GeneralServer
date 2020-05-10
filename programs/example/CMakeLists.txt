@@ -5,6 +5,13 @@ if( UNIX AND NOT APPLE )
 endif()
 
 target_include_directories(example PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+configure_file(config.hpp.in config.hpp ESCAPE_QUOTES)
+
+target_include_directories(example 
+                          PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
+                          ${CMAKE_SOURCE_DIR}/libraries/wabt
+                          ${CMAKE_BINARY_DIR}/libraries/wabt
+                          )
 
 if(UNIX)
   if(APPLE)
@@ -27,4 +34,4 @@ target_link_libraries( example
     PRIVATE -Wl,${whole_archive_flag} net_plugin -Wl,${no_whole_archive_flag}
     PRIVATE -Wl,${build_id_flag}
     PRIVATE http_plugin chain_plugin producer_plugin
-    PRIVATE potato_chain fc ${CMAKE_DL_LIBS} ${PLATFORM_SPECIFIC_LIBS} )
+    PRIVATE potato_chain fc wabt ${CMAKE_DL_LIBS} ${PLATFORM_SPECIFIC_LIBS} )

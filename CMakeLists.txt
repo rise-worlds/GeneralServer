@@ -25,6 +25,23 @@ set(VERSION_MINOR 0)
 set(VERSION_PATCH 0)
 set(VERSION_FULL "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
 
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/.git)
+  find_package(Git)
+  if(GIT_FOUND)
+    execute_process(
+      COMMAND ${GIT_EXECUTABLE} rev-parse --short=8 HEAD
+      WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/"
+      OUTPUT_VARIABLE "BUILD_VERSION"
+      ERROR_QUIET
+      OUTPUT_STRIP_TRAILING_WHITESPACE)
+    message(STATUS "Git commit revision: ${BUILD_VERSION}")
+  else()
+    set(BUILD_VERSION 0)
+  endif()
+else()
+  set(BUILD_VERSION 0)
+endif()
+
 # http://stackoverflow.com/a/18369825
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 7.0)

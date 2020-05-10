@@ -1,5 +1,13 @@
-add_subdirectory(fc)
 add_subdirectory(appbase)
 add_subdirectory(chain)
 
 set(ENABLE_STATIC ON)
+add_subdirectory(chainbase)
+add_subdirectory(fc)
+
+#turn tools&tests off; not needed for library build
+set(BUILD_TESTS OFF CACHE BOOL "Build GTest-based tests")
+set(BUILD_TOOLS OFF CACHE BOOL "Build wabt tools")
+set(RUN_RE2C OFF CACHE BOOL "Run re2c")
+set(WITH_EXCEPTIONS ON CACHE BOOL "Build with exceptions enabled" FORCE)
+add_subdirectory(wabt)
