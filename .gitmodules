@@ -1,9 +1,9 @@
 [submodule "libraries/appbase"]
 	path = libraries/appbase
-	url = git@github.com:rise-worlds/appbase.git
+	url = https://github.com/rise-worlds/appbase.git
 [submodule "libraries/fc"]
 	path = libraries/fc
-	url = git@github.com:rise-worlds/fc-1.git
+	url = https://github.com/rise-worlds/fc-1.git
 [submodule "libraries/wabt"]
 	path = libraries/wabt
 	url = https://github.com/WebAssembly/wabt
