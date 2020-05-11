@@ -7,3 +7,6 @@
 [submodule "libraries/wabt"]
 	path = libraries/wabt
 	url = https://github.com/WebAssembly/wabt
+[submodule "libraries/eos-vm"]
+	path = libraries/eos-vm
+	url = https://github.com/rise-worlds/eos-vm
