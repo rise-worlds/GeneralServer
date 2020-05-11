@@ -13,6 +13,7 @@
 
 #include <iostream>
 #include "config.hpp"
+// #include "wabt.hpp"
 
 using namespace appbase;
 using namespace potato;
