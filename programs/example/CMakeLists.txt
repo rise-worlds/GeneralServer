@@ -30,7 +30,7 @@ else()
 endif()
 
 target_link_libraries( example 
-    PRIVATE appbase 
+    PRIVATE appbase version
     PRIVATE -Wl,${whole_archive_flag} net_plugin -Wl,${no_whole_archive_flag}
     PRIVATE -Wl,${build_id_flag}
     PRIVATE http_plugin chain_plugin producer_plugin

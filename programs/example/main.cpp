@@ -3,6 +3,7 @@
 #include <potato/http_plugin/http_plugin.hpp>
 #include <potato/net_plugin/net_plugin.hpp>
 #include <potato/producer_plugin/producer_plugin.hpp>
+#include <potato/version/version.hpp>
 
 #include <boost/exception/diagnostic_information.hpp>
 #include <fc/filesystem.hpp>
@@ -20,6 +21,8 @@ int main(int argc, char **argv) {
     try {
 
         app().set_version(GeneralServer::example::config::version);
+        app().set_version_string(potato::version::version_client());
+        app().set_full_version_string(potato::version::version_full());
         std::cout << u8"example " << app().version_string() << std::endl;
 
         http_plugin::set_defaults({
