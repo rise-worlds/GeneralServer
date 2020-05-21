@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "(lldb) Launch example",
+            "name": "(mac) Launch example",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/programs/example/example",
@@ -17,7 +17,7 @@
             "MIMode": "lldb"
         },
         {
-            "name": "(gdb) Launch example",
+            "name": "(linux) Launch example",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/programs/example/example",

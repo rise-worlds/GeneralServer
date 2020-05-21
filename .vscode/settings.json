@@ -95,8 +95,17 @@
         "locale": "cpp",
         "queue": "cpp",
         "stack": "cpp",
-        "filesystem": "cpp"
+        "filesystem": "cpp",
+        "csetjmp": "cpp"
     },
     "C_Cpp.default.configurationProvider": "vector-of-bool.cmake-tools",
+    "cmake.environment": {
+        "BOOST_ROOT": "~/eosio/2.0/src/boost_1_71_0",
+        "Boost_INCLUDE_DIRS": "~/eosio/2.0/src/boost_1_71_0/include",
+        "Boost_LIBRARY_DIRS": "~/eosio/2.0/src/boost_1_71_0/lib",
+        // "CMAKE_PREFIX_PATH": "~/eosio/2.0/opt/clang8",
+        // "CMAKE_C_COMPILER": "~/eosio/2.0/opt/clang8/bin/clang",
+        // "CMAKE_CXX_COMPILER": "~/eosio/2.0/opt/clang8/bin/clang++",
+    },
     "cmake.configureSettings": {"BOOST_ROOT":"~/eosio/2.0/src/boost_1_71_0"}
 }
