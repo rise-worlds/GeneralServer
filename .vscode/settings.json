@@ -99,6 +99,12 @@
         "csetjmp": "cpp"
     },
     "C_Cpp.default.configurationProvider": "vector-of-bool.cmake-tools",
+    "C_Cpp.default.cStandard":"c11",
+    "C_Cpp.default.cppStandard":"c++17",
+    "C_Cpp.default.systemIncludePath":[
+        "${default}",
+        "~/eosio/2.0/src/boost_1_71_0/include"
+    ],
     "cmake.environment": {
         "BOOST_ROOT": "~/eosio/2.0/src/boost_1_71_0",
         "Boost_INCLUDE_DIRS": "~/eosio/2.0/src/boost_1_71_0/include",
