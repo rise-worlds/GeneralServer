@@ -1,5 +1,8 @@
 #include <potato/chain_plugin/chain_plugin.hpp>
 
+#include <potato/chain/controller.hpp>
+#include <potato/chain/genesis_state.hpp>
+
 #include <fc/network/message_buffer.hpp>
 #include <fc/network/ip.hpp>
 #include <fc/io/json.hpp>
@@ -17,9 +20,16 @@
 #include <atomic>
 #include <shared_mutex>
 
+using namespace potato;
+using namespace potato::chain;
+
 namespace potato
 {
-    class chain_plugin_impl : public std::enable_shared_from_this<chain_plugin_impl>{};
+    class chain_plugin_impl : public std::enable_shared_from_this<chain_plugin_impl>
+    {
+        public:
+            fc::optional<controller> chain;
+    };
     static chain_plugin_impl *my_impl;
 
     chain_plugin::chain_plugin()
@@ -42,6 +52,12 @@ namespace potato
 
     void chain_plugin::plugin_startup()
     {
+        try {
+            genesis_state gs;
+            fc::optional<chain_id_type> chain_id = gs.compute_chain_id();
+
+            my->chain.emplace( *chain_id );
+        } FC_LOG_AND_RETHROW()
     }
 
     void chain_plugin::handle_sighup()
@@ -50,6 +66,10 @@ namespace potato
 
     void chain_plugin::plugin_shutdown()
     {
+    }
+
+    chain::chain_id_type chain_plugin::get_chain_id() const {
+        return my->chain->get_chain_id();
     }
 
 } // namespace potato

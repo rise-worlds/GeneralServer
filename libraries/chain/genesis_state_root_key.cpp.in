@@ -1,0 +1,9 @@
+#include <potato/chain/genesis_state.hpp>
+
+namespace potato
+{
+    namespace chain
+    {
+        const string genesis_state::potato_root_key = "${POTATO_ROOT_KEY}";
+    }
+} // namespace potato

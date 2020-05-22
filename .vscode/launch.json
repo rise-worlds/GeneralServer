@@ -34,6 +34,25 @@
                     "ignoreFailures": true
                 }
             ]
+        },
+        {
+            "name": "(linux) Launch example peer",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/programs/example/example",
+            "args": ["--p2p-listen-endpoint=0.0.0.0:6789", "--p2p-peer-address=127.0.0.1:9876"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
         }
     ]
 }

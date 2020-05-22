@@ -1,6 +1,9 @@
 #pragma once
 #include <appbase/application.hpp>
 
+#include <potato/chain/controller.hpp>
+#include <potato/chain/chain_id_type.hpp>
+
 #include <boost/container/flat_set.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
 
@@ -10,6 +13,7 @@ namespace fc { class variant; }
 namespace potato
 {
     using namespace appbase;
+    using chain::controller;
     class chain_plugin : public appbase::plugin<chain_plugin>
     {
     public:
@@ -23,6 +27,8 @@ namespace potato
         void plugin_initialize(const variables_map &options);
         void plugin_startup();
         void plugin_shutdown();
+
+        chain::chain_id_type get_chain_id() const;
 
     private:
         std::shared_ptr<class chain_plugin_impl> my;

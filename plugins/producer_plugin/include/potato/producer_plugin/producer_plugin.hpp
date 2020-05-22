@@ -1,5 +1,7 @@
 #pragma once
 #include <potato/chain_plugin/chain_plugin.hpp>
+#include <potato/chain/types.hpp>
+#include <potato/chain/chain_id_type.hpp>
 
 #include <appbase/application.hpp>
 
@@ -21,6 +23,9 @@ namespace potato
         APPBASE_PLUGIN_REQUIRES((chain_plugin))
         virtual void set_program_options(options_description &cli, options_description &cfg) override;
         void handle_sighup() override;
+
+        bool is_producer_key(const chain::public_key_type& key) const;
+        chain::signature_type sign_compact(const chain::public_key_type& key, const fc::sha256& digest) const;
 
         void plugin_initialize(const variables_map &options);
         void plugin_startup();

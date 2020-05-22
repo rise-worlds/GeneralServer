@@ -141,6 +141,12 @@ if( "${CMAKE_GENERATOR}" STREQUAL "Ninja" )
     endif()
 endif()
 
+if ("${POTATO_ROOT_KEY}" STREQUAL "")
+   set(POTATO_ROOT_KEY "POC6MRyAjQq8ud7hVNYcfnVPJqcVpscN5So8BhtHuGYqET5GDW5CV")
+endif()
+
+message( STATUS "Using '${POTATO_ROOT_KEY}' as public key for 'potato' account" )
+
 add_subdirectory(libraries)
 add_subdirectory(plugins)
 add_subdirectory(programs)

@@ -3,6 +3,8 @@
 #include <potato/chain/exceptions.hpp>
 
 #include <potato/net_plugin/net_plugin.hpp>
+#include <potato/producer_plugin/producer_plugin.hpp>
+#include <potato/chain_plugin/chain_plugin.hpp>
 
 #include <fc/network/message_buffer.hpp>
 #include <fc/network/ip.hpp>
@@ -213,10 +215,10 @@ namespace potato
         // string p2p_server_address;
 
         vector<string> supplied_peers;
-        // vector<chain::public_key_type> allowed_peers; ///< peer keys allowed to connect
-        // std::map<chain::public_key_type,
-        //          chain::private_key_type>
-        //     private_keys; ///< overlapping with producer keys, also authenticating non-producing nodes
+        vector<chain::public_key_type> allowed_peers; ///< peer keys allowed to connect
+        std::map<chain::public_key_type,
+                 chain::private_key_type>
+            private_keys; ///< overlapping with producer keys, also authenticating non-producing nodes
         enum possible_connections : char
         {
             None = 0,
@@ -231,7 +233,7 @@ namespace potato
         boost::asio::steady_timer::duration resp_expected_period{0};
         boost::asio::steady_timer::duration keepalive_interval{std::chrono::seconds{32}};
 
-        int max_cleanup_time_ms = 0;
+        int max_cleanup_time_ms = 0; //超时清理时间
         uint32_t max_client_count = 0;
         uint32_t max_nodes_per_host = 1;
         bool p2p_accept_transactions = true;
@@ -239,12 +241,12 @@ namespace potato
         /// Peer clock may be no more than 1 second skewed from our clock, including network latency.
         const std::chrono::system_clock::duration peer_authentication_interval{std::chrono::seconds{1}};
 
-        // chain_id_type chain_id;
+        chain_id_type chain_id;
         fc::sha256 node_id;
         string user_agent_name;
 
-        // chain_plugin *chain_plug = nullptr;
-        // producer_plugin *producer_plug = nullptr;
+        chain_plugin *chain_plug = nullptr;
+        producer_plugin *producer_plug = nullptr;
         bool use_socket_read_watermark = false;
         /** @} */
 
@@ -253,7 +255,7 @@ namespace potato
 
         std::mutex connector_check_timer_mtx;
         unique_ptr<boost::asio::steady_timer> connector_check_timer;
-        int connector_checks_in_flight{0};
+        int connector_checks_in_flight{0};//连接超时记数
 
         std::mutex expire_timer_mtx;
         unique_ptr<boost::asio::steady_timer> expire_timer;
@@ -303,29 +305,29 @@ namespace potato
          */
         void ticker();
         /** @} */
-        // /** \brief Determine if a peer is allowed to connect.
-        //  *
-        //  * Checks current connection mode and key authentication.
-        //  *
-        //  * \return False if the peer should not connect, true otherwise.
-        //  */
-        // bool authenticate_peer(const handshake_message &msg) const;
-        // /** \brief Retrieve public key used to authenticate with peers.
-        //  *
-        //  * Finds a key to use for authentication.  If this node is a producer, use
-        //  * the front of the producer key map.  If the node is not a producer but has
-        //  * a configured private key, use it.  If the node is neither a producer nor has
-        //  * a private key, returns an empty key.
-        //  *
-        //  * \note On a node with multiple private keys configured, the key with the first
-        //  *       numerically smaller byte will always be used.
-        //  */
-        // chain::public_key_type get_authentication_key() const;
-        // /** \brief Returns a signature of the digest using the corresponding private key of the signer.
-        //  *
-        //  * If there are no configured private keys, returns an empty signature.
-        //  */
-        // chain::signature_type sign_compact(const chain::public_key_type &signer, const fc::sha256 &digest) const;
+        /** \brief Determine if a peer is allowed to connect.
+         *
+         * Checks current connection mode and key authentication.
+         *
+         * \return False if the peer should not connect, true otherwise.
+         */
+        bool authenticate_peer(const handshake_message &msg) const;
+        /** \brief Retrieve public key used to authenticate with peers.
+         *
+         * Finds a key to use for authentication.  If this node is a producer, use
+         * the front of the producer key map.  If the node is not a producer but has
+         * a configured private key, use it.  If the node is neither a producer nor has
+         * a private key, returns an empty key.
+         *
+         * \note On a node with multiple private keys configured, the key with the first
+         *       numerically smaller byte will always be used.
+         */
+        chain::public_key_type get_authentication_key() const;
+        /** \brief Returns a signature of the digest using the corresponding private key of the signer.
+         *
+         * If there are no configured private keys, returns an empty signature.
+         */
+        chain::signature_type sign_compact(const chain::public_key_type &signer, const fc::sha256 &digest) const;
 
         constexpr uint16_t to_protocol_version(uint16_t v);
 
@@ -605,8 +607,8 @@ namespace potato
 
         mutable std::mutex conn_mtx; //< mtx for last_req .. local_endpoint_port
         // optional<request_message> last_req;
-        // handshake_message last_handshake_recv;
-        // handshake_message last_handshake_sent;
+        handshake_message last_handshake_recv;
+        handshake_message last_handshake_sent;
         // block_id_type fork_head;
         uint32_t fork_head_num{0};
         fc::time_point last_close;
@@ -619,9 +621,9 @@ namespace potato
         connection_status get_status() const;
 
         /** \name Peer Timestamps
-       *  Time message handling
-       *  @{
-       */
+         *  Time message handling
+         *  @{
+         */
         // Members set from network data
         tstamp org{0}; //!< originate timestamp
         tstamp rec{0}; //!< receive timestamp
@@ -686,11 +688,11 @@ namespace potato
         // void blk_send(const block_id_type &blkid);
         // void stop_send();
 
-        // void enqueue(const net_message &msg);
+        void enqueue(const net_message &msg);
         // void enqueue_block(const signed_block_ptr &sb, bool to_sync_queue = false);
-        // void enqueue_buffer(const std::shared_ptr<std::vector<char>> &send_buffer,
-        //                     go_away_reason close_after_send,
-        //                     bool to_sync_queue = false);
+        void enqueue_buffer(const std::shared_ptr<std::vector<char>> &send_buffer,
+                            go_away_reason close_after_send,
+                            bool to_sync_queue = false);
         // void cancel_sync(go_away_reason);
         void flush_queues();
         // bool enqueue_sync_block();
@@ -707,26 +709,26 @@ namespace potato
                          bool to_sync_queue = false);
         void do_queue_write();
 
-        // static bool is_valid(const handshake_message &msg);
-        //
-        // void handle_message(const handshake_message &msg);
-        // void handle_message(const chain_size_message &msg);
-        // void handle_message(const go_away_message &msg);
-        // /** \name Peer Timestamps
-        //  *  Time message handling
-        //  *  @{
-        //  */
-        // /** \brief Process time_message
-        //  *
-        //  * Calculate offset, delay and dispersion.  Note carefully the
-        //  * implied processing.  The first-order difference is done
-        //  * directly in 64-bit arithmetic, then the result is converted
-        //  * to floating double.  All further processing is in
-        //  * floating-double arithmetic with rounding done by the hardware.
-        //  * This is necessary in order to avoid overflow and preserve precision.
-        //  */
-        // void handle_message(const time_message &msg);
-        // /** @} */
+        static bool is_valid(const handshake_message &msg);
+        
+        void handle_message(const handshake_message &msg);
+        void handle_message(const chain_size_message &msg);
+        void handle_message(const go_away_message &msg);
+        /** \name Peer Timestamps
+         *  Time message handling
+         *  @{
+         */
+        /** \brief Process time_message
+         *
+         * Calculate offset, delay and dispersion.  Note carefully the
+         * implied processing.  The first-order difference is done
+         * directly in 64-bit arithmetic, then the result is converted
+         * to floating double.  All further processing is in
+         * floating-double arithmetic with rounding done by the hardware.
+         * This is necessary in order to avoid overflow and preserve precision.
+         */
+        void handle_message(const time_message &msg);
+        /** @} */
         // void handle_message(const notice_message &msg);
         // void handle_message(const request_message &msg);
         // void handle_message(const sync_request_message &msg);
@@ -761,33 +763,33 @@ namespace potato
             EOS_ASSERT(false, plugin_config_exception, "Not implemented, call handle_message directly instead");
         }
 
-        // void operator()(const handshake_message &msg) const
-        // {
-        //     // continue call to handle_message on connection strand
-        //     fc_dlog(logger, "handle handshake_message");
-        //     c->handle_message(msg);
-        // }
+        void operator()(const handshake_message &msg) const
+        {
+            // continue call to handle_message on connection strand
+            fc_dlog(logger, "handle handshake_message");
+            c->handle_message(msg);
+        }
 
-        // void operator()(const chain_size_message &msg) const
-        // {
-        //     // continue call to handle_message on connection strand
-        //     fc_dlog(logger, "handle chain_size_message");
-        //     c->handle_message(msg);
-        // }
+        void operator()(const chain_size_message &msg) const
+        {
+            // continue call to handle_message on connection strand
+            fc_dlog(logger, "handle chain_size_message");
+            c->handle_message(msg);
+        }
 
-        // void operator()(const go_away_message &msg) const
-        // {
-        //     // continue call to handle_message on connection strand
-        //     fc_dlog(logger, "handle go_away_message");
-        //     c->handle_message(msg);
-        // }
+        void operator()(const go_away_message &msg) const
+        {
+            // continue call to handle_message on connection strand
+            fc_dlog(logger, "handle go_away_message");
+            c->handle_message(msg);
+        }
 
-        // void operator()(const time_message &msg) const
-        // {
-        //     // continue call to handle_message on connection strand
-        //     fc_dlog(logger, "handle time_message");
-        //     c->handle_message(msg);
-        // }
+        void operator()(const time_message &msg) const
+        {
+            // continue call to handle_message on connection strand
+            fc_dlog(logger, "handle time_message");
+            c->handle_message(msg);
+        }
 
         // void operator()(const notice_message &msg) const
         // {
@@ -843,8 +845,8 @@ namespace potato
           , socket(new tcp::socket(my_impl->thread_pool->get_executor()))
           , connection_id(++my_impl->current_connection_id)
           , response_expected_timer(my_impl->thread_pool->get_executor())
-        //   , last_handshake_recv()
-        //   , last_handshake_sent()
+          , last_handshake_recv()
+          , last_handshake_sent()
     {
         fc_ilog(logger, "creating connection to ${n}", ("n", endpoint));
     }
@@ -855,8 +857,8 @@ namespace potato
           , socket(new tcp::socket(my_impl->thread_pool->get_executor()))
           , connection_id(++my_impl->current_connection_id)
           , response_expected_timer(my_impl->thread_pool->get_executor())
-        //   , last_handshake_recv(),
-        //   , last_handshake_sent()
+          , last_handshake_recv()
+          , last_handshake_sent()
     {
         fc_dlog(logger, "new connection object created");
     }
@@ -914,7 +916,7 @@ namespace potato
         stat.connecting = connecting;
         stat.syncing = syncing;
         std::lock_guard<std::mutex> g(conn_mtx);
-        // stat.last_handshake = last_handshake_recv;
+        stat.last_handshake = last_handshake_recv;
         return stat;
     }
 
@@ -982,8 +984,8 @@ namespace potato
         {
             std::lock_guard<std::mutex> g_conn(self->conn_mtx);
             // has_last_req = !!self->last_req;
-            // self->last_handshake_recv = handshake_message();
-            // self->last_handshake_sent = handshake_message();
+            self->last_handshake_recv = handshake_message();
+            self->last_handshake_sent = handshake_message();
             self->last_close = fc::time_point::now();
             self->conn_node_id = fc::sha256();
         }
@@ -1145,40 +1147,40 @@ namespace potato
 
     void connection::send_handshake(bool force)
     {
-        // strand.post([force, c = shared_from_this()]() {
-        //     std::unique_lock<std::mutex> g_conn(c->conn_mtx);
-        //     if (c->populate_handshake(c->last_handshake_sent, force))
-        //     {
-        //         static_assert(std::is_same_v<decltype(c->sent_handshake_count), int16_t>, "INT16_MAX based on int16_t");
-        //         if (c->sent_handshake_count == INT16_MAX)
-        //             c->sent_handshake_count = 1; // do not wrap
-        //         c->last_handshake_sent.generation = ++c->sent_handshake_count;
-        //         auto last_handshake_sent = c->last_handshake_sent;
-        //         g_conn.unlock();
-        //         fc_ilog(logger, "Sending handshake generation ${g} to ${ep}, lib ${lib}, head ${head}, id ${id}",
-        //                 ("g", last_handshake_sent.generation)("ep", c->peer_name())("lib", last_handshake_sent.last_irreversible_block_num)("head", last_handshake_sent.head_num)("id", last_handshake_sent.head_id.str().substr(8, 16)));
-        //         c->enqueue(last_handshake_sent);
-        //     }
-        // });
+        strand.post([force, c = shared_from_this()]() {
+            std::unique_lock<std::mutex> g_conn(c->conn_mtx);
+            if (c->populate_handshake(c->last_handshake_sent, force))
+            {
+                static_assert(std::is_same_v<decltype(c->sent_handshake_count), int16_t>, "INT16_MAX based on int16_t");
+                if (c->sent_handshake_count == INT16_MAX)
+                    c->sent_handshake_count = 1; // do not wrap
+                c->last_handshake_sent.generation = ++c->sent_handshake_count;
+                auto last_handshake_sent = c->last_handshake_sent;
+                g_conn.unlock();
+                // fc_ilog(logger, "Sending handshake generation ${g} to ${ep}, lib ${lib}, head ${head}, id ${id}",
+                //         ("g", last_handshake_sent.generation)("ep", c->peer_name())("lib", last_handshake_sent.last_irreversible_block_num)("head", last_handshake_sent.head_num)("id", last_handshake_sent.head_id.str().substr(8, 16)));
+                c->enqueue(last_handshake_sent);
+            }
+        });
     }
 
     void connection::send_time()
     {
-        // time_message xpkt;
-        // xpkt.org = rec;
-        // xpkt.rec = dst;
-        // xpkt.xmt = get_time();
-        // org = xpkt.xmt;
-        // enqueue(xpkt);
+        time_message xpkt;
+        xpkt.org = rec;
+        xpkt.rec = dst;
+        xpkt.xmt = get_time();
+        org = xpkt.xmt;
+        enqueue(xpkt);
     }
 
     void connection::send_time(const time_message &msg)
     {
-        // time_message xpkt;
-        // xpkt.org = msg.xmt;
-        // xpkt.rec = msg.dst;
-        // xpkt.xmt = get_time();
-        // enqueue(xpkt);
+        time_message xpkt;
+        xpkt.org = msg.xmt;
+        xpkt.rec = msg.dst;
+        xpkt.xmt = get_time();
+        enqueue(xpkt);
     }
 
     void connection::queue_write(const std::shared_ptr<vector<char>> &buff,
@@ -1321,29 +1323,29 @@ namespace potato
     //     return true;
     // }
     //
-    // void connection::enqueue(const net_message &m)
-    // {
-    //     verify_strand_in_this_thread(strand, __func__, __LINE__);
-    //     go_away_reason close_after_send = no_reason;
-    //     if (m.contains<go_away_message>())
-    //     {
-    //         close_after_send = m.get<go_away_message>().reason;
-    //     }
-    //
-    //     const uint32_t payload_size = fc::raw::pack_size(m);
-    //
-    //     const char *const header = reinterpret_cast<const char *const>(&payload_size); // avoid variable size encoding of uint32_t
-    //     constexpr size_t header_size = sizeof(payload_size);
-    //     static_assert(header_size == message_header_size, "invalid message_header_size");
-    //     const size_t buffer_size = header_size + payload_size;
-    //
-    //     auto send_buffer = std::make_shared<vector<char>>(buffer_size);
-    //     fc::datastream<char *> ds(send_buffer->data(), buffer_size);
-    //     ds.write(header, header_size);
-    //     fc::raw::pack(ds, m);
-    //
-    //     enqueue_buffer(send_buffer, close_after_send);
-    // }
+    void connection::enqueue(const net_message &m)
+    {
+        verify_strand_in_this_thread(strand, __func__, __LINE__);
+        go_away_reason close_after_send = no_reason;
+        if (m.contains<go_away_message>())
+        {
+            close_after_send = m.get<go_away_message>().reason;
+        }
+    
+        const uint32_t payload_size = fc::raw::pack_size(m);
+    
+        const char *const header = reinterpret_cast<const char *const>(&payload_size); // avoid variable size encoding of uint32_t
+        constexpr size_t header_size = sizeof(payload_size);
+        static_assert(header_size == message_header_size, "invalid message_header_size");
+        const size_t buffer_size = header_size + payload_size;
+    
+        auto send_buffer = std::make_shared<vector<char>>(buffer_size);
+        fc::datastream<char *> ds(send_buffer->data(), buffer_size);
+        ds.write(header, header_size);
+        fc::raw::pack(ds, m);
+    
+        enqueue_buffer(send_buffer, close_after_send);
+    }
     //
     // template <typename T>
     // static std::shared_ptr<std::vector<char>> create_send_buffer(uint32_t which, const T &v)
@@ -1388,26 +1390,26 @@ namespace potato
     //     enqueue_buffer(create_send_buffer(sb), no_reason, to_sync_queue);
     // }
     //
-    // void connection::enqueue_buffer(const std::shared_ptr<std::vector<char>> &send_buffer,
-    //                                 go_away_reason close_after_send,
-    //                                 bool to_sync_queue)
-    // {
-    //     connection_ptr self = shared_from_this();
-    //     queue_write(
-    //         send_buffer,
-    //         [conn{std::move(self)}, close_after_send](boost::system::error_code ec, std::size_t) {
-    //             if (ec)
-    //                 return;
-    //             if (close_after_send != no_reason)
-    //             {
-    //                 fc_ilog(logger, "sent a go away message: ${r}, closing connection to ${p}",
-    //                         ("r", reason_str(close_after_send))("p", conn->peer_name()));
-    //                 conn->close();
-    //                 return;
-    //             }
-    //         },
-    //         to_sync_queue);
-    // }
+    void connection::enqueue_buffer(const std::shared_ptr<std::vector<char>> &send_buffer,
+                                    go_away_reason close_after_send,
+                                    bool to_sync_queue)
+    {
+        connection_ptr self = shared_from_this();
+        queue_write(
+            send_buffer,
+            [conn{std::move(self)}, close_after_send](boost::system::error_code ec, std::size_t) {
+                if (ec)
+                    return;
+                if (close_after_send != no_reason)
+                {
+                    fc_ilog(logger, "sent a go away message: ${r}, closing connection to ${p}",
+                            ("r", reason_str(close_after_send))("p", conn->peer_name()));
+                    conn->close();
+                    return;
+                }
+            },
+            to_sync_queue);
+    }
     //
     // // thread safe
     // void connection::cancel_wait()
@@ -1460,10 +1462,10 @@ namespace potato
     const string connection::peer_name()
     {
         std::lock_guard<std::mutex> g_conn(conn_mtx);
-        // if (!last_handshake_recv.p2p_address.empty())
-        // {
-        //     return last_handshake_recv.p2p_address;
-        // }
+        if (!last_handshake_recv.p2p_address.empty())
+        {
+            return last_handshake_recv.p2p_address;
+        }
         if (!peer_address().empty())
         {
             return peer_address();
@@ -2483,7 +2485,7 @@ namespace potato
                     {
                         if (c->start_session())
                         {
-                            c->send_handshake();
+                            c->send_handshake(true);
                         }
                     }
                     else
@@ -2738,10 +2740,10 @@ namespace potato
     {
         try
         {
-            // // if next message is a block we already have, exit early
-            // auto peek_ds = pending_message_buffer.create_peek_datastream();
-            // unsigned_int which{};
-            // fc::raw::unpack(peek_ds, which);
+            // if next message is a block we already have, exit early
+            auto peek_ds = pending_message_buffer.create_peek_datastream();
+            unsigned_int which{};
+            fc::raw::unpack(peek_ds, which);
             // if (which == signed_block_which)
             // {
             //     block_header bh;
@@ -2831,13 +2833,13 @@ namespace potato
             //     handle_message(std::move(ptr));
             // }
             // else
-            // {
-            //     auto ds = pending_message_buffer.create_datastream();
-            //     net_message msg;
-            //     fc::raw::unpack(ds, msg);
-            //     msg_handler m(shared_from_this());
-            //     msg.visit(m);
-            // }
+            {
+                auto ds = pending_message_buffer.create_datastream();
+                net_message msg;
+                fc::raw::unpack(ds, msg);
+                msg_handler m(shared_from_this());
+                msg.visit(m);
+            }
         }
         catch (const fc::exception &e)
         {
@@ -2874,154 +2876,154 @@ namespace potato
     //         chain_lib_id, chain_head_blk_id, chain_fork_head_blk_id);
     // }
     //
-    // bool connection::is_valid(const handshake_message &msg)
-    // {
-    //     // Do some basic validation of an incoming handshake_message, so things
-    //     // that really aren't handshake messages can be quickly discarded without
-    //     // affecting state.
-    //     bool valid = true;
+    bool connection::is_valid(const handshake_message &msg)
+    {
+        // Do some basic validation of an incoming handshake_message, so things
+        // that really aren't handshake messages can be quickly discarded without
+        // affecting state.
+        bool valid = true;
     //     if (msg.last_irreversible_block_num > msg.head_num)
     //     {
     //         fc_wlog(logger, "Handshake message validation: last irreversible block (${i}) is greater than head block (${h})",
     //                 ("i", msg.last_irreversible_block_num)("h", msg.head_num));
     //         valid = false;
     //     }
-    //     if (msg.p2p_address.empty())
-    //     {
-    //         fc_wlog(logger, "Handshake message validation: p2p_address is null string");
-    //         valid = false;
-    //     }
-    //     else if (msg.p2p_address.length() > max_handshake_str_length)
-    //     {
-    //         // see max_handshake_str_length comment in protocol.hpp
-    //         fc_wlog(logger, "Handshake message validation: p2p_address to large: ${p}", ("p", msg.p2p_address.substr(0, max_handshake_str_length) + "..."));
-    //         valid = false;
-    //     }
-    //     if (msg.os.empty())
-    //     {
-    //         fc_wlog(logger, "Handshake message validation: os field is null string");
-    //         valid = false;
-    //     }
-    //     else if (msg.os.length() > max_handshake_str_length)
-    //     {
-    //         fc_wlog(logger, "Handshake message validation: os field to large: ${p}", ("p", msg.os.substr(0, max_handshake_str_length) + "..."));
-    //         valid = false;
-    //     }
-    //     if (msg.agent.length() > max_handshake_str_length)
-    //     {
-    //         fc_wlog(logger, "Handshake message validation: agent field to large: ${p}", ("p", msg.agent.substr(0, max_handshake_str_length) + "..."));
-    //         valid = false;
-    //     }
-    //     if ((msg.sig != chain::signature_type() || msg.token != sha256()) && (msg.token != fc::sha256::hash(msg.time)))
-    //     {
-    //         fc_wlog(logger, "Handshake message validation: token field invalid");
-    //         valid = false;
-    //     }
-    //     return valid;
-    // }
-    //
-    // void connection::handle_message(const chain_size_message &msg)
-    // {
-    //     peer_dlog(this, "received chain_size_message");
-    // }
-    //
-    // void connection::handle_message(const handshake_message &msg)
-    // {
-    //     peer_dlog(this, "received handshake_message");
-    //     if (!is_valid(msg))
-    //     {
-    //         peer_elog(this, "bad handshake message");
-    //         enqueue(go_away_message(fatal_other));
-    //         return;
-    //     }
+        if (msg.p2p_address.empty())
+        {
+            fc_wlog(logger, "Handshake message validation: p2p_address is null string");
+            valid = false;
+        }
+        else if (msg.p2p_address.length() > max_handshake_str_length)
+        {
+            // see max_handshake_str_length comment in protocol.hpp
+            fc_wlog(logger, "Handshake message validation: p2p_address to large: ${p}", ("p", msg.p2p_address.substr(0, max_handshake_str_length) + "..."));
+            valid = false;
+        }
+        if (msg.os.empty())
+        {
+            fc_wlog(logger, "Handshake message validation: os field is null string");
+            valid = false;
+        }
+        else if (msg.os.length() > max_handshake_str_length)
+        {
+            fc_wlog(logger, "Handshake message validation: os field to large: ${p}", ("p", msg.os.substr(0, max_handshake_str_length) + "..."));
+            valid = false;
+        }
+        if (msg.agent.length() > max_handshake_str_length)
+        {
+            fc_wlog(logger, "Handshake message validation: agent field to large: ${p}", ("p", msg.agent.substr(0, max_handshake_str_length) + "..."));
+            valid = false;
+        }
+        if ((msg.sig != chain::signature_type() || msg.token != sha256()) && (msg.token != fc::sha256::hash(msg.time)))
+        {
+            fc_wlog(logger, "Handshake message validation: token field invalid");
+            valid = false;
+        }
+        return valid;
+    }
+    
+    void connection::handle_message(const chain_size_message &msg)
+    {
+        peer_dlog(this, "received chain_size_message");
+    }
+    
+    void connection::handle_message(const handshake_message &msg)
+    {
+        peer_dlog(this, "received handshake_message");
+        if (!is_valid(msg))
+        {
+            peer_elog(this, "bad handshake message");
+            enqueue(go_away_message(fatal_other));
+            return;
+        }
     //     fc_dlog(logger, "received handshake gen ${g} from ${ep}, lib ${lib}, head ${head}",
     //             ("g", msg.generation)("ep", peer_name())("lib", msg.last_irreversible_block_num)("head", msg.head_num));
     //
-    //     connecting = false;
-    //     if (msg.generation == 1)
-    //     {
-    //         if (msg.node_id == my_impl->node_id)
-    //         {
-    //             fc_elog(logger, "Self connection detected node_id ${id}. Closing connection", ("id", msg.node_id));
-    //             enqueue(go_away_message(self));
-    //             return;
-    //         }
-    //
-    //         if (peer_address().empty())
-    //         {
-    //             set_connection_type(msg.p2p_address);
-    //         }
-    //
-    //         std::unique_lock<std::mutex> g_conn(conn_mtx);
-    //         if (peer_address().empty() || last_handshake_recv.node_id == fc::sha256())
-    //         {
-    //             g_conn.unlock();
-    //             fc_dlog(logger, "checking for duplicate");
-    //             std::shared_lock<std::shared_mutex> g_cnts(my_impl->connections_mtx);
-    //             for (const auto &check : my_impl->connections)
-    //             {
-    //                 if (check.get() == this)
-    //                     continue;
-    //                 if (check->connected() && check->peer_name() == msg.p2p_address)
-    //                 {
-    //                     // It's possible that both peers could arrive here at relatively the same time, so
-    //                     // we need to avoid the case where they would both tell a different connection to go away.
-    //                     // Using the sum of the initial handshake times of the two connections, we will
-    //                     // arbitrarily (but consistently between the two peers) keep one of them.
-    //                     std::unique_lock<std::mutex> g_check_conn(check->conn_mtx);
-    //                     auto check_time = check->last_handshake_sent.time + check->last_handshake_recv.time;
-    //                     g_check_conn.unlock();
-    //                     g_conn.lock();
-    //                     auto c_time = last_handshake_sent.time;
-    //                     g_conn.unlock();
-    //                     if (msg.time + c_time <= check_time)
-    //                         continue;
-    //
-    //                     g_cnts.unlock();
-    //                     fc_dlog(logger, "sending go_away duplicate to ${ep}", ("ep", msg.p2p_address));
-    //                     go_away_message gam(duplicate);
-    //                     g_conn.lock();
-    //                     gam.node_id = conn_node_id;
-    //                     g_conn.unlock();
-    //                     enqueue(gam);
-    //                     no_retry = duplicate;
-    //                     return;
-    //                 }
-    //             }
-    //         }
-    //         else
-    //         {
-    //             fc_dlog(logger, "skipping duplicate check, addr == ${pa}, id = ${ni}",
-    //                     ("pa", peer_address())("ni", last_handshake_recv.node_id));
-    //             g_conn.unlock();
-    //         }
-    //
-    //         if (msg.chain_id != my_impl->chain_id)
-    //         {
-    //             fc_elog(logger, "Peer on a different chain. Closing connection");
-    //             enqueue(go_away_message(go_away_reason::wrong_chain));
-    //             return;
-    //         }
-    //         protocol_version = my_impl->to_protocol_version(msg.network_version);
-    //         if (protocol_version != net_version)
-    //         {
-    //             fc_ilog(logger, "Local network version: ${nv} Remote version: ${mnv}",
-    //                     ("nv", net_version)("mnv", protocol_version));
-    //         }
-    //
-    //         g_conn.lock();
-    //         if (conn_node_id != msg.node_id)
-    //         {
-    //             conn_node_id = msg.node_id;
-    //         }
-    //         g_conn.unlock();
-    //
-    //         if (!my_impl->authenticate_peer(msg))
-    //         {
-    //             fc_elog(logger, "Peer not authenticated.  Closing connection.");
-    //             enqueue(go_away_message(authentication));
-    //             return;
-    //         }
+        connecting = false;
+        if (msg.generation == 1)
+        {
+            if (msg.node_id == my_impl->node_id)
+            {
+                fc_elog(logger, "Self connection detected node_id ${id}. Closing connection", ("id", msg.node_id));
+                enqueue(go_away_message(self));
+                return;
+            }
+    
+            if (peer_address().empty())
+            {
+                set_connection_type(msg.p2p_address);
+            }
+    
+            std::unique_lock<std::mutex> g_conn(conn_mtx);
+            if (peer_address().empty() || last_handshake_recv.node_id == fc::sha256())
+            {
+                g_conn.unlock();
+                fc_dlog(logger, "checking for duplicate");
+                std::shared_lock<std::shared_mutex> g_cnts(my_impl->connections_mtx);
+                for (const auto &check : my_impl->connections)
+                {
+                    if (check.get() == this)
+                        continue;
+                    if (check->connected() && check->peer_name() == msg.p2p_address)
+                    {
+                        // It's possible that both peers could arrive here at relatively the same time, so
+                        // we need to avoid the case where they would both tell a different connection to go away.
+                        // Using the sum of the initial handshake times of the two connections, we will
+                        // arbitrarily (but consistently between the two peers) keep one of them.
+                        std::unique_lock<std::mutex> g_check_conn(check->conn_mtx);
+                        auto check_time = check->last_handshake_sent.time + check->last_handshake_recv.time;
+                        g_check_conn.unlock();
+                        g_conn.lock();
+                        auto c_time = last_handshake_sent.time;
+                        g_conn.unlock();
+                        if (msg.time + c_time <= check_time)
+                            continue;
+    
+                        g_cnts.unlock();
+                        fc_dlog(logger, "sending go_away duplicate to ${ep}", ("ep", msg.p2p_address));
+                        go_away_message gam(duplicate);
+                        g_conn.lock();
+                        gam.node_id = conn_node_id;
+                        g_conn.unlock();
+                        enqueue(gam);
+                        no_retry = duplicate;
+                        return;
+                    }
+                }
+            }
+            else
+            {
+                fc_dlog(logger, "skipping duplicate check, addr == ${pa}, id = ${ni}",
+                        ("pa", peer_address())("ni", last_handshake_recv.node_id));
+                g_conn.unlock();
+            }
+    
+            if (msg.chain_id != my_impl->chain_id)
+            {
+                fc_elog(logger, "Peer on a different chain. Closing connection");
+                enqueue(go_away_message(go_away_reason::wrong_chain));
+                return;
+            }
+            protocol_version = my_impl->to_protocol_version(msg.network_version);
+            if (protocol_version != net_version)
+            {
+                fc_ilog(logger, "Local network version: ${nv} Remote version: ${mnv}",
+                        ("nv", net_version)("mnv", protocol_version));
+            }
+    
+            g_conn.lock();
+            if (conn_node_id != msg.node_id)
+            {
+                conn_node_id = msg.node_id;
+            }
+            g_conn.unlock();
+    
+            if (!my_impl->authenticate_peer(msg))
+            {
+                fc_elog(logger, "Peer not authenticated.  Closing connection.");
+                enqueue(go_away_message(authentication));
+                return;
+            }
     //
     //         uint32_t peer_lib = msg.last_irreversible_block_num;
     //         connection_wptr weak = shared_from_this();
@@ -3063,82 +3065,82 @@ namespace potato
     //             }
     //         });
     //
-    //         if (sent_handshake_count == 0)
-    //         {
-    //             send_handshake();
-    //         }
-    //     }
-    //
-    //     std::unique_lock<std::mutex> g_conn(conn_mtx);
-    //     last_handshake_recv = msg;
-    //     g_conn.unlock();
+            if (sent_handshake_count == 0)
+            {
+                send_handshake();
+            }
+        }
+    
+        std::unique_lock<std::mutex> g_conn(conn_mtx);
+        last_handshake_recv = msg;
+        g_conn.unlock();
     //     my_impl->sync_master->recv_handshake(shared_from_this(), msg);
-    // }
-    //
-    // void connection::handle_message(const go_away_message &msg)
-    // {
-    //     peer_wlog(this, "received go_away_message, reason = ${r}", ("r", reason_str(msg.reason)));
-    //     bool retry = no_retry == no_reason; // if no previous go away message
-    //     no_retry = msg.reason;
-    //     if (msg.reason == duplicate)
-    //     {
-    //         std::lock_guard<std::mutex> g_conn(conn_mtx);
-    //         conn_node_id = msg.node_id;
-    //     }
-    //     if (msg.reason == wrong_version)
-    //     {
-    //         if (!retry)
-    //             no_retry = fatal_other; // only retry once on wrong version
-    //     }
-    //     else
-    //     {
-    //         retry = false;
-    //     }
-    //     flush_queues();
-    //     close(retry); // reconnect if wrong_version
-    // }
-    //
-    // void connection::handle_message(const time_message &msg)
-    // {
-    //     peer_dlog(this, "received time_message");
-    //     /* We've already lost however many microseconds it took to dispatch
-    //    * the message, but it can't be helped.
-    //    */
-    //     msg.dst = get_time();
-    //
-    //     // If the transmit timestamp is zero, the peer is horribly broken.
-    //     if (msg.xmt == 0)
-    //         return; /* invalid timestamp */
-    //
-    //     if (msg.xmt == xmt)
-    //         return; /* duplicate packet */
-    //
-    //     xmt = msg.xmt;
-    //     rec = msg.rec;
-    //     dst = msg.dst;
-    //
-    //     if (msg.org == 0)
-    //     {
-    //         send_time(msg);
-    //         return; // We don't have enough data to perform the calculation yet.
-    //     }
-    //
-    //     double offset = (double(rec - org) + double(msg.xmt - dst)) / 2;
-    //     double NsecPerUsec{1000};
-    //
-    //     if (logger.is_enabled(fc::log_level::all))
-    //         logger.log(FC_LOG_MESSAGE(all, "Clock offset is ${o}ns (${us}us)",
-    //                                   ("o", offset)("us", offset / NsecPerUsec)));
-    //     org = 0;
-    //     rec = 0;
-    //
-    //     std::unique_lock<std::mutex> g_conn(conn_mtx);
-    //     if (last_handshake_recv.generation == 0)
-    //     {
-    //         g_conn.unlock();
-    //         send_handshake();
-    //     }
-    // }
+    }
+    
+    void connection::handle_message(const go_away_message &msg)
+    {
+        peer_wlog(this, "received go_away_message, reason = ${r}", ("r", reason_str(msg.reason)));
+        bool retry = no_retry == no_reason; // if no previous go away message
+        no_retry = msg.reason;
+        if (msg.reason == duplicate)
+        {
+            std::lock_guard<std::mutex> g_conn(conn_mtx);
+            conn_node_id = msg.node_id;
+        }
+        if (msg.reason == wrong_version)
+        {
+            if (!retry)
+                no_retry = fatal_other; // only retry once on wrong version
+        }
+        else
+        {
+            retry = false;
+        }
+        flush_queues();
+        close(retry); // reconnect if wrong_version
+    }
+    
+    void connection::handle_message(const time_message &msg)
+    {
+        peer_dlog(this, "received time_message");
+        /* We've already lost however many microseconds it took to dispatch
+         * the message, but it can't be helped.
+         */
+        msg.dst = get_time();
+    
+        // If the transmit timestamp is zero, the peer is horribly broken.
+        if (msg.xmt == 0)
+            return; /* invalid timestamp */
+    
+        if (msg.xmt == xmt)
+            return; /* duplicate packet */
+    
+        xmt = msg.xmt;
+        rec = msg.rec;
+        dst = msg.dst;
+    
+        if (msg.org == 0)
+        {
+            send_time(msg);
+            return; // We don't have enough data to perform the calculation yet.
+        }
+    
+        double offset = (double(rec - org) + double(msg.xmt - dst)) / 2;
+        double NsecPerUsec{1000};
+    
+        if (logger.is_enabled(fc::log_level::all))
+            logger.log(FC_LOG_MESSAGE(all, "Clock offset is ${o}ns (${us}us)",
+                                      ("o", offset)("us", offset / NsecPerUsec)));
+        org = 0;
+        rec = 0;
+    
+        std::unique_lock<std::mutex> g_conn(conn_mtx);
+        if (last_handshake_recv.generation == 0)
+        {
+            g_conn.unlock();
+            send_handshake();
+        }
+    }
     //
     // void connection::handle_message(const notice_message &msg)
     // {
@@ -3651,28 +3653,28 @@ namespace potato
     //     });
     // }
     //
-    // bool net_plugin_impl::authenticate_peer(const handshake_message &msg) const
-    // {
-    //     if (allowed_connections == None)
-    //         return false;
-    //
-    //     if (allowed_connections == Any)
-    //         return true;
-    //
-    //     if (allowed_connections & (Producers | Specified))
-    //     {
-    //         auto allowed_it = std::find(allowed_peers.begin(), allowed_peers.end(), msg.key);
-    //         auto private_it = private_keys.find(msg.key);
-    //         bool found_producer_key = false;
-    //         if (producer_plug != nullptr)
-    //             found_producer_key = producer_plug->is_producer_key(msg.key);
-    //         if (allowed_it == allowed_peers.end() && private_it == private_keys.end() && !found_producer_key)
-    //         {
-    //             fc_elog(logger, "Peer ${peer} sent a handshake with an unauthorized key: ${key}.",
-    //                     ("peer", msg.p2p_address)("key", msg.key));
-    //             return false;
-    //         }
-    //     }
+    bool net_plugin_impl::authenticate_peer(const handshake_message &msg) const
+    {
+        if (allowed_connections == None)
+            return false;
+    
+        if (allowed_connections == Any)
+            return true;
+    
+        if (allowed_connections & (Producers | Specified))
+        {
+            auto allowed_it = std::find(allowed_peers.begin(), allowed_peers.end(), msg.key);
+            auto private_it = private_keys.find(msg.key);
+            bool found_producer_key = false;
+            if (producer_plug != nullptr)
+                found_producer_key = producer_plug->is_producer_key(msg.key);
+            if (allowed_it == allowed_peers.end() && private_it == private_keys.end() && !found_producer_key)
+            {
+                fc_elog(logger, "Peer ${peer} sent a handshake with an unauthorized key: ${key}.",
+                        ("peer", msg.p2p_address)("key", msg.key));
+                return false;
+            }
+        }
     //
     //     namespace sc = std::chrono;
     //     sc::system_clock::duration msg_time(msg.time);
@@ -3713,29 +3715,29 @@ namespace potato
     //         fc_dlog(logger, "Peer sent a handshake with blank signature and token, but this node accepts only authenticated connections.");
     //         return false;
     //     }
-    //     return true;
-    // }
-    //
-    // chain::public_key_type net_plugin_impl::get_authentication_key() const
-    // {
-    //     if (!private_keys.empty())
-    //         return private_keys.begin()->first;
+        return true;
+    }
+    
+    chain::public_key_type net_plugin_impl::get_authentication_key() const
+    {
+        if (!private_keys.empty())
+            return private_keys.begin()->first;
     //     /*producer_plugin* pp = app().find_plugin<producer_plugin>();
     //      if(pp != nullptr && pp->get_state() == abstract_plugin::started)
     //      return pp->first_producer_public_key();*/
-    //     return chain::public_key_type();
-    // }
-    //
-    // chain::signature_type net_plugin_impl::sign_compact(const chain::public_key_type &signer, const fc::sha256 &digest) const
-    // {
-    //     auto private_key_itr = private_keys.find(signer);
-    //     if (private_key_itr != private_keys.end())
-    //         return private_key_itr->second.sign(digest);
-    //     if (producer_plug != nullptr && producer_plug->get_state() == abstract_plugin::started)
-    //         return producer_plug->sign_compact(signer, digest);
-    //     return chain::signature_type();
-    // }
-
+        return chain::public_key_type();
+    }
+    
+    chain::signature_type net_plugin_impl::sign_compact(const chain::public_key_type &signer, const fc::sha256 &digest) const
+    {
+        auto private_key_itr = private_keys.find(signer);
+        if (private_key_itr != private_keys.end())
+            return private_key_itr->second.sign(digest);
+        if (producer_plug != nullptr && producer_plug->get_state() == abstract_plugin::started)
+            return producer_plug->sign_compact(signer, digest);
+        return chain::signature_type();
+    }
+    
     // call from connection strand
     bool connection::populate_handshake(handshake_message &hello, bool force)
     {
@@ -3747,22 +3749,22 @@ namespace potato
         // std::tie(lib, std::ignore, head,
         //          hello.last_irreversible_block_id, std::ignore, hello.head_id) = my_impl->get_chain_info();
         // only send handshake if state has changed since last handshake
-        send |= lib != hello.last_irreversible_block_num;
-        send |= head != hello.head_num;
+        // send |= lib != hello.last_irreversible_block_num;
+        // send |= head != hello.head_num;
         // send |= prev_head_id != hello.head_id;
         if (!send)
             return false;
-        hello.last_irreversible_block_num = lib;
-        hello.head_num = head;
-        // hello.chain_id = my_impl->chain_id;
+        // hello.last_irreversible_block_num = lib;
+        // hello.head_num = head;
+        hello.chain_id = my_impl->chain_id;
         hello.node_id = my_impl->node_id;
-        // hello.key = my_impl->get_authentication_key();
+        hello.key = my_impl->get_authentication_key();
         hello.time = sc::duration_cast<sc::nanoseconds>(sc::system_clock::now().time_since_epoch()).count();
         hello.token = fc::sha256::hash(hello.time);
-        // hello.sig = my_impl->sign_compact(hello.key, hello.token);
+        hello.sig = my_impl->sign_compact(hello.key, hello.token);
         // If we couldn't sign, don't send a token.
-        // if (hello.sig == chain::signature_type())
-        //    hello.token = sha256();
+        if (hello.sig == chain::signature_type())
+           hello.token = sha256();
         hello.p2p_address = my_impl->p2p_address;
         if (is_transactions_only_connection())
             hello.p2p_address += ":trx";
@@ -3810,8 +3812,8 @@ namespace potato
             ("p2p-accept-transactions", bpo::value<bool>()->default_value(true), "Allow transactions received over p2p network to be evaluated and relayed if valid.")
             ("agent-name", bpo::value<string>()->default_value("\"POC Test Agent\""), "The name supplied to identify this node amongst the peers.")
             ("allowed-connection", bpo::value<vector<string>>()->multitoken()->default_value({"any"}, "any"), "Can be 'any' or 'producers' or 'specified' or 'none'. If 'specified', peer-key must be specified at least once. If only 'producers', peer-key is not required. 'producers' and 'specified' may be combined.")
-            // ("peer-key", bpo::value<vector<string>>()->composing()->multitoken(), "Optional public key of peer allowed to connect.  May be used multiple times.")
-            // ("peer-private-key", boost::program_options::value<vector<string>>()->composing()->multitoken(), "Tuple of [PublicKey, WIF private key] (may specify multiple times)")
+            ("peer-key", bpo::value<vector<string>>()->composing()->multitoken(), "Optional public key of peer allowed to connect.  May be used multiple times.")
+            ("peer-private-key", boost::program_options::value<vector<string>>()->composing()->multitoken(), "Tuple of [PublicKey, WIF private key] (may specify multiple times)")
             ("max-clients", bpo::value<int>()->default_value(def_max_clients), "Maximum number of clients from which connections are accepted, use 0 for no limit")
             ("connection-cleanup-period", bpo::value<int>()->default_value(def_conn_retry_wait), "number of seconds to wait before cleaning up dead connections")
             ("max-cleanup-time-msec", bpo::value<int>()->default_value(10), "max connection cleanup time per cleanup call in millisec")
@@ -3904,29 +3906,29 @@ namespace potato
                            plugin_config_exception,
                            "At least one peer-key must accompany 'allowed-connection=specified'");
 
-            // if (options.count("peer-key"))
-            // {
-            //     const std::vector<std::string> key_strings = options["peer-key"].as<std::vector<std::string>>();
-            //     for (const std::string &key_string : key_strings)
-            //     {
-            //         my->allowed_peers.push_back(dejsonify<chain::public_key_type>(key_string));
-            //     }
-            // }
-            //
-            // if (options.count("peer-private-key"))
-            // {
-            //     const std::vector<std::string> key_id_to_wif_pair_strings = options["peer-private-key"].as<std::vector<std::string>>();
-            //     for (const std::string &key_id_to_wif_pair_string : key_id_to_wif_pair_strings)
-            //     {
-            //         auto key_id_to_wif_pair = dejsonify<std::pair<chain::public_key_type, std::string>>(
-            //             key_id_to_wif_pair_string);
-            //         my->private_keys[key_id_to_wif_pair.first] = fc::crypto::private_key(key_id_to_wif_pair.second);
-            //     }
-            // }
+            if (options.count("peer-key"))
+            {
+                const std::vector<std::string> key_strings = options["peer-key"].as<std::vector<std::string>>();
+                for (const std::string &key_string : key_strings)
+                {
+                    my->allowed_peers.push_back(dejsonify<chain::public_key_type>(key_string));
+                }
+            }
+            
+            if (options.count("peer-private-key"))
+            {
+                const std::vector<std::string> key_id_to_wif_pair_strings = options["peer-private-key"].as<std::vector<std::string>>();
+                for (const std::string &key_id_to_wif_pair_string : key_id_to_wif_pair_strings)
+                {
+                    auto key_id_to_wif_pair = dejsonify<std::pair<chain::public_key_type, std::string>>(
+                        key_id_to_wif_pair_string);
+                    my->private_keys[key_id_to_wif_pair.first] = fc::crypto::private_key(key_id_to_wif_pair.second);
+                }
+            }
 
-            // my->chain_plug = app().find_plugin<chain_plugin>();
-            // EOS_ASSERT(my->chain_plug, chain::missing_chain_plugin_exception, "");
-            // my->chain_id = my->chain_plug->get_chain_id();
+            my->chain_plug = app().find_plugin<chain_plugin>();
+            EOS_ASSERT(my->chain_plug, chain::missing_chain_plugin_exception, "");
+            my->chain_id = my->chain_plug->get_chain_id();
             fc::rand_pseudo_bytes(my->node_id.data(), my->node_id.data_size());
             // const controller &cc = my->chain_plug->chain();
             //
@@ -3955,7 +3957,7 @@ namespace potato
 
             fc_ilog(logger, "my node_id is ${id}", ("id", my->node_id));
 
-            // my->producer_plug = app().find_plugin<producer_plugin>();
+            my->producer_plug = app().find_plugin<producer_plugin>();
 
             my->thread_pool.emplace("net", my->thread_pool_size);
 
@@ -4118,8 +4120,8 @@ namespace potato
     }
 
     /**
-    *  Used to trigger a new connection from RPC API
-    */
+     *  Used to trigger a new connection from RPC API
+     */
     string net_plugin::connect(const string &host)
     {
         std::lock_guard<std::shared_mutex> g(my->connections_mtx);

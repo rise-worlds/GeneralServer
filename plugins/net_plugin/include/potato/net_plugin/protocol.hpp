@@ -1,5 +1,6 @@
 #pragma once
 #include <potato/chain/types.hpp>
+#include <potato/chain/chain_id_type.hpp>
 #include <chrono>
 
 namespace potato
@@ -10,13 +11,13 @@ namespace potato
    static_assert(sizeof(std::chrono::system_clock::duration::rep) >= 8, "system_clock is expected to be at least 64 bits");
    typedef std::chrono::system_clock::duration::rep tstamp;
 
-   // struct chain_size_message
-   // {
-   //    uint32_t last_irreversible_block_num = 0;
-   //    block_id_type last_irreversible_block_id;
-   //    uint32_t head_num = 0;
-   //    block_id_type head_id;
-   // };
+   struct chain_size_message
+   {
+      uint32_t last_irreversible_block_num = 0;
+      block_id_type last_irreversible_block_id;
+      uint32_t head_num = 0;
+      block_id_type head_id;
+   };
 
    // Longest domain name is 253 characters according to wikipedia.
    // Addresses include ":port" where max port is 65535, which adds 6 chars.
@@ -28,17 +29,17 @@ namespace potato
    struct handshake_message
    {
       uint16_t network_version = 0; ///< incremental value above a computed base
-      // chain_id_type              chain_id; ///< used to identify chain
+      chain_id_type chain_id; ///< used to identify chain
       fc::sha256 node_id; ///< used to identify peers and prevent self-connect
-      // chain::public_key_type     key; ///< authentication key; may be a producer or peer key, or empty
+      chain::public_key_type key; ///< authentication key; may be a producer or peer key, or empty
       tstamp time{0};
       fc::sha256 token; ///< digest of time to prove we own the private key of the key above
-      // chain::signature_type      sig; ///< signature for the digest
+      chain::signature_type sig; ///< signature for the digest
       string p2p_address;
-      uint32_t last_irreversible_block_num = 0;
-      // block_id_type              last_irreversible_block_id;
-      uint32_t head_num = 0;
-      // block_id_type              head_id;
+      // uint32_t last_irreversible_block_num = 0;
+      // block_id_type last_irreversible_block_id;
+      // uint32_t head_num = 0;
+      // block_id_type head_id;
       string os;
       string agent;
       int16_t generation = 0;
@@ -167,7 +168,7 @@ namespace potato
    // };
 
    using net_message = static_variant<handshake_message,
-                                    //   chain_size_message,
+                                      chain_size_message,
                                       go_away_message,
                                       time_message
                                     //   notice_message,
@@ -180,18 +181,19 @@ namespace potato
 } // namespace potato
 
 FC_REFLECT(potato::select_ids<fc::sha256>, (mode)(pending)(ids))
-// FC_REFLECT(potato::chain_size_message,
-//            (last_irreversible_block_num)(last_irreversible_block_id)(head_num)(head_id))
+FC_REFLECT(potato::chain_size_message,
+           (last_irreversible_block_num)(last_irreversible_block_id)(head_num)(head_id))
 FC_REFLECT(potato::handshake_message,
            (network_version)
-         //   (chain_id)
+           (chain_id)
            (node_id)
-         //   (key)
+           (key)
            (time)(token)
-         //   (sig)
-           (p2p_address)(last_irreversible_block_num)
+           (sig)
+           (p2p_address)
+         //   (last_irreversible_block_num)
          //   (last_irreversible_block_id)
-           (head_num)
+         //   (head_num)
          //   (head_id)
          (os)(agent)(generation)
            )
