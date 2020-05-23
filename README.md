@@ -1,7 +1,13 @@
 # GeneralServer
 
-Boost 1.71.0
-wabt
+## Dependent libraries
+
+- boost 1.71.0
+- fc
+- wabt
+- eos-vm
+
+## Build
 
 ```bash
 git clone https://github.com/rise-worlds/GeneralServer.git

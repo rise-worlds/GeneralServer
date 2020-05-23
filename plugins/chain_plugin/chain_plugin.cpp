@@ -48,16 +48,17 @@ namespace potato
 
     void chain_plugin::plugin_initialize(const variables_map &options)
     {
-    }
-
-    void chain_plugin::plugin_startup()
-    {
         try {
             genesis_state gs;
             fc::optional<chain_id_type> chain_id = gs.compute_chain_id();
 
             my->chain.emplace( *chain_id );
+            ilog("chain_id is ${id}", ("id", *chain_id));
         } FC_LOG_AND_RETHROW()
+    }
+
+    void chain_plugin::plugin_startup()
+    {
     }
 
     void chain_plugin::handle_sighup()

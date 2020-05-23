@@ -369,7 +369,7 @@ namespace potato
         return lhs = static_cast<enum_type>(static_cast<T>(lhs) | static_cast<T>(rhs));
     }
 
-    static net_plugin_impl *my_impl;
+    static net_plugin_impl *my_impl = nullptr;
 
     /**
     * default value initializers
