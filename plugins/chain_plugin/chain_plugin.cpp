@@ -51,8 +51,9 @@ namespace potato
         try {
             genesis_state gs;
             fc::optional<chain_id_type> chain_id = gs.compute_chain_id();
+            controller::config cfg;
 
-            my->chain.emplace( *chain_id );
+            my->chain.emplace( cfg, *chain_id );
             ilog("chain_id is ${id}", ("id", *chain_id));
         } FC_LOG_AND_RETHROW()
     }
