@@ -2,12 +2,26 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/genesis_state_root_key.cpp.in ${CMAKE
 
 file(GLOB HEADERS "include/potato/chain/*.hpp" )
 
+if(APPLE AND UNIX)
+   set(PLATFORM_TIMER_IMPL platform_timer_macos.cpp)
+else()
+   try_run(POSIX_TIMER_TEST_RUN_RESULT POSIX_TIMER_TEST_COMPILE_RESULT ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/platform_timer_posix_test.c)
+   if(POSIX_TIMER_TEST_RUN_RESULT EQUAL 0)
+      set(PLATFORM_TIMER_IMPL platform_timer_posix.cpp)
+      set(CHAIN_RT_LINKAGE rt)
+   else()
+      set(PLATFORM_TIMER_IMPL platform_timer_asio_fallback.cpp)
+   endif()
+endif()
+
 add_library( potato_chain
             chain_id_type.cpp
             controller.cpp
             genesis_state.cpp
             ${CMAKE_CURRENT_BINARY_DIR}/genesis_state_root_key.cpp
+            name.cpp
             thread_utils.cpp
+            ${PLATFORM_TIMER_IMPL}
             ${HEADERS}
         )
 

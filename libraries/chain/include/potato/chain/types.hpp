@@ -15,12 +15,30 @@
 #include <fc/fixed_string.hpp>
 #include <fc/crypto/private_key.hpp>
 
+#include <potato/chain/name.hpp>
+
 #include <memory>
 #include <vector>
 #include <deque>
 #include <cstdint>
 
-namespace potato { namespace chain {
+#define OBJECT_CTOR1(NAME) \
+    NAME() = delete; \
+    public: \
+    template<typename Constructor, typename Allocator> \
+    NAME(Constructor&& c, chainbase::allocator<Allocator>) \
+    { c(*this); }
+#define OBJECT_CTOR2_MACRO(x, y, field) ,field(a)
+#define OBJECT_CTOR2(NAME, FIELDS) \
+    NAME() = delete; \
+    public: \
+    template<typename Constructor, typename Allocator> \
+    NAME(Constructor&& c, chainbase::allocator<Allocator> a) \
+    : id(0) BOOST_PP_SEQ_FOR_EACH(OBJECT_CTOR2_MACRO, _, FIELDS) \
+    { c(*this); }
+#define OBJECT_CTOR(...) BOOST_PP_OVERLOAD(OBJECT_CTOR, __VA_ARGS__)(__VA_ARGS__)
+
+namespace potato::chain {
    using                               std::map;
    using                               std::vector;
    using                               std::unordered_map;
@@ -62,8 +80,18 @@ namespace potato { namespace chain {
    using private_key_type = fc::crypto::private_key;
    using signature_type   = fc::crypto::signature;
 
+   using account_name      = name;
+   using permission_name   = name;
+   using action_name       = name;
+
    struct void_t{};
 
+   enum object_type
+   {
+      null_object_type = 0,
+      global_property_object_type,
+      dynamic_global_property_object_type,
+   };
 
    using block_id_type       = fc::sha256;
    using checksum_type       = fc::sha256;
@@ -87,6 +115,6 @@ namespace potato { namespace chain {
       }
    };
    
-} }  // potato::chain
+}   // potato::chain
 
 FC_REFLECT_EMPTY( potato::chain::void_t )
