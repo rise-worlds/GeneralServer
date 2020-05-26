@@ -16,6 +16,9 @@
 #include <fc/crypto/private_key.hpp>
 
 #include <potato/chain/name.hpp>
+#include <potato/chain/chain_id_type.hpp>
+#include <potato/chain/exceptions.hpp>
+#include <chainbase/chainbase.hpp>
 
 #include <memory>
 #include <vector>
@@ -80,17 +83,63 @@ namespace potato::chain {
    using private_key_type = fc::crypto::private_key;
    using signature_type   = fc::crypto::signature;
 
+   struct void_t{};
+
+   using chainbase::allocator;
+   using shared_string = boost::interprocess::basic_string<char, std::char_traits<char>, allocator<char>>;
+   template<typename T>
+   using shared_vector = boost::interprocess::vector<T, allocator<T>>;
+   template<typename T>
+   using shared_set = boost::interprocess::set<T, std::less<T>, allocator<T>>;
+   template<typename K, typename V>
+   using shared_flat_multimap = boost::interprocess::flat_multimap< K, V, std::less<K>, allocator< std::pair<K,V> > >;
+
+   /**
+    * For bugs in boost interprocess we moved our blob data to shared_string
+    * this wrapper allows us to continue that while also having a type-level distinction for
+    * serialization and to/from variant
+    */
+   class shared_blob : public shared_string {
+      public:
+         shared_blob() = delete;
+         shared_blob(shared_blob&&) = default;
+
+         shared_blob(const shared_blob& s)
+         :shared_string(s.get_allocator())
+         {
+            assign(s.c_str(), s.size());
+         }
+
+
+         shared_blob& operator=(const shared_blob& s) {
+            assign(s.c_str(), s.size());
+            return *this;
+         }
+
+         shared_blob& operator=(shared_blob&& ) = default;
+
+         template <typename InputIterator>
+         shared_blob(InputIterator f, InputIterator l, const allocator_type& a)
+         :shared_string(f,l,a)
+         {}
+
+         shared_blob(const allocator_type& a)
+         :shared_string(a)
+         {}
+   };
+
    using account_name      = name;
+   using scope_name        = name;
    using permission_name   = name;
    using action_name       = name;
-
-   struct void_t{};
+   using table_name        = name;
 
    enum object_type
    {
       null_object_type = 0,
       global_property_object_type,
       dynamic_global_property_object_type,
+      database_header_object_type,
    };
 
    using block_id_type       = fc::sha256;

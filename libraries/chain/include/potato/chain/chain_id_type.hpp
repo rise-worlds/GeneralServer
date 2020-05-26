@@ -38,6 +38,7 @@ namespace potato
             friend struct potato::handshake_message;
             friend class controller;
             friend struct controller_impl;
+            friend class global_property_object;
         };
     } // namespace chain
 } // namespace potato

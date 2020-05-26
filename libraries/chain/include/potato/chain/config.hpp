@@ -1,5 +1,9 @@
 #pragma once
+
 #include <fc/time.hpp>
+#include <potato/chain/types.hpp>
+
+#pragma GCC diagnostic ignored "-Wunused-variable"
 
 namespace potato::chain::config
 {
@@ -37,8 +41,8 @@ namespace potato::chain::config
     const static uint32_t genesis_num_supported_key_types = 2;
 
     /** Percentages are fixed point with a denominator of 10,000 */
-    const static int percent_100 = 10000;
-    const static int percent_1 = 100;
+    const constexpr static int percent_100 = 10000;
+    const constexpr static int percent_1 = 100;
 
     static const uint32_t account_cpu_usage_average_window_ms = 24 * 60 * 60 * 1000l;
     static const uint32_t account_net_usage_average_window_ms = 24 * 60 * 60 * 1000l;

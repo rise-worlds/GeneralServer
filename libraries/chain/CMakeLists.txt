@@ -15,12 +15,16 @@ else()
 endif()
 
 add_library( potato_chain
+            chain_config.cpp
             chain_id_type.cpp
+            block_header.cpp
             controller.cpp
             genesis_state.cpp
             ${CMAKE_CURRENT_BINARY_DIR}/genesis_state_root_key.cpp
             name.cpp
             thread_utils.cpp
+            transaction.cpp
+            platform_timer_accuracy.cpp
             ${PLATFORM_TIMER_IMPL}
             ${HEADERS}
         )

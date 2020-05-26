@@ -28,9 +28,13 @@ namespace potato
         void plugin_startup();
         void plugin_shutdown();
 
+        controller& chain();
+        const controller& chain() const;
         chain::chain_id_type get_chain_id() const;
 
     private:
+        static void log_guard_exception(const chain::guard_exception&e );
+
         std::shared_ptr<class chain_plugin_impl> my;
     };
 

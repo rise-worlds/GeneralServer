@@ -3,4 +3,5 @@
 build/
 cmake-build-debug/
 cmake-build-release/
-config-dir
+config-dir/
+state/

@@ -7,12 +7,12 @@ namespace potato::chain
 {
 
    /**
- * @brief Producer-voted blockchain configuration parameters
- *
- * This object stores the blockchain configuration, which is set by the block producers. Block producers each vote for
- * their preference for each of the parameters in this object, and the blockchain runs according to the median of the
- * values specified by the producers.
- */
+    * @brief Producer-voted blockchain configuration parameters
+    *
+    * This object stores the blockchain configuration, which is set by the block producers. Block producers each vote for
+    * their preference for each of the parameters in this object, and the blockchain runs according to the median of the
+    * values specified by the producers.
+    */
    struct chain_config
    {
       uint64_t max_block_net_usage;            ///< the maxiumum net usage in instructions for a block
@@ -41,14 +41,13 @@ namespace potato::chain
       friend Stream &operator<<(Stream &out, const chain_config &c)
       {
          return out << "Max Block Net Usage: " << c.max_block_net_usage << ", "
-                    << "Target Block Net Usage Percent: " << ((double)c.target_block_net_usage_pct / (double)config::percent_1) << "%, "
+                    << "Target Block Net Usage Percent: " << ((double)c.target_block_net_usage_pct / (double)potato::chain::config::percent_1) << "%, "
                     << "Max Transaction Net Usage: " << c.max_transaction_net_usage << ", "
                     << "Base Per-Transaction Net Usage: " << c.base_per_transaction_net_usage << ", "
                     << "Net Usage Leeway: " << c.net_usage_leeway << ", "
                     << "Context-Free Data Net Usage Discount: " << (double)c.context_free_discount_net_usage_num * 100.0 / (double)c.context_free_discount_net_usage_den << "% , "
-
                     << "Max Block CPU Usage: " << c.max_block_cpu_usage << ", "
-                    << "Target Block CPU Usage Percent: " << ((double)c.target_block_cpu_usage_pct / (double)config::percent_1) << "%, "
+                    << "Target Block CPU Usage Percent: " << ((double)c.target_block_cpu_usage_pct / (double)potato::chain::config::percent_1) << "%, "
                     << "Max Transaction CPU Usage: " << c.max_transaction_cpu_usage << ", "
                     << "Min Transaction CPU Usage: " << c.min_transaction_cpu_usage << ", "
 
@@ -107,5 +106,4 @@ FC_REFLECT(potato::chain::chain_config,
             (max_block_net_usage)(target_block_net_usage_pct)(max_transaction_net_usage)(base_per_transaction_net_usage)(net_usage_leeway)(context_free_discount_net_usage_num)(context_free_discount_net_usage_den)
             (max_block_cpu_usage)(target_block_cpu_usage_pct)(max_transaction_cpu_usage)(min_transaction_cpu_usage)
             (max_transaction_lifetime)(deferred_trx_expiration_window)(max_transaction_delay)(max_inline_action_size)(max_inline_action_depth)(max_authority_depth)
-
 )
