@@ -31,7 +31,9 @@ endif()
 
 target_link_libraries( example 
     PRIVATE appbase version
-    PRIVATE -Wl,${whole_archive_flag} net_plugin -Wl,${no_whole_archive_flag}
+    PRIVATE -Wl,${whole_archive_flag} net_plugin          -Wl,${no_whole_archive_flag}
+    PRIVATE -Wl,${whole_archive_flag} chain_api_plugin    -Wl,${no_whole_archive_flag}
+    PRIVATE -Wl,${whole_archive_flag} producer_api_plugin -Wl,${no_whole_archive_flag}
     PRIVATE -Wl,${build_id_flag}
     PRIVATE http_plugin chain_plugin producer_plugin
-    PRIVATE potato_chain fc wabt ${CMAKE_DL_LIBS} ${PLATFORM_SPECIFIC_LIBS} )
+    PRIVATE eosio_chain fc wabt ${CMAKE_DL_LIBS} ${PLATFORM_SPECIFIC_LIBS} )

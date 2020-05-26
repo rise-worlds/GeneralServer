@@ -1,9 +1,7 @@
-#include <potato/chain/genesis_state.hpp>
+#include <eosio/chain/genesis_state.hpp>
 
-namespace potato
-{
-    namespace chain
-    {
-        const string genesis_state::potato_root_key = "${POTATO_ROOT_KEY}";
-    }
-} // namespace potato
+namespace eosio { namespace chain {
+
+const string genesis_state::eosio_root_key = "${EOSIO_ROOT_KEY}";
+
+} } // namespace eosio::chain

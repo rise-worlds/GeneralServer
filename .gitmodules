@@ -10,3 +10,6 @@
 [submodule "libraries/eos-vm"]
 	path = libraries/eos-vm
 	url = https://github.com/rise-worlds/eos-vm
+[submodule "libraries/softfloat"]
+	path = libraries/softfloat
+	url = https://github.com/eosio/berkeley-softfloat-3

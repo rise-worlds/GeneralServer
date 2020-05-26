@@ -1,9 +1,9 @@
-#include <potato/http_plugin/http_plugin.hpp>
+#include <eosio/http_plugin/http_plugin.hpp>
 #ifdef BOOST_ASIO_HAS_LOCAL_SOCKETS
-#include <potato/http_plugin/local_endpoint.hpp>
+#include <eosio/http_plugin/local_endpoint.hpp>
 #endif
-#include <potato/chain/exceptions.hpp>
-#include <potato/chain/thread_utils.hpp>
+#include <eosio/chain/exceptions.hpp>
+#include <eosio/chain/thread_utils.hpp>
 
 #include <fc/network/ip.hpp>
 #include <fc/log/logger_config.hpp>
@@ -29,7 +29,7 @@
 const fc::string logger_name("http_plugin");
 fc::logger logger;
 
-namespace potato {
+namespace eosio {
 
    static appbase::abstract_plugin& _http_plugin = app().register_plugin<http_plugin>();
 
@@ -193,7 +193,7 @@ namespace potato {
          websocket_server_type    server;
 
          uint16_t                                    thread_pool_size = 2;
-         optional<potato::chain::named_thread_pool>  thread_pool;
+         optional<eosio::chain::named_thread_pool>   thread_pool;
          std::atomic<size_t>                         bytes_in_flight{0};
          size_t                                      max_bytes_in_flight = 0;
          fc::microseconds                            max_response_time{30*1000};

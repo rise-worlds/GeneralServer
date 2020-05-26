@@ -1,7 +1,7 @@
-file(GLOB HEADERS "include/potato/http_plugin/*.hpp")
+file(GLOB HEADERS "include/eosio/http_plugin/*.hpp")
 add_library( http_plugin
              http_plugin.cpp
              ${HEADERS} )
 
-target_link_libraries( http_plugin appbase fc potato_chain )
+target_link_libraries( http_plugin appbase fc eosio_chain )
 target_include_directories( http_plugin PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include" )

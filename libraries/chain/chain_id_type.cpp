@@ -1,22 +1,22 @@
-#include <potato/chain/chain_id_type.hpp>
+#include <eosio/chain/chain_id_type.hpp>
+#include <eosio/chain/exceptions.hpp>
 
-namespace potato
-{
-    namespace chain
-    {
+namespace eosio { namespace chain {
 
-    }
-} // namespace potato
+   void chain_id_type::reflector_init()const {
+      EOS_ASSERT( *reinterpret_cast<const fc::sha256*>(this) != fc::sha256(), chain_id_type_exception, "chain_id_type cannot be zero" );
+   }
 
-namespace fc
-{
-    class variant;
-    void to_variant(const potato::chain::chain_id_type &cid, fc::variant &v)
-    {
-        to_variant(static_cast<const fc::sha256 &>(cid), v);
-    }
-    void from_variant(const fc::variant &v, potato::chain::chain_id_type &cid)
-    {
-        from_variant(v, static_cast<fc::sha256 &>(cid));
-    }
-} // namespace fc
+} }  // namespace eosio::chain
+
+namespace fc {
+
+   void to_variant(const eosio::chain::chain_id_type& cid, fc::variant& v) {
+      to_variant( static_cast<const fc::sha256&>(cid), v);
+   }
+
+   void from_variant(const fc::variant& v, eosio::chain::chain_id_type& cid) {
+      from_variant( v, static_cast<fc::sha256&>(cid) );
+   }
+
+} // fc

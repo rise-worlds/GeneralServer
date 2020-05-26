@@ -1,11 +1,10 @@
-#include <potato/chain/name.hpp>
-
+#include <eosio/chain/name.hpp>
 #include <fc/variant.hpp>
 #include <boost/algorithm/string.hpp>
 #include <fc/exception/exception.hpp>
-#include <potato/chain/exceptions.hpp>
+#include <eosio/chain/exceptions.hpp>
 
-namespace potato::chain {
+namespace eosio::chain {
 
    void name::set( std::string_view str ) {
       const auto len = str.size();
@@ -33,9 +32,9 @@ namespace potato::chain {
       return str;
    }
 
-} // potato::chain
+} // eosio::chain
 
 namespace fc {
-  void to_variant(const potato::chain::name& c, fc::variant& v) { v = c.to_string(); }
-  void from_variant(const fc::variant& v, potato::chain::name& check) { check.set( v.get_string() ); }
+  void to_variant(const eosio::chain::name& c, fc::variant& v) { v = c.to_string(); }
+  void from_variant(const fc::variant& v, eosio::chain::name& check) { check.set( v.get_string() ); }
 } // fc

@@ -1,4 +1,5 @@
 add_subdirectory(fc)
+add_subdirectory(softfloat)
 add_subdirectory(chainbase)
 add_subdirectory(appbase)
 add_subdirectory(chain)
