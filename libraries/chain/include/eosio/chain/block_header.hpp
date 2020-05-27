@@ -43,22 +43,8 @@ namespace eosio { namespace chain {
       checksum256_type                 transaction_mroot; /// mroot of cycles_summary
       checksum256_type                 action_mroot; /// mroot of all delivered action receipts
 
-      /**
-       * LEGACY SUPPORT - After enabling the wtmsig-blocks extension this field is deprecated and must be empty
-       *
-       * Prior to that activation this carries:
-       *
-       * The producer schedule version that should validate this block, this is used to
-       * indicate that the prior block which included new_producers->version has been marked
-       * irreversible and that it the new producer schedule takes effect this block.
-       */
-
-      using new_producers_type = optional<legacy::producer_schedule_type>;
-
       uint32_t                          schedule_version = 0;
-      new_producers_type                new_producers;
       extensions_type                   header_extensions;
-
 
       block_header() = default;
 
@@ -81,6 +67,7 @@ namespace eosio { namespace chain {
 FC_REFLECT(eosio::chain::block_header,
            (timestamp)(producer)(confirmed)(previous)
            (transaction_mroot)(action_mroot)
-           (schedule_version)(new_producers)(header_extensions))
+           (schedule_version)
+           (header_extensions))
 
 FC_REFLECT_DERIVED(eosio::chain::signed_block_header, (eosio::chain::block_header), (producer_signature))

@@ -247,26 +247,9 @@ class privileged_api : public context_aware_api {
          return context.control.set_proposed_producers( std::move(producers) );
       }
 
-      int64_t set_proposed_producers( array_ptr<char> packed_producer_schedule, uint32_t datalen ) {
-         datastream<const char*> ds( packed_producer_schedule, datalen );
-         vector<producer_authority> producers;
-
-         vector<legacy::producer_key> old_version;
-         fc::raw::unpack(ds, old_version);
-
-         /*
-          * Up-convert the producers
-          */
-         for ( const auto& p: old_version ) {
-            producers.emplace_back(producer_authority{ p.producer_name, block_signing_authority_v0{ 1, {{p.block_signing_key, 1}} } } );
-         }
-
-         return set_proposed_producers_common(std::move(producers), true);
-      }
-
       int64_t set_proposed_producers_ex( uint64_t packed_producer_format, array_ptr<char> packed_producer_schedule, uint32_t datalen ) {
          if (packed_producer_format == 0) {
-            return set_proposed_producers(packed_producer_schedule, datalen);
+            // return set_proposed_producers(packed_producer_schedule, datalen);
          } else if (packed_producer_format == 1) {
             datastream<const char*> ds( packed_producer_schedule, datalen );
             vector<producer_authority> producers;
@@ -1863,7 +1846,6 @@ REGISTER_INTRINSICS(privileged_api,
    (activate_feature,                 void(int64_t)                         )
    (get_resource_limits,              void(int64_t,int,int,int)             )
    (set_resource_limits,              void(int64_t,int64_t,int64_t,int64_t) )
-   (set_proposed_producers,           int64_t(int,int)                      )
    (set_proposed_producers_ex,        int64_t(int64_t, int, int)            )
    (get_blockchain_parameters_packed, int(int, int)                         )
    (set_blockchain_parameters_packed, void(int,int)                         )

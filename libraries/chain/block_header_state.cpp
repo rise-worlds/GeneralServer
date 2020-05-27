@@ -197,24 +197,12 @@ namespace eosio { namespace chain {
       }
 
       if (new_producers) {
-         if ( detail::is_builtin_activated(prev_activated_protocol_features, pfs, builtin_protocol_feature_t::wtmsig_block_signatures) ) {
-            // add the header extension to update the block schedule
-            emplace_extension(
-                  h.header_extensions,
-                  producer_schedule_change_extension::extension_id(),
-                  fc::raw::pack( producer_schedule_change_extension( *new_producers ) )
-            );
-         } else {
-            legacy::producer_schedule_type downgraded_producers;
-            downgraded_producers.version = new_producers->version;
-            for (const auto &p : new_producers->producers) {
-               p.authority.visit([&downgraded_producers, &p](const auto& auth){
-                  EOS_ASSERT(auth.keys.size() == 1 && auth.keys.front().weight == auth.threshold, producer_schedule_exception, "multisig block signing present before enabled!");
-                  downgraded_producers.producers.emplace_back(legacy::producer_key{p.producer_name, auth.keys.front().key});
-               });
-            }
-            h.new_producers = std::move(downgraded_producers);
-         }
+         // add the header extension to update the block schedule
+         emplace_extension(
+               h.header_extensions,
+               producer_schedule_change_extension::extension_id(),
+               fc::raw::pack( producer_schedule_change_extension( *new_producers ) )
+         );
       }
 
       return h;
@@ -240,24 +228,6 @@ namespace eosio { namespace chain {
       std::optional<producer_authority_schedule> maybe_new_producer_schedule;
       std::optional<digest_type> maybe_new_producer_schedule_hash;
       bool wtmsig_enabled = false;
-
-      if (h.new_producers || exts.count(producer_schedule_change_extension::extension_id()) > 0 ) {
-         wtmsig_enabled = detail::is_builtin_activated(prev_activated_protocol_features, pfs, builtin_protocol_feature_t::wtmsig_block_signatures);
-      }
-
-      if( h.new_producers ) {
-         EOS_ASSERT(!wtmsig_enabled, producer_schedule_exception, "Block header contains legacy producer schedule outdated by activation of WTMsig Block Signatures" );
-
-         EOS_ASSERT( !was_pending_promoted, producer_schedule_exception, "cannot set pending producer schedule in the same block in which pending was promoted to active" );
-
-         const auto& new_producers = *h.new_producers;
-         EOS_ASSERT( new_producers.version == active_schedule.version + 1, producer_schedule_exception, "wrong producer schedule version specified" );
-         EOS_ASSERT( prev_pending_schedule.schedule.producers.empty(), producer_schedule_exception,
-                    "cannot set new pending producers until last pending is confirmed" );
-
-         maybe_new_producer_schedule_hash.emplace(digest_type::hash(new_producers));
-         maybe_new_producer_schedule.emplace(new_producers);
-      }
 
       if ( exts.count(producer_schedule_change_extension::extension_id()) > 0 ) {
          EOS_ASSERT(wtmsig_enabled, producer_schedule_exception, "Block header producer_schedule_change_extension before activation of WTMsig Block Signatures" );

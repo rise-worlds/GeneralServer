@@ -7,45 +7,6 @@
 
 namespace eosio { namespace chain {
 
-   namespace legacy {
-      /**
-       *  Used as part of the producer_schedule_type, maps the producer name to their key.
-       */
-      struct producer_key {
-         account_name      producer_name;
-         public_key_type   block_signing_key;
-
-         friend bool operator == ( const producer_key& lhs, const producer_key& rhs ) {
-            return tie( lhs.producer_name, lhs.block_signing_key ) == tie( rhs.producer_name, rhs.block_signing_key );
-         }
-         friend bool operator != ( const producer_key& lhs, const producer_key& rhs ) {
-            return tie( lhs.producer_name, lhs.block_signing_key ) != tie( rhs.producer_name, rhs.block_signing_key );
-         }
-      };
-
-      /**
-       *  Defines both the order, account name, and signing keys of the active set of producers.
-       */
-      struct producer_schedule_type {
-         uint32_t                                       version = 0; ///< sequentially incrementing version number
-         vector<producer_key>                           producers;
-
-         friend bool operator == ( const producer_schedule_type& a, const producer_schedule_type& b )
-         {
-            if( a.version != b.version ) return false;
-            if ( a.producers.size() != b.producers.size() ) return false;
-            for( uint32_t i = 0; i < a.producers.size(); ++i )
-               if( a.producers[i] != b.producers[i] ) return false;
-            return true;
-         }
-
-         friend bool operator != ( const producer_schedule_type& a, const producer_schedule_type& b )
-         {
-            return !(a==b);
-         }
-      };
-   }
-
    struct shared_block_signing_authority_v0 {
       shared_block_signing_authority_v0() = delete;
       shared_block_signing_authority_v0( const shared_block_signing_authority_v0& ) = default;
@@ -231,17 +192,6 @@ namespace eosio { namespace chain {
    struct producer_authority_schedule {
       producer_authority_schedule() = default;
 
-      /**
-       * Up-convert a legacy producer schedule
-       */
-      explicit producer_authority_schedule( const legacy::producer_schedule_type& old )
-      :version(old.version)
-      {
-         producers.reserve( old.producers.size() );
-         for( const auto& p : old.producers )
-            producers.emplace_back(producer_authority{ p.producer_name, block_signing_authority_v0{ 1, {{p.block_signing_key, 1}} } });
-      }
-
       producer_authority_schedule( uint32_t version,  std::initializer_list<producer_authority> producers )
       :version(version)
       ,producers(producers)
@@ -322,8 +272,6 @@ namespace eosio { namespace chain {
 
 } } /// eosio::chain
 
-FC_REFLECT( eosio::chain::legacy::producer_key, (producer_name)(block_signing_key) )
-FC_REFLECT( eosio::chain::legacy::producer_schedule_type, (version)(producers) )
 FC_REFLECT( eosio::chain::block_signing_authority_v0, (threshold)(keys))
 FC_REFLECT( eosio::chain::producer_authority, (producer_name)(authority) )
 FC_REFLECT( eosio::chain::producer_authority_schedule, (version)(producers) )

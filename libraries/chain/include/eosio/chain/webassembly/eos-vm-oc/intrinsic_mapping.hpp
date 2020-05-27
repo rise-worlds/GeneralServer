@@ -66,7 +66,6 @@ constexpr auto intrinsic_table = boost::hana::make_tuple(
    "env.activate_feature"_s,
    "env.get_resource_limits"_s,
    "env.set_resource_limits"_s,
-   "env.set_proposed_producers"_s,
    "env.set_proposed_producers_ex"_s,
    "env.get_blockchain_parameters_packed"_s,
    "env.set_blockchain_parameters_packed"_s,

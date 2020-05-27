@@ -95,7 +95,6 @@ abi_def eosio_contract_abi(const abi_def& eosio_system_abi)
          {"transaction_mroot", "checksum256"},
          {"action_mroot", "checksum256"},
          {"schedule_version", "uint32"},
-         {"new_producers", "producer_schedule?"},
          {"header_extensions", "extension[]"}
       }
    });

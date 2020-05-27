@@ -449,13 +449,12 @@ struct controller_impl {
    void initialize_blockchain_state(const genesis_state& genesis) {
       wlog( "Initializing new blockchain with genesis state" );
       producer_authority_schedule initial_schedule = { 0, { producer_authority{config::system_account_name, block_signing_authority_v0{ 1, {{genesis.initial_key, 1}} } } } };
-      legacy::producer_schedule_type initial_legacy_schedule{ 0, {{config::system_account_name, genesis.initial_key}} };
 
       block_header_state genheader;
       genheader.active_schedule                = initial_schedule;
       genheader.pending_schedule.schedule      = initial_schedule;
       // NOTE: if wtmsig block signatures are enabled at genesis time this should be the hash of a producer authority schedule
-      genheader.pending_schedule.schedule_hash = fc::sha256::hash(initial_legacy_schedule);
+      genheader.pending_schedule.schedule_hash = fc::sha256::hash(initial_schedule);
       genheader.header.timestamp               = genesis.initial_timestamp;
       genheader.header.action_mroot            = genesis.compute_chain_id();
       genheader.id                             = genheader.header.id();
@@ -1798,7 +1797,6 @@ struct controller_impl {
       EOS_REPORT( "transaction_mroot", b.transaction_mroot, ab.transaction_mroot )
       EOS_REPORT( "action_mroot", b.action_mroot, ab.action_mroot )
       EOS_REPORT( "schedule_version", b.schedule_version, ab.schedule_version )
-      EOS_REPORT( "new_producers", b.new_producers, ab.new_producers )
       EOS_REPORT( "header_extensions", b.header_extensions, ab.header_extensions )
 
 #undef EOS_REPORT
