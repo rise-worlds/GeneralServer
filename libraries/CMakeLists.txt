@@ -3,6 +3,7 @@ add_subdirectory(builtins)
 add_subdirectory(softfloat)
 add_subdirectory(chainbase)
 add_subdirectory(appbase)
+add_subdirectory(wasm-jit)
 add_subdirectory(chain)
 add_subdirectory(version)
 
