@@ -9,7 +9,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/programs/example/example",
-            "args": ["-e", "-p=eosio", "--delete-all-block"],
+            "args": ["-e", "-peosio", "--delete-all-block"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

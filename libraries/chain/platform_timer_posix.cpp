@@ -46,7 +46,7 @@ platform_timer::platform_timer() {
 
    FC_ASSERT(timer_create(CLOCK_REALTIME, &se, &my->timerid) == 0, "failed to create timer");
 
-   compute_and_print_timer_accuracy(*this);
+   // compute_and_print_timer_accuracy(*this);
 }
 
 platform_timer::~platform_timer() {

@@ -370,6 +370,9 @@ namespace eosio { namespace chain {
    }
 
    void transaction_context::checktime()const {
+      //#ifndef NDEBUG
+      //return;
+      //#endif
       if(BOOST_LIKELY(transaction_timer.expired == false))
          return;
 
