@@ -658,8 +658,6 @@ void producer_plugin::set_program_options(
           "Limits the maximum age (in seconds) of the DPOS Irreversible Block for a chain this node will produce blocks on (use negative value to indicate unlimited)")
          ("producer-name,p", boost::program_options::value<vector<string>>()->composing()->multitoken(),
           "ID of producer controlled by this node (e.g. inita; may specify multiple times)")
-         ("private-key", boost::program_options::value<vector<string>>()->composing()->multitoken(),
-          "(DEPRECATED - Use signature-provider instead) Tuple of [public key, WIF private key] (may specify multiple times)")
          ("signature-provider", boost::program_options::value<vector<string>>()->composing()->multitoken()->default_value(
                {default_priv_key.get_public_key().to_string() + "=KEY:" + default_priv_key.to_string()},
                 default_priv_key.get_public_key().to_string() + "=KEY:" + default_priv_key.to_string()),
@@ -667,9 +665,8 @@ void producer_plugin::set_program_options(
           "Where:\n"
           "   <public-key>    \tis a string form of a vaild EOSIO public key\n\n"
           "   <provider-spec> \tis a string in the form <provider-type>:<data>\n\n"
-          "   <provider-type> \tis KEY, or KEOSD\n\n"
-          "   KEY:<data>      \tis a string form of a valid EOSIO private key which maps to the provided public key\n\n"
-          "   KEOSD:<data>    \tis the URL where keosd is available and the approptiate wallet(s) are unlocked")
+          "   <provider-type> \tis KEY\n\n"
+          "   KEY:<data>      \tis a string form of a valid EOSIO private key which maps to the provided public key")
          ("keosd-provider-timeout", boost::program_options::value<int32_t>()->default_value(5),
           "Limits the maximum time (in milliseconds) that is allowed for sending blocks to a keosd provider for signing")
          ("greylist-account", boost::program_options::value<vector<string>>()->composing()->multitoken(),
@@ -745,30 +742,6 @@ make_key_signature_provider(const private_key_type& key) {
    };
 }
 
-static producer_plugin_impl::signature_provider_type
-make_keosd_signature_provider(const std::shared_ptr<producer_plugin_impl>& impl, const string& url_str, const public_key_type pubkey) {
-   fc::url keosd_url;
-   if(boost::algorithm::starts_with(url_str, "unix://"))
-      //send the entire string after unix:// to http_plugin. It'll auto-detect which part
-      // is the unix socket path, and which part is the url to hit on the server
-      keosd_url = fc::url("unix", url_str.substr(7), ostring(), ostring(), ostring(), ostring(), ovariant_object(), fc::optional<uint16_t>());
-   else
-      keosd_url = fc::url(url_str);
-   std::weak_ptr<producer_plugin_impl> weak_impl = impl;
-
-   return [weak_impl, keosd_url, pubkey]( const chain::digest_type& digest ) {
-      auto impl = weak_impl.lock();
-      if (impl) {
-         fc::variant params;
-         fc::to_variant(std::make_pair(digest, pubkey), params);
-         auto deadline = impl->_keosd_provider_timeout_us.count() >= 0 ? fc::time_point::now() + impl->_keosd_provider_timeout_us : fc::time_point::maximum();
-         return app().get_plugin<http_client_plugin>().get_client().post_sync(keosd_url, params, deadline).as<chain::signature_type>();
-      } else {
-         return signature_type();
-      }
-   };
-}
-
 void producer_plugin::plugin_initialize(const boost::program_options::variables_map& options)
 { try {
    my->chain_plug = app().find_plugin<chain_plugin>();
@@ -782,22 +755,6 @@ void producer_plugin::plugin_initialize(const boost::program_options::variables_
          my->_producers.empty() ? unapplied_transaction_queue::process_mode::speculative_non_producer :
             unapplied_transaction_queue::process_mode::speculative_producer;
    my->_unapplied_transactions.set_mode( unapplied_mode );
-
-   if( options.count("private-key") )
-   {
-      const std::vector<std::string> key_id_to_wif_pair_strings = options["private-key"].as<std::vector<std::string>>();
-      for (const std::string& key_id_to_wif_pair_string : key_id_to_wif_pair_strings)
-      {
-         try {
-            auto key_id_to_wif_pair = dejsonify<std::pair<public_key_type, private_key_type>>(key_id_to_wif_pair_string);
-            my->_signature_providers[key_id_to_wif_pair.first] = make_key_signature_provider(key_id_to_wif_pair.second);
-            auto blanked_privkey = std::string(key_id_to_wif_pair.second.to_string().size(), '*' );
-            wlog("\"private-key\" is DEPRECATED, use \"signature-provider=${pub}=KEY:${priv}\"", ("pub",key_id_to_wif_pair.first)("priv", blanked_privkey));
-         } catch ( fc::exception& e ) {
-            elog("Malformed private key pair");
-         }
-      }
-   }
 
    if( options.count("signature-provider") ) {
       const std::vector<std::string> key_spec_pairs = options["signature-provider"].as<std::vector<std::string>>();
@@ -817,8 +774,6 @@ void producer_plugin::plugin_initialize(const boost::program_options::variables_
 
             if (spec_type_str == "KEY") {
                my->_signature_providers[pubkey] = make_key_signature_provider(private_key_type(spec_data));
-            } else if (spec_type_str == "KEOSD") {
-               my->_signature_providers[pubkey] = make_keosd_signature_provider(my, spec_data, pubkey);
             }
 
          } catch (...) {

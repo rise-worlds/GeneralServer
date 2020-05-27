@@ -5,7 +5,7 @@
 #include <eosio/chain/authorization_manager.hpp>
 #include <eosio/chain/code_object.hpp>
 #include <eosio/chain/config.hpp>
-#include <eosio/chain/wasm_interface.hpp>
+// #include <eosio/chain/wasm_interface.hpp>
 #include <eosio/chain/resource_limits.hpp>
 #include <eosio/chain/reversible_block_object.hpp>
 #include <eosio/chain/controller.hpp>
@@ -118,7 +118,7 @@ using namespace eosio;
 using namespace eosio::chain;
 using namespace eosio::chain::config;
 using namespace eosio::chain::plugin_interface;
-using vm_type = wasm_interface::vm_type;
+// using vm_type = wasm_interface::vm_type;
 using fc::flat_map;
 
 using boost::signals2::scoped_connection;
@@ -150,7 +150,7 @@ public:
    fc::optional<controller>         chain;
    fc::optional<genesis_state>      genesis;
    //txn_msg_rate_limits              rate_limits;
-   fc::optional<vm_type>            wasm_runtime;
+   // fc::optional<vm_type>            wasm_runtime;
    fc::microseconds                 abi_serializer_max_time_us;
    fc::optional<bfs::path>          snapshot_path;
 
@@ -201,15 +201,15 @@ void chain_plugin::set_program_options(options_description& cli, options_descrip
          ("protocol-features-dir", bpo::value<bfs::path>()->default_value("protocol_features"),
           "the location of the protocol_features directory (absolute path or relative to application config dir)")
          ("checkpoint", bpo::value<vector<string>>()->composing(), "Pairs of [BLOCK_NUM,BLOCK_ID] that should be enforced as checkpoints.")
-         ("wasm-runtime", bpo::value<eosio::chain::wasm_interface::vm_type>()->value_name("runtime")->notifier([](const auto& vm){
-#ifndef EOSIO_EOS_VM_OC_DEVELOPER
-            //throwing an exception here (like EOS_ASSERT) is just gobbled up with a "Failed to initialize" error :(
-            if(vm == wasm_interface::vm_type::eos_vm_oc) {
-               elog("EOS VM OC is a tier-up compiler and works in conjunction with the configured base WASM runtime. Enable EOS VM OC via 'eos-vm-oc-enable' option");
-               EOS_ASSERT(false, plugin_exception, "");
-            }
-#endif
-         }), "Override default WASM runtime")
+//          ("wasm-runtime", bpo::value<eosio::chain::wasm_interface::vm_type>()->value_name("runtime")->notifier([](const auto& vm){
+// #ifndef EOSIO_EOS_VM_OC_DEVELOPER
+//             //throwing an exception here (like EOS_ASSERT) is just gobbled up with a "Failed to initialize" error :(
+//             if(vm == wasm_interface::vm_type::eos_vm_oc) {
+//                elog("EOS VM OC is a tier-up compiler and works in conjunction with the configured base WASM runtime. Enable EOS VM OC via 'eos-vm-oc-enable' option");
+//                EOS_ASSERT(false, plugin_exception, "");
+//             }
+// #endif
+//          }), "Override default WASM runtime")
          ("abi-serializer-max-time-ms", bpo::value<uint32_t>()->default_value(config::default_abi_serializer_max_time_us / 1000),
           "Override default maximum ABI serialization time allowed in ms")
          ("chain-state-db-size-mb", bpo::value<uint64_t>()->default_value(config::default_state_size / (1024  * 1024)), "Maximum size (in MiB) of the chain state database")
@@ -692,8 +692,8 @@ void chain_plugin::plugin_initialize(const variables_map& options) {
          }
       }
 
-      if( options.count( "wasm-runtime" ))
-         my->wasm_runtime = options.at( "wasm-runtime" ).as<vm_type>();
+      // if( options.count( "wasm-runtime" ))
+      //    my->wasm_runtime = options.at( "wasm-runtime" ).as<vm_type>();
 
       if(options.count("abi-serializer-max-time-ms"))
          my->abi_serializer_max_time_us = fc::microseconds(options.at("abi-serializer-max-time-ms").as<uint32_t>() * 1000);
@@ -726,8 +726,8 @@ void chain_plugin::plugin_initialize(const variables_map& options) {
                   "signature-cpu-billable-pct must be 0 - 100, ${pct}", ("pct", my->chain_config->sig_cpu_bill_pct) );
       my->chain_config->sig_cpu_bill_pct *= config::percent_1;
 
-      if( my->wasm_runtime )
-         my->chain_config->wasm_runtime = *my->wasm_runtime;
+      // if( my->wasm_runtime )
+      //    my->chain_config->wasm_runtime = *my->wasm_runtime;
 
       my->chain_config->force_all_checks = options.at( "force-all-checks" ).as<bool>();
       my->chain_config->disable_replay_opts = options.at( "disable-replay-opts" ).as<bool>();
@@ -1139,8 +1139,8 @@ void chain_plugin::plugin_shutdown() {
    my->irreversible_block_connection.reset();
    my->accepted_transaction_connection.reset();
    my->applied_transaction_connection.reset();
-   if(app().is_quiting())
-      my->chain->get_wasm_interface().indicate_shutting_down();
+   // if(app().is_quiting())
+   //    my->chain->get_wasm_interface().indicate_shutting_down();
    my->chain.reset();
 }
 
