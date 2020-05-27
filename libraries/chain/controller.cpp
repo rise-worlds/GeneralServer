@@ -875,19 +875,6 @@ struct controller_impl {
       resource_limits.add_to_snapshot(snapshot);
    }
 
-   static fc::optional<genesis_state> extract_legacy_genesis_state( snapshot_reader& snapshot, uint32_t version ) {
-      fc::optional<genesis_state> genesis;
-      using v2 = legacy::snapshot_global_property_object_v2;
-
-      if (std::clamp(version, v2::minimum_version, v2::maximum_version) == version ) {
-         genesis.emplace();
-         snapshot.read_section<genesis_state>([&genesis=*genesis]( auto &section ){
-            section.read_row(genesis);
-         });
-      }
-      return genesis;
-   }
-
    void read_from_snapshot( const snapshot_reader_ptr& snapshot, uint32_t blog_start, uint32_t blog_end ) {
       chain_snapshot_header header;
       snapshot->read_section<chain_snapshot_header>([this, &header]( auto &section ){
@@ -926,27 +913,6 @@ struct controller_impl {
          // skip the database_header as it is only relevant to in-memory database
          if (std::is_same<value_t, database_header_object>::value) {
             return;
-         }
-
-         // special case for in-place upgrade of global_property_object
-         if (std::is_same<value_t, global_property_object>::value) {
-            using v2 = legacy::snapshot_global_property_object_v2;
-
-            if (std::clamp(header.version, v2::minimum_version, v2::maximum_version) == header.version ) {
-               fc::optional<genesis_state> genesis = extract_legacy_genesis_state(*snapshot, header.version);
-               EOS_ASSERT( genesis, snapshot_exception,
-                           "Snapshot indicates chain_snapshot_header version 2, but does not contain a genesis_state. "
-                           "It must be corrupted.");
-               snapshot->read_section<global_property_object>([&db=this->db,gs_chain_id=genesis->compute_chain_id()]( auto &section ) {
-                  v2 legacy_global_properties;
-                  section.read_row(legacy_global_properties, db);
-
-                  db.create<global_property_object>([&legacy_global_properties,&gs_chain_id](auto& gpo ){
-                     gpo.initalize_from(legacy_global_properties, gs_chain_id);
-                  });
-               });
-               return; // early out to avoid default processing
-            }
          }
 
          snapshot->read_section<value_t>([this]( auto& section ) {
@@ -3259,12 +3225,6 @@ chain_id_type controller::extract_chain_id(snapshot_reader& snapshot) {
       section.read_row(header);
       header.validate();
    });
-
-   // check if this is a legacy version of the snapshot, which has a genesis state instead of chain id
-   fc::optional<genesis_state> genesis = controller_impl::extract_legacy_genesis_state(snapshot, header.version);
-   if (genesis) {
-      return genesis->compute_chain_id();
-   }
 
    chain_id_type chain_id;
    snapshot.read_section<global_property_object>([&chain_id]( auto &section ){
