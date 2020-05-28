@@ -23,15 +23,6 @@ public:
       fc::optional<uint32_t>  greylist_limit;
    };
 
-   struct whitelist_blacklist {
-      fc::optional< flat_set<account_name> > actor_whitelist;
-      fc::optional< flat_set<account_name> > actor_blacklist;
-      fc::optional< flat_set<account_name> > contract_whitelist;
-      fc::optional< flat_set<account_name> > contract_blacklist;
-      fc::optional< flat_set< std::pair<account_name, action_name> > > action_blacklist;
-      fc::optional< flat_set<public_key_type> > key_blacklist;
-   };
-
    struct greylist_params {
       std::vector<account_name> accounts;
    };
@@ -96,9 +87,6 @@ public:
    void remove_greylist_accounts(const greylist_params& params);
    greylist_params get_greylist() const;
 
-   whitelist_blacklist get_whitelist_blacklist() const;
-   void set_whitelist_blacklist(const whitelist_blacklist& params);
-
    integrity_hash_information get_integrity_hash() const;
    void create_snapshot(next_function<snapshot_information> next);
 
@@ -117,7 +105,6 @@ private:
 
 FC_REFLECT(eosio::producer_plugin::runtime_options, (max_transaction_time)(max_irreversible_block_age)(produce_time_offset_us)(last_block_time_offset_us)(max_scheduled_transaction_time_per_block_ms)(subjective_cpu_leeway_us)(incoming_defer_ratio)(greylist_limit));
 FC_REFLECT(eosio::producer_plugin::greylist_params, (accounts));
-FC_REFLECT(eosio::producer_plugin::whitelist_blacklist, (actor_whitelist)(actor_blacklist)(contract_whitelist)(contract_blacklist)(action_blacklist)(key_blacklist) )
 FC_REFLECT(eosio::producer_plugin::integrity_hash_information, (head_block_id)(integrity_hash))
 FC_REFLECT(eosio::producer_plugin::snapshot_information, (head_block_id)(snapshot_name))
 FC_REFLECT(eosio::producer_plugin::scheduled_protocol_feature_activations, (protocol_features_to_activate))

@@ -65,10 +65,6 @@ void apply_context::exec_one()
          privileged = receiver_account->is_privileged();
          auto native = control.find_apply_handler( receiver, act->account, act->name );
          if( native ) {
-            if( trx_context.enforce_whiteblacklist && control.is_producing_block() ) {
-               control.check_contract_list( receiver );
-               control.check_action_list( act->account, act->name );
-            }
             (*native)( *this );
          }
 
@@ -79,10 +75,6 @@ void apply_context::exec_one()
                   || control.is_builtin_activated( builtin_protocol_feature_t::forward_setcode )
                )
          ) {
-            if( trx_context.enforce_whiteblacklist && control.is_producing_block() ) {
-               control.check_contract_list( receiver );
-               control.check_action_list( act->account, act->name );
-            }
             try {
                control.get_wasm_interface().apply( receiver_account->code_hash, receiver_account->vm_type, receiver_account->vm_version, *this );
             } catch( const wasm_exit& ) {}
@@ -257,7 +249,6 @@ void apply_context::execute_inline( action&& a ) {
    EOS_ASSERT( code != nullptr, action_validate_exception,
                "inline action's code account ${account} does not exist", ("account", a.account) );
 
-   bool enforce_actor_whitelist_blacklist = trx_context.enforce_whiteblacklist && control.is_producing_block();
    flat_set<account_name> actors;
 
    bool disallow_send_to_self_bypass = control.is_builtin_activated( builtin_protocol_feature_t::restrict_action_to_self );
@@ -276,16 +267,10 @@ void apply_context::execute_inline( action&& a ) {
       EOS_ASSERT( control.get_authorization_manager().find_permission(auth) != nullptr, action_validate_exception,
                   "inline action's authorizations include a non-existent permission: ${permission}",
                   ("permission", auth) );
-      if( enforce_actor_whitelist_blacklist )
-         actors.insert( auth.actor );
 
       if( inherit_parent_authorizations && std::find(act->authorization.begin(), act->authorization.end(), auth) != act->authorization.end() ) {
          inherited_authorizations.insert( auth );
       }
-   }
-
-   if( enforce_actor_whitelist_blacklist ) {
-      control.check_actor_list( actors );
    }
 
    // No need to check authorization if replaying irreversible blocks or contract is privileged
@@ -348,9 +333,7 @@ void apply_context::execute_context_free_inline( action&& a ) {
 void apply_context::schedule_deferred_transaction( const uint128_t& sender_id, account_name payer, transaction&& trx, bool replace_existing ) {
    EOS_ASSERT( trx.context_free_actions.size() == 0, cfa_inside_generated_tx, "context free actions are not currently allowed in generated transactions" );
 
-   bool enforce_actor_whitelist_blacklist = trx_context.enforce_whiteblacklist && control.is_producing_block()
-                                             && !control.sender_avoids_whitelist_blacklist_enforcement( receiver );
-   trx_context.validate_referenced_accounts( trx, enforce_actor_whitelist_blacklist );
+   trx_context.validate_referenced_accounts( trx );
 
    if( control.is_builtin_activated( builtin_protocol_feature_t::no_duplicate_deferred_id ) ) {
       auto exts = trx.validate_and_extract_extensions();

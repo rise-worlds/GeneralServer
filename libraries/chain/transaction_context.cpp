@@ -237,7 +237,7 @@ namespace eosio { namespace chain {
       if (!control.skip_trx_checks()) {
          control.validate_expiration(trx);
          control.validate_tapos(trx);
-         validate_referenced_accounts( trx, enforce_whiteblacklist && control.is_producing_block() );
+         validate_referenced_accounts( trx );
       }
       init( initial_net_usage);
       if (!skip_recording)
@@ -639,7 +639,7 @@ namespace eosio { namespace chain {
       }
    } /// record_transaction
 
-   void transaction_context::validate_referenced_accounts( const transaction& trx, bool enforce_actor_whitelist_blacklist )const {
+   void transaction_context::validate_referenced_accounts( const transaction& trx )const {
       const auto& db = control.db();
       const auto& auth_manager = control.get_authorization_manager();
 
@@ -666,15 +666,9 @@ namespace eosio { namespace chain {
             EOS_ASSERT( auth_manager.find_permission(auth) != nullptr, transaction_exception,
                         "action's authorizations include a non-existent permission: ${permission}",
                         ("permission", auth) );
-            if( enforce_actor_whitelist_blacklist )
-               actors.insert( auth.actor );
          }
       }
       EOS_ASSERT( one_auth, tx_no_auths, "transaction must have at least one authorization" );
-
-      if( enforce_actor_whitelist_blacklist ) {
-         control.check_actor_list( actors );
-      }
    }
 
 
