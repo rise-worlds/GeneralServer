@@ -17,6 +17,8 @@ endif()
 include( GNUInstallDirs )
 include( VersionMacros )
 include( InstallDirectoryPermissions )
+include( MASSigning )
+include( utils )
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS ON)

@@ -19,23 +19,6 @@ namespace eosio { namespace chain {
       OBJECT_CTOR(protocol_state_object, (whitelisted_intrinsics))
 
    public:
-      struct activated_protocol_feature {
-         digest_type feature_digest;
-         uint32_t    activation_block_num = 0;
-
-         activated_protocol_feature() = default;
-
-         activated_protocol_feature( const digest_type& feature_digest, uint32_t activation_block_num )
-         :feature_digest( feature_digest )
-         ,activation_block_num( activation_block_num )
-         {}
-
-         bool operator==(const activated_protocol_feature& rhs) const {
-            return feature_digest == rhs.feature_digest && activation_block_num == rhs.activation_block_num;
-         }
-      };
-
-   public:
       id_type                                    id;
       whitelisted_intrinsics_type                whitelisted_intrinsics;
       uint32_t                                   num_supported_key_types = 0;
@@ -73,10 +56,6 @@ namespace eosio { namespace chain {
 }}
 
 CHAINBASE_SET_INDEX_TYPE(eosio::chain::protocol_state_object, eosio::chain::protocol_state_multi_index)
-
-FC_REFLECT(eosio::chain::protocol_state_object::activated_protocol_feature,
-            (feature_digest)(activation_block_num)
-          )
 
 FC_REFLECT(eosio::chain::protocol_state_object,
             (whitelisted_intrinsics)(num_supported_key_types)
