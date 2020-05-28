@@ -4,17 +4,6 @@
 
 namespace eosio { namespace chain {
 
-   namespace detail {
-      bool is_builtin_activated( const protocol_feature_activation_set_ptr& pfa,
-                                 const protocol_feature_set& pfs,
-                                 builtin_protocol_feature_t feature_codename )
-      {
-         auto digest = pfs.get_builtin_digest(feature_codename);
-         const auto& protocol_features = pfa->protocol_features;
-         return digest && protocol_features.find(*digest) != protocol_features.end();
-      }
-   }
-
    producer_authority block_header_state::get_scheduled_producer( block_timestamp_type t )const {
       auto index = t.slot % (active_schedule.producers.size() * config::producer_repetitions);
       index /= config::producer_repetitions;
@@ -61,7 +50,6 @@ namespace eosio { namespace chain {
       result.timestamp                                       = when;
       result.confirmed                                       = num_prev_blocks_to_confirm;
       result.active_schedule_version                         = active_schedule.version;
-      result.prev_activated_protocol_features                = activated_protocol_features;
 
       result.valid_block_signing_authority                   = proauth.authority;
       result.producer                                        = proauth.producer_name;
@@ -173,9 +161,7 @@ namespace eosio { namespace chain {
    signed_block_header pending_block_header_state::make_block_header(
                                                       const checksum256_type& transaction_mroot,
                                                       const checksum256_type& action_mroot,
-                                                      const optional<producer_authority_schedule>& new_producers,
-                                                      vector<digest_type>&& new_protocol_feature_activations,
-                                                      const protocol_feature_set& pfs
+                                                      const optional<producer_authority_schedule>& new_producers
    )const
    {
       signed_block_header h;
@@ -187,14 +173,6 @@ namespace eosio { namespace chain {
       h.transaction_mroot = transaction_mroot;
       h.action_mroot      = action_mroot;
       h.schedule_version  = active_schedule_version;
-
-      if( new_protocol_feature_activations.size() > 0 ) {
-         emplace_extension(
-               h.header_extensions,
-               protocol_feature_activation::extension_id(),
-               fc::raw::pack( protocol_feature_activation{ std::move(new_protocol_feature_activations) } )
-         );
-      }
 
       if (new_producers) {
          // add the header extension to update the block schedule
@@ -209,12 +187,7 @@ namespace eosio { namespace chain {
    }
 
    block_header_state pending_block_header_state::_finish_next(
-                                 const signed_block_header& h,
-                                 const protocol_feature_set& pfs,
-                                 const std::function<void( block_timestamp_type,
-                                                           const flat_set<digest_type>&,
-                                                           const vector<digest_type>& )>& validator
-
+                                 const signed_block_header& h
    )&&
    {
       EOS_ASSERT( h.timestamp == timestamp, block_validate_exception, "timestamp mismatch" );
@@ -243,21 +216,6 @@ namespace eosio { namespace chain {
          maybe_new_producer_schedule.emplace(new_producer_schedule);
       }
 
-      protocol_feature_activation_set_ptr new_activated_protocol_features;
-      { // handle protocol_feature_activation
-         if( exts.count(protocol_feature_activation::extension_id() > 0) ) {
-            const auto& new_protocol_features = exts.lower_bound(protocol_feature_activation::extension_id())->second.get<protocol_feature_activation>().protocol_features;
-            validator( timestamp, prev_activated_protocol_features->protocol_features, new_protocol_features );
-
-            new_activated_protocol_features =   std::make_shared<protocol_feature_activation_set>(
-                                                   *prev_activated_protocol_features,
-                                                   new_protocol_features
-                                                );
-         } else {
-            new_activated_protocol_features = std::move( prev_activated_protocol_features );
-         }
-      }
-
       auto block_number = block_num;
 
       block_header_state result( std::move( *static_cast<detail::block_header_state_common*>(this) ) );
@@ -281,28 +239,16 @@ namespace eosio { namespace chain {
          result.pending_schedule.schedule_lib_num    = prev_pending_schedule.schedule_lib_num;
       }
 
-      result.activated_protocol_features = std::move( new_activated_protocol_features );
-
       return result;
    }
 
    block_header_state pending_block_header_state::finish_next(
                                  const signed_block_header& h,
                                  vector<signature_type>&& additional_signatures,
-                                 const protocol_feature_set& pfs,
-                                 const std::function<void( block_timestamp_type,
-                                                           const flat_set<digest_type>&,
-                                                           const vector<digest_type>& )>& validator,
                                  bool skip_validate_signee
    )&&
    {
-      if( !additional_signatures.empty() ) {
-         bool wtmsig_enabled = detail::is_builtin_activated(prev_activated_protocol_features, pfs, builtin_protocol_feature_t::wtmsig_block_signatures);
-
-         EOS_ASSERT(wtmsig_enabled, producer_schedule_exception, "Block contains multiple signatures before WTMsig block signatures are enabled" );
-      }
-
-      auto result = std::move(*this)._finish_next( h, pfs, validator );
+      auto result = std::move(*this)._finish_next( h );
 
       if( !additional_signatures.empty() ) {
          result.additional_signatures = std::move(additional_signatures);
@@ -318,23 +264,12 @@ namespace eosio { namespace chain {
 
    block_header_state pending_block_header_state::finish_next(
                                  signed_block_header& h,
-                                 const protocol_feature_set& pfs,
-                                 const std::function<void( block_timestamp_type,
-                                                           const flat_set<digest_type>&,
-                                                           const vector<digest_type>& )>& validator,
                                  const signer_callback_type& signer
    )&&
    {
-      auto pfa = prev_activated_protocol_features;
-
-      auto result = std::move(*this)._finish_next( h, pfs, validator );
+      auto result = std::move(*this)._finish_next( h );
       result.sign( signer );
       h.producer_signature = result.header.producer_signature;
-
-      if( !result.additional_signatures.empty() ) {
-         bool wtmsig_enabled = detail::is_builtin_activated(pfa, pfs, builtin_protocol_feature_t::wtmsig_block_signatures);
-         EOS_ASSERT(wtmsig_enabled, producer_schedule_exception, "Block was signed with multiple signatures before WTMsig block signatures are enabled" );
-      }
 
       return result;
    }
@@ -350,13 +285,9 @@ namespace eosio { namespace chain {
    block_header_state block_header_state::next(
                         const signed_block_header& h,
                         vector<signature_type>&& _additional_signatures,
-                        const protocol_feature_set& pfs,
-                        const std::function<void( block_timestamp_type,
-                                                  const flat_set<digest_type>&,
-                                                  const vector<digest_type>& )>& validator,
                         bool skip_validate_signee )const
    {
-      return next( h.timestamp, h.confirmed ).finish_next( h, std::move(_additional_signatures), pfs, validator, skip_validate_signee );
+      return next( h.timestamp, h.confirmed ).finish_next( h, std::move(_additional_signatures), skip_validate_signee );
    }
 
    digest_type   block_header_state::sig_digest()const {
@@ -408,18 +339,6 @@ namespace eosio { namespace chain {
       EOS_ASSERT(is_satisfied, wrong_signing_key,
                  "block signatures do not satisfy the block signing authority",
                  ("signing_keys", keys)("authority", valid_block_signing_authority));
-   }
-
-   /**
-    *  Reference cannot outlive *this. Assumes header_exts is not mutated after instatiation.
-    */
-   const vector<digest_type>& block_header_state::get_new_protocol_feature_activations()const {
-      static const vector<digest_type> no_activations{};
-
-      if( header_exts.count(protocol_feature_activation::extension_id()) == 0 )
-         return no_activations;
-
-      return header_exts.lower_bound(protocol_feature_activation::extension_id())->second.get<protocol_feature_activation>().protocol_features;
    }
 
 

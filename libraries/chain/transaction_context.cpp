@@ -125,15 +125,7 @@ namespace eosio { namespace chain {
          validate_cpu_usage_to_bill( billed_cpu_time_us, std::numeric_limits<int64_t>::max(), false ); // Fail early if the amount to be billed is too high
 
       // Record accounts to be billed for network and CPU usage
-      if( control.is_builtin_activated(builtin_protocol_feature_t::only_bill_first_authorizer) ) {
-         bill_to_accounts.insert( trx.first_authorizer() );
-      } else {
-         for( const auto& act : trx.actions ) {
-            for( const auto& auth : act.authorization ) {
-               bill_to_accounts.insert( auth.actor );
-            }
-         }
-      }
+      bill_to_accounts.insert( trx.first_authorizer() );
       validate_ram_usage.reserve( bill_to_accounts.size() );
 
       // Update usage values of accounts to reflect new time

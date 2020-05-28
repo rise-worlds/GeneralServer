@@ -71,11 +71,7 @@ namespace eosio { namespace chain {
       block_state_ptr       head;
       fc::path              datadir;
 
-      void add( const block_state_ptr& n,
-                bool ignore_duplicate, bool validate,
-                const std::function<void( block_timestamp_type,
-                                          const flat_set<digest_type>&,
-                                          const vector<digest_type>& )>& validator );
+      void add( const block_state_ptr& n, bool ignore_duplicate, bool validate);
    };
 
 
@@ -84,9 +80,7 @@ namespace eosio { namespace chain {
    {}
 
 
-   void fork_database::open( const std::function<void( block_timestamp_type,
-                                                       const flat_set<digest_type>&,
-                                                       const vector<digest_type>& )>& validator )
+   void fork_database::open()
    {
       if (!fc::is_directory(my->datadir))
          fc::create_directories(my->datadir);
@@ -132,7 +126,7 @@ namespace eosio { namespace chain {
                fc::raw::unpack( ds, s );
                // do not populate transaction_metadatas, they will be created as needed in apply_block with appropriate key recovery
                s.header_exts = s.block->validate_and_extract_header_extensions();
-               my->add( std::make_shared<block_state>( move( s ) ), false, true, validator );
+               my->add( std::make_shared<block_state>( move( s ) ), false, true );
             }
             block_id_type head_id;
             fc::raw::unpack( ds, head_id );
@@ -296,11 +290,7 @@ namespace eosio { namespace chain {
       return block_header_state_ptr();
    }
 
-   void fork_database_impl::add( const block_state_ptr& n,
-                                 bool ignore_duplicate, bool validate,
-                                 const std::function<void( block_timestamp_type,
-                                                           const flat_set<digest_type>&,
-                                                           const vector<digest_type>& )>& validator )
+   void fork_database_impl::add( const block_state_ptr& n, bool ignore_duplicate, bool validate )
    {
       EOS_ASSERT( root, fork_database_exception, "root not yet set" );
       EOS_ASSERT( n, fork_database_exception, "attempt to add null block state" );
@@ -309,17 +299,6 @@ namespace eosio { namespace chain {
 
       EOS_ASSERT( prev_bh, unlinkable_block_exception,
                   "unlinkable block", ("id", n->id)("previous", n->header.previous) );
-
-      if( validate ) {
-         try {
-            const auto& exts = n->header_exts;
-
-            if( exts.count(protocol_feature_activation::extension_id()) > 0 ) {
-               const auto& new_protocol_features = exts.lower_bound(protocol_feature_activation::extension_id())->second.get<protocol_feature_activation>().protocol_features;
-               validator( n->header.timestamp, prev_bh->activated_protocol_features->protocol_features, new_protocol_features );
-            }
-         } EOS_RETHROW_EXCEPTIONS( fork_database_exception, "serialized fork database is incompatible with configured protocol features"  )
-      }
 
       auto inserted = index.insert(n);
       if( !inserted.second ) {
@@ -334,12 +313,7 @@ namespace eosio { namespace chain {
    }
 
    void fork_database::add( const block_state_ptr& n, bool ignore_duplicate ) {
-      my->add( n, ignore_duplicate, false,
-               []( block_timestamp_type timestamp,
-                   const flat_set<digest_type>& cur_features,
-                   const vector<digest_type>& new_features )
-               {}
-      );
+      my->add( n, ignore_duplicate, false );
    }
 
    const block_state_ptr& fork_database::root()const { return my->root; }

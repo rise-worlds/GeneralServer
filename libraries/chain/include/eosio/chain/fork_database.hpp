@@ -23,9 +23,7 @@ namespace eosio { namespace chain {
          explicit fork_database( const fc::path& data_dir );
          ~fork_database();
 
-         void open( const std::function<void( block_timestamp_type,
-                                              const flat_set<digest_type>&,
-                                              const vector<digest_type>& )>& validator );
+         void open();
          void close();
 
          block_header_state_ptr  get_block_header( const block_id_type& id )const;

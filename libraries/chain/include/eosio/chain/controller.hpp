@@ -8,7 +8,6 @@
 #include <eosio/chain/abi_serializer.hpp>
 #include <eosio/chain/account_object.hpp>
 #include <eosio/chain/snapshot.hpp>
-#include <eosio/chain/protocol_feature_manager.hpp>
 #include <eosio/chain/webassembly/eos-vm-oc/config.hpp>
 
 namespace chainbase {
@@ -97,19 +96,12 @@ namespace eosio { namespace chain {
          };
 
          controller( const config& cfg, const chain_id_type& chain_id );
-         controller( const config& cfg, protocol_feature_set&& pfs, const chain_id_type& chain_id );
          ~controller();
 
          void add_indices();
          void startup( std::function<bool()> shutdown, const snapshot_reader_ptr& snapshot);
          void startup( std::function<bool()> shutdown, const genesis_state& genesis);
          void startup( std::function<bool()> shutdown);
-
-         void preactivate_feature( const digest_type& feature_digest );
-
-         vector<digest_type> get_preactivated_protocol_features()const;
-
-         void validate_protocol_features( const vector<digest_type>& features_to_activate )const;
 
          /**
           *  Starts a new pending block session upon which new transactions can
@@ -118,14 +110,6 @@ namespace eosio { namespace chain {
           *  Will only activate protocol features that have been pre-activated.
           */
          void start_block( block_timestamp_type time = block_timestamp_type(), uint16_t confirm_block_count = 0 );
-
-         /**
-          * Starts a new pending block session upon which new transactions can
-          * be pushed.
-          */
-         void start_block( block_timestamp_type time,
-                           uint16_t confirm_block_count,
-                           const vector<digest_type>& new_protocol_feature_activations );
 
          /**
           * @return transactions applied in aborted block
@@ -173,7 +157,6 @@ namespace eosio { namespace chain {
          resource_limits_manager&              get_mutable_resource_limits_manager();
          const authorization_manager&          get_authorization_manager()const;
          authorization_manager&                get_mutable_authorization_manager();
-         const protocol_feature_manager&       get_protocol_feature_manager()const;
 
          uint32_t             head_block_num()const;
          time_point           head_block_time()const;
@@ -238,9 +221,6 @@ namespace eosio { namespace chain {
          void validate_db_available_size() const;
          void validate_reversible_available_size() const;
 
-         bool is_protocol_feature_activated( const digest_type& feature_digest )const;
-         bool is_builtin_activated( builtin_protocol_feature_t f )const;
-
          bool is_known_unexpired_transaction( const transaction_id_type& id) const;
 
          int64_t set_proposed_producers( vector<producer_authority> producers );
@@ -264,7 +244,6 @@ namespace eosio { namespace chain {
          void set_greylist_limit( uint32_t limit );
          uint32_t get_greylist_limit()const;
 
-         void add_to_ram_correction( account_name account, uint64_t ram_bytes );
          bool all_subjective_mitigations_disabled()const;
 
 #if defined(EOSIO_EOS_VM_RUNTIME_ENABLED) || defined(EOSIO_EOS_VM_JIT_RUNTIME_ENABLED)

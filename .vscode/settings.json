@@ -96,7 +96,8 @@
         "queue": "cpp",
         "stack": "cpp",
         "filesystem": "cpp",
-        "csetjmp": "cpp"
+        "csetjmp": "cpp",
+        "*.def": "cpp"
     },
     "C_Cpp.default.configurationProvider": "vector-of-bool.cmake-tools",
     "C_Cpp.default.cStandard":"c11",

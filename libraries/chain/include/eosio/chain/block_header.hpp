@@ -1,7 +1,6 @@
 #pragma once
 #include <eosio/chain/block_timestamp.hpp>
 #include <eosio/chain/producer_schedule.hpp>
-#include <eosio/chain/protocol_feature_activation.hpp>
 
 #include <type_traits>
 
@@ -16,7 +15,6 @@ namespace eosio { namespace chain {
    }
 
    using block_header_extension_types = detail::block_header_extension_types<
-      protocol_feature_activation,
       producer_schedule_change_extension
    >;
 

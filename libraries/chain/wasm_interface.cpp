@@ -147,35 +147,6 @@ class privileged_api : public context_aware_api {
          EOS_ASSERT( context.is_privileged(), unaccessible_api, "${code} does not have permission to call this API", ("code",context.get_receiver()) );
       }
 
-      /**
-       * This should return true if a feature is active and irreversible, false if not.
-       *
-       * Irreversiblity by fork-database is not consensus safe, therefore, this defines
-       * irreversiblity only by block headers not by BFT short-cut.
-       */
-      int is_feature_active( int64_t feature_name ) {
-         return false;
-      }
-
-      /**
-       *  This should schedule the feature to be activated once the
-       *  block that includes this call is irreversible. It should
-       *  fail if the feature is already pending.
-       *
-       *  Feature name should be base32 encoded name.
-       */
-      void activate_feature( int64_t feature_name ) {
-         EOS_ASSERT( false, unsupported_feature, "Unsupported Hardfork Detected" );
-      }
-
-      /**
-       *  Pre-activates the specified protocol feature.
-       *  Fails if the feature is unrecognized, disabled, or not allowed to be activated at the current time.
-       *  Also fails if the feature was already activated or pre-activated.
-       */
-      void preactivate_feature( const digest_type& feature_digest ) {
-         context.control.preactivate_feature( feature_digest );
-      }
 
       /**
        * update the resource limits associated with an account.  Note these new values will not take effect until the
@@ -201,11 +172,7 @@ class privileged_api : public context_aware_api {
 
       int64_t set_proposed_producers_common( vector<producer_authority> && producers, bool validate_keys ) {
          EOS_ASSERT(producers.size() <= config::max_producers, wasm_execution_error, "Producer schedule exceeds the maximum producer count for this chain");
-         EOS_ASSERT( producers.size() > 0
-                     || !context.control.is_builtin_activated( builtin_protocol_feature_t::disallow_empty_producer_schedule ),
-                     wasm_execution_error,
-                     "Producer schedule cannot be empty"
-         );
+         EOS_ASSERT(producers.size() > 0, wasm_execution_error, "Producer schedule cannot be empty");
 
          const auto num_supported_key_types = context.db.get<protocol_state_object>().num_supported_key_types;
 
@@ -248,9 +215,7 @@ class privileged_api : public context_aware_api {
       }
 
       int64_t set_proposed_producers_ex( uint64_t packed_producer_format, array_ptr<char> packed_producer_schedule, uint32_t datalen ) {
-         if (packed_producer_format == 0) {
-            // return set_proposed_producers(packed_producer_schedule, datalen);
-         } else if (packed_producer_format == 1) {
+         if (packed_producer_format == 1) {
             datastream<const char*> ds( packed_producer_schedule, datalen );
             vector<producer_authority> producers;
 
@@ -1026,14 +991,7 @@ class system_api : public context_aware_api {
       uint64_t publication_time() {
          return static_cast<uint64_t>( context.trx_context.published.time_since_epoch().count() );
       }
-
-      /**
-       * Returns true if the specified protocol feature is activated, false if not.
-       */
-      bool is_feature_activated( const digest_type& feature_digest ) {
-         return context.control.is_protocol_feature_activated( feature_digest );
-      }
-
+      
       name get_sender() {
          return context.get_sender();
       }
@@ -1842,8 +1800,6 @@ REGISTER_INTRINSICS(compiler_builtins,
 );
 
 REGISTER_INTRINSICS(privileged_api,
-   (is_feature_active,                int(int64_t)                          )
-   (activate_feature,                 void(int64_t)                         )
    (get_resource_limits,              void(int64_t,int,int,int)             )
    (set_resource_limits,              void(int64_t,int64_t,int64_t,int64_t) )
    (set_proposed_producers_ex,        int64_t(int64_t, int, int)            )
@@ -1851,7 +1807,6 @@ REGISTER_INTRINSICS(privileged_api,
    (set_blockchain_parameters_packed, void(int,int)                         )
    (is_privileged,                    int(int64_t)                          )
    (set_privileged,                   void(int64_t, int)                    )
-   (preactivate_feature,              void(int)                             )
 );
 
 REGISTER_INJECTED_INTRINSICS(transaction_context,
@@ -1930,7 +1885,6 @@ REGISTER_INTRINSICS(permission_api,
 REGISTER_INTRINSICS(system_api,
    (current_time,          int64_t() )
    (publication_time,      int64_t() )
-   (is_feature_activated,  int(int)  )
    (get_sender,            int64_t() )
 );
 

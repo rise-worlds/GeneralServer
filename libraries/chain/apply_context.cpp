@@ -68,19 +68,13 @@ void apply_context::exec_one()
             (*native)( *this );
          }
 
-         if( ( receiver_account->code_hash != digest_type() ) &&
-               (  !( act->account == config::system_account_name
-                     && act->name == N( setcode )
-                     && receiver == config::system_account_name )
-                  || control.is_builtin_activated( builtin_protocol_feature_t::forward_setcode )
-               )
-         ) {
+         if( receiver_account->code_hash != digest_type() )  {
             try {
                control.get_wasm_interface().apply( receiver_account->code_hash, receiver_account->vm_type, receiver_account->vm_version, *this );
             } catch( const wasm_exit& ) {}
          }
 
-         if( !privileged && control.is_builtin_activated( builtin_protocol_feature_t::ram_restrictions ) ) {
+         if( !privileged ) {
             const size_t checktime_interval = 10;
             size_t counter = 0;
             bool   not_in_notify_context = (receiver == act->account);
@@ -249,16 +243,7 @@ void apply_context::execute_inline( action&& a ) {
    EOS_ASSERT( code != nullptr, action_validate_exception,
                "inline action's code account ${account} does not exist", ("account", a.account) );
 
-   flat_set<account_name> actors;
-
-   bool disallow_send_to_self_bypass = control.is_builtin_activated( builtin_protocol_feature_t::restrict_action_to_self );
-   bool send_to_self = (a.account == receiver);
-   bool inherit_parent_authorizations = (!disallow_send_to_self_bypass && send_to_self && (receiver == act->account) && control.is_producing_block());
-
    flat_set<permission_level> inherited_authorizations;
-   if( inherit_parent_authorizations ) {
-      inherited_authorizations.reserve( a.authorization.size() );
-   }
 
    for( const auto& auth : a.authorization ) {
       auto* actor = control.db().find<account_object, by_name>(auth.actor);
@@ -267,10 +252,6 @@ void apply_context::execute_inline( action&& a ) {
       EOS_ASSERT( control.get_authorization_manager().find_permission(auth) != nullptr, action_validate_exception,
                   "inline action's authorizations include a non-existent permission: ${permission}",
                   ("permission", auth) );
-
-      if( inherit_parent_authorizations && std::find(act->authorization.begin(), act->authorization.end(), auth) != act->authorization.end() ) {
-         inherited_authorizations.insert( auth );
-      }
    }
 
    // No need to check authorization if replaying irreversible blocks or contract is privileged
@@ -290,21 +271,11 @@ void apply_context::execute_inline( action&& a ) {
          //          with sending an inline action that requires a delay even though the decision to send that inline
          //          action was made at the moment the deferred transaction was executed with potentially no forewarning?
       } catch( const fc::exception& e ) {
-         if( disallow_send_to_self_bypass || !send_to_self ) {
-            throw;
-         } else if( control.is_producing_block() ) {
-            subjective_block_production_exception new_exception(FC_LOG_MESSAGE( error, "Authorization failure with inline action sent to self"));
-            for (const auto& log: e.get_log()) {
-               new_exception.append_log(log);
-            }
-            throw new_exception;
-         }
+         EOS_THROW(subjective_block_production_exception, "Authorization failure with inline action sent to self");
+         throw;
       } catch( ... ) {
-         if( disallow_send_to_self_bypass || !send_to_self ) {
-            throw;
-         } else if( control.is_producing_block() ) {
-            EOS_THROW(subjective_block_production_exception, "Unexpected exception occurred validating inline action sent to self");
-         }
+         EOS_THROW(subjective_block_production_exception, "Unexpected exception occurred validating inline action sent to self");
+         throw;
       }
    }
 
@@ -335,43 +306,38 @@ void apply_context::schedule_deferred_transaction( const uint128_t& sender_id, a
 
    trx_context.validate_referenced_accounts( trx );
 
-   if( control.is_builtin_activated( builtin_protocol_feature_t::no_duplicate_deferred_id ) ) {
-      auto exts = trx.validate_and_extract_extensions();
-      if( exts.size() > 0 ) {
-         auto itr = exts.lower_bound( deferred_transaction_generation_context::extension_id() );
+   auto exts = trx.validate_and_extract_extensions();
+   if( exts.size() > 0 ) {
+      auto itr = exts.lower_bound( deferred_transaction_generation_context::extension_id() );
 
-         EOS_ASSERT( exts.size() == 1 && itr != exts.end(), invalid_transaction_extension,
-                     "only the deferred_transaction_generation_context extension is currently supported for deferred transactions"
-         );
+      EOS_ASSERT( exts.size() == 1 && itr != exts.end(), invalid_transaction_extension,
+                  "only the deferred_transaction_generation_context extension is currently supported for deferred transactions"
+      );
 
-         const auto& context = itr->second.get<deferred_transaction_generation_context>();
+      const auto& context = itr->second.get<deferred_transaction_generation_context>();
 
-         EOS_ASSERT( context.sender == receiver, ill_formed_deferred_transaction_generation_context,
-                     "deferred transaction generaction context contains mismatching sender",
-                     ("expected", receiver)("actual", context.sender)
-         );
-         EOS_ASSERT( context.sender_id == sender_id, ill_formed_deferred_transaction_generation_context,
-                     "deferred transaction generaction context contains mismatching sender_id",
-                     ("expected", sender_id)("actual", context.sender_id)
-         );
-         EOS_ASSERT( context.sender_trx_id == trx_context.id, ill_formed_deferred_transaction_generation_context,
-                     "deferred transaction generaction context contains mismatching sender_trx_id",
-                     ("expected", trx_context.id)("actual", context.sender_trx_id)
-         );
-      } else {
-         emplace_extension(
-            trx.transaction_extensions,
-            deferred_transaction_generation_context::extension_id(),
-            fc::raw::pack( deferred_transaction_generation_context( trx_context.id, sender_id, receiver ) )
-         );
-      }
-      trx.expiration = time_point_sec();
-      trx.ref_block_num = 0;
-      trx.ref_block_prefix = 0;
+      EOS_ASSERT( context.sender == receiver, ill_formed_deferred_transaction_generation_context,
+                  "deferred transaction generaction context contains mismatching sender",
+                  ("expected", receiver)("actual", context.sender)
+      );
+      EOS_ASSERT( context.sender_id == sender_id, ill_formed_deferred_transaction_generation_context,
+                  "deferred transaction generaction context contains mismatching sender_id",
+                  ("expected", sender_id)("actual", context.sender_id)
+      );
+      EOS_ASSERT( context.sender_trx_id == trx_context.id, ill_formed_deferred_transaction_generation_context,
+                  "deferred transaction generaction context contains mismatching sender_trx_id",
+                  ("expected", trx_context.id)("actual", context.sender_trx_id)
+      );
    } else {
-      trx.expiration = control.pending_block_time() + fc::microseconds(999'999); // Rounds up to nearest second (makes expiration check unnecessary)
-      trx.set_reference_block(control.head_block_id()); // No TaPoS check necessary
+      emplace_extension(
+         trx.transaction_extensions,
+         deferred_transaction_generation_context::extension_id(),
+         fc::raw::pack( deferred_transaction_generation_context( trx_context.id, sender_id, receiver ) )
+      );
    }
+   trx.expiration = time_point_sec();
+   trx.ref_block_num = 0;
+   trx.ref_block_prefix = 0;
 
    // Charge ahead of time for the additional net usage needed to retire the deferred transaction
    // whether that be by successfully executing, soft failure, hard failure, or expiration.
@@ -381,34 +347,16 @@ void apply_context::schedule_deferred_transaction( const uint128_t& sender_id, a
 
    auto delay = fc::seconds(trx.delay_sec);
 
-   bool ram_restrictions_activated = control.is_builtin_activated( builtin_protocol_feature_t::ram_restrictions );
-
    if( !control.skip_auth_check() && !privileged ) { // Do not need to check authorization if replayng irreversible block or if contract is privileged
       if( payer != receiver ) {
-         if( ram_restrictions_activated ) {
-            EOS_ASSERT( receiver == act->account, action_validate_exception,
-                        "cannot bill RAM usage of deferred transactions to another account within notify context"
-            );
-            EOS_ASSERT( has_authorization( payer ), action_validate_exception,
-                        "cannot bill RAM usage of deferred transaction to another account that has not authorized the action: ${payer}",
-                        ("payer", payer)
-            );
-         } else {
-            require_authorization(payer); /// uses payer's storage
-         }
+         EOS_ASSERT( receiver == act->account, action_validate_exception,
+                     "cannot bill RAM usage of deferred transactions to another account within notify context"
+         );
+         EOS_ASSERT( has_authorization( payer ), action_validate_exception,
+                     "cannot bill RAM usage of deferred transaction to another account that has not authorized the action: ${payer}",
+                     ("payer", payer)
+         );
       }
-
-      // Originally this code bypassed authorization checks if a contract was deferring only actions to itself.
-      // The idea was that the code could already do whatever the deferred transaction could do, so there was no point in checking authorizations.
-      // But this is not true. The original implementation didn't validate the authorizations on the actions which allowed for privilege escalation.
-      // It would make it possible to bill RAM to some unrelated account.
-      // Furthermore, even if the authorizations were forced to be a subset of the current action's authorizations, it would still violate the expectations
-      // of the signers of the original transaction, because the deferred transaction would allow billing more CPU and network bandwidth than the maximum limit
-      // specified on the original transaction.
-      // So, the deferred transaction must always go through the authorization checking if it is not sent by a privileged contract.
-      // However, the old logic must still be considered because it cannot objectively change until a consensus protocol upgrade.
-
-      bool disallow_send_to_self_bypass = control.is_builtin_activated( builtin_protocol_feature_t::restrict_action_to_self );
 
       auto is_sending_only_to_self = [&trx]( const account_name& self ) {
          bool send_to_self = true;
@@ -431,21 +379,10 @@ void apply_context::schedule_deferred_transaction( const uint128_t& sender_id, a
                                       false
                                     );
       } catch( const fc::exception& e ) {
-         if( disallow_send_to_self_bypass || !is_sending_only_to_self(receiver) ) {
-            throw;
-         } else if( control.is_producing_block() ) {
-            subjective_block_production_exception new_exception(FC_LOG_MESSAGE( error, "Authorization failure with sent deferred transaction consisting only of actions to self"));
-            for (const auto& log: e.get_log()) {
-               new_exception.append_log(log);
-            }
-            throw new_exception;
-         }
+         FC_LOG_MESSAGE( error, "Authorization failure with sent deferred transaction consisting only of actions to self");
+         EOS_THROW(subjective_block_production_exception, "Authorization failure with sent deferred transaction consisting only of actions to self");
       } catch( ... ) {
-         if( disallow_send_to_self_bypass || !is_sending_only_to_self(receiver) ) {
-            throw;
-         } else if( control.is_producing_block() ) {
-            EOS_THROW(subjective_block_production_exception, "Unexpected exception occurred validating sent deferred transaction consisting only of actions to self");
-         }
+         EOS_THROW(subjective_block_production_exception, "Unexpected exception occurred validating sent deferred transaction consisting only of actions to self");
       }
    }
 
@@ -453,26 +390,11 @@ void apply_context::schedule_deferred_transaction( const uint128_t& sender_id, a
    if ( auto ptr = db.find<generated_transaction_object,by_sender_id>(boost::make_tuple(receiver, sender_id)) ) {
       EOS_ASSERT( replace_existing, deferred_tx_duplicate, "deferred transaction with the same sender_id and payer already exists" );
 
-      bool replace_deferred_activated = control.is_builtin_activated(builtin_protocol_feature_t::replace_deferred);
-
-      EOS_ASSERT( replace_deferred_activated || !control.is_producing_block()
-                     || control.all_subjective_mitigations_disabled(),
-                  subjective_block_production_exception,
-                  "Replacing a deferred transaction is temporarily disabled." );
-
       uint64_t orig_trx_ram_bytes = config::billable_size_v<generated_transaction_object> + ptr->packed_trx.size();
-      if( replace_deferred_activated ) {
-         add_ram_usage( ptr->payer, -static_cast<int64_t>( orig_trx_ram_bytes ) );
-      } else {
-         control.add_to_ram_correction( ptr->payer, orig_trx_ram_bytes );
-      }
+      add_ram_usage( ptr->payer, -static_cast<int64_t>( orig_trx_ram_bytes ) );
 
       transaction_id_type trx_id_for_new_obj;
-      if( replace_deferred_activated ) {
-         trx_id_for_new_obj = trx.id();
-      } else {
-         trx_id_for_new_obj = ptr->trx_id;
-      }
+      trx_id_for_new_obj = trx.id();
 
       // Use remove and create rather than modify because mutating the trx_id field in a modifier is unsafe.
       db.remove( *ptr );
@@ -501,12 +423,6 @@ void apply_context::schedule_deferred_transaction( const uint128_t& sender_id, a
       } );
    }
 
-   EOS_ASSERT( ram_restrictions_activated
-               || control.is_ram_billing_in_notify_allowed()
-               || (receiver == act->account) || (receiver == payer) || privileged,
-               subjective_block_production_exception,
-               "Cannot charge RAM to other accounts during notify."
-   );
    add_ram_usage( payer, (config::billable_size_v<generated_transaction_object> + trx_size) );
 }
 
@@ -581,15 +497,6 @@ bytes apply_context::get_packed_transaction() {
 }
 
 void apply_context::update_db_usage( const account_name& payer, int64_t delta ) {
-   if( delta > 0 ) {
-      if( !(privileged || payer == account_name(receiver)
-               || control.is_builtin_activated( builtin_protocol_feature_t::ram_restrictions ) ) )
-      {
-         EOS_ASSERT( control.is_ram_billing_in_notify_allowed() || (receiver == act->account),
-                     subjective_block_production_exception, "Cannot charge RAM to other accounts during notify." );
-         require_authorization( payer );
-      }
-   }
    add_ram_usage(payer, delta);
 }
 

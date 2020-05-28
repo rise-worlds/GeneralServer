@@ -117,21 +117,6 @@ public:
    };
    get_info_results get_info(const get_info_params&) const;
 
-   struct get_activated_protocol_features_params {
-      optional<uint32_t>  lower_bound;
-      optional<uint32_t>  upper_bound;
-      uint32_t            limit = 10;
-      bool                search_by_block_num = false;
-      bool                reverse = false;
-   };
-
-   struct get_activated_protocol_features_results {
-      fc::variants        activated_protocol_features;
-      optional<uint32_t>  more;
-   };
-
-   get_activated_protocol_features_results get_activated_protocol_features( const get_activated_protocol_features_params& params )const;
-
    struct producer_info {
       name                       producer_name;
    };
@@ -759,8 +744,6 @@ FC_REFLECT(eosio::chain_apis::read_only::get_info_results,
            (head_block_id)(head_block_time)(head_block_producer)
            (virtual_block_cpu_limit)(virtual_block_net_limit)(block_cpu_limit)(block_net_limit)
            (server_version_string)(fork_db_head_block_num)(fork_db_head_block_id)(server_full_version_string) )
-FC_REFLECT(eosio::chain_apis::read_only::get_activated_protocol_features_params, (lower_bound)(upper_bound)(limit)(search_by_block_num)(reverse) )
-FC_REFLECT(eosio::chain_apis::read_only::get_activated_protocol_features_results, (activated_protocol_features)(more) )
 FC_REFLECT(eosio::chain_apis::read_only::get_block_params, (block_num_or_id))
 FC_REFLECT(eosio::chain_apis::read_only::get_block_header_state_params, (block_num_or_id))
 

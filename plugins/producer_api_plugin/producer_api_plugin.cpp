@@ -111,15 +111,6 @@ void producer_api_plugin::plugin_startup() {
             INVOKE_R_V(producer, get_integrity_hash), 201),
        CALL_ASYNC(producer, producer, create_snapshot, producer_plugin::snapshot_information,
             INVOKE_R_V_ASYNC(producer, create_snapshot), 201),
-       CALL(producer, producer, get_scheduled_protocol_feature_activations,
-            INVOKE_R_V(producer, get_scheduled_protocol_feature_activations), 201),
-       CALL(producer, producer, schedule_protocol_feature_activations,
-            INVOKE_V_R(producer, schedule_protocol_feature_activations, producer_plugin::scheduled_protocol_feature_activations), 201),
-       CALL(producer, producer, get_supported_protocol_features,
-            INVOKE_R_R(producer, get_supported_protocol_features,
-                                 producer_plugin::get_supported_protocol_features_params), 201),
-       CALL(producer, producer, get_account_ram_corrections,
-            INVOKE_R_R(producer, get_account_ram_corrections, producer_plugin::get_account_ram_corrections_params), 201),
    }, appbase::priority::medium);
 }
 

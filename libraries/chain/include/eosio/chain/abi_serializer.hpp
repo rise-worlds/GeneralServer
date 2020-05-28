@@ -502,17 +502,6 @@ namespace impl {
 
          // process contents of block.header_extensions
          flat_multimap<uint16_t, block_header_extension> header_exts = block.validate_and_extract_header_extensions();
-         if ( header_exts.count(protocol_feature_activation::extension_id() > 0) ) {
-            const auto& new_protocol_features = header_exts.lower_bound(protocol_feature_activation::extension_id())->second.get<protocol_feature_activation>().protocol_features;
-            vector<variant> pf_array;
-            pf_array.reserve(new_protocol_features.size());
-            for (auto feature : new_protocol_features) {
-               mutable_variant_object feature_mvo;
-               add(feature_mvo, "feature_digest", feature, resolver, ctx);
-               pf_array.push_back(feature_mvo);
-            }
-            mvo("new_protocol_features", pf_array);
-         }
          if ( header_exts.count(producer_schedule_change_extension::extension_id())) {
             const auto& new_producer_schedule = header_exts.lower_bound(producer_schedule_change_extension::extension_id())->second.get<producer_schedule_change_extension>();
             mvo("new_producer_schedule", new_producer_schedule);

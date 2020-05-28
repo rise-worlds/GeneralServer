@@ -94,8 +94,6 @@ add_library( eosio_chain
              trace.cpp
              transaction_metadata.cpp
              protocol_state_object.cpp
-             protocol_feature_activation.cpp
-             protocol_feature_manager.cpp
              producer_schedule.cpp
              genesis_intrinsics.cpp
              whitelisted_intrinsics.cpp
