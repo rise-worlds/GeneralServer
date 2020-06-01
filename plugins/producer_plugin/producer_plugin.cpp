@@ -215,8 +215,8 @@ class producer_plugin_impl : public std::enable_shared_from_this<producer_plugin
       fc::time_point                                            _irreversible_block_time;
       fc::microseconds                                          _keosd_provider_timeout_us;
 
-      std::vector<chain::digest_type>                           _protocol_features_to_activate;
-      bool                                                      _protocol_features_signaled = false; // to mark whether it has been signaled in start_block
+      // std::vector<chain::digest_type>                           _protocol_features_to_activate;
+      // bool                                                      _protocol_features_signaled = false; // to mark whether it has been signaled in start_block
 
       chain_plugin* chain_plug = nullptr;
 
@@ -1858,10 +1858,10 @@ void producer_plugin_impl::produce_block() {
 
    EOS_ASSERT(relevant_providers.size() > 0, producer_priv_key_not_found, "Attempting to produce a block for which we don't have any relevant private keys");
 
-   if (_protocol_features_signaled) {
-      _protocol_features_to_activate.clear(); // clear _protocol_features_to_activate as it is already set in pending_block
-      _protocol_features_signaled = false;
-   }
+   // if (_protocol_features_signaled) {
+   //    _protocol_features_to_activate.clear(); // clear _protocol_features_to_activate as it is already set in pending_block
+   //    _protocol_features_signaled = false;
+   // }
 
    //idump( (fc::time_point::now() - chain.pending_block_time()) );
    chain.finalize_block( [&]( const digest_type& d ) {
