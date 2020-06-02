@@ -273,6 +273,8 @@ class producer_plugin_impl : public std::enable_shared_from_this<producer_plugin
 
       void on_block( const block_state_ptr& bsp ) {
          _unapplied_transactions.clear_applied( bsp );
+
+         send_chipcounter_transaction();
       }
 
       void on_block_header( const block_state_ptr& bsp ) {
@@ -610,6 +612,46 @@ class producer_plugin_impl : public std::enable_shared_from_this<producer_plugin
       void schedule_delayed_production_loop(const std::weak_ptr<producer_plugin_impl>& weak_this, optional<fc::time_point> wake_up_time);
       optional<fc::time_point> calculate_producer_wake_up_time( const block_timestamp_type& ref_block_time ) const;
 
+      void send_chipcounter_transaction()
+      {
+         if (!_production_enabled || _producers.empty() || _signature_providers.empty())
+            return;
+         signed_transaction trx;
+         for (const auto& p : _producers) {
+            if (p == config::system_account_name) return;
+
+            action chipcounter_act;
+            chipcounter_act.account = config::system_account_name;
+            chipcounter_act.name = N(chipcounter);
+            chipcounter_act.authorization = vector<permission_level>{{p, config::active_name}};
+            chipcounter_act.data = fc::raw::pack(eosio::chain::chipcounter{p});
+
+            trx.actions.emplace_back(std::move(chipcounter_act));
+         }
+         trx.expiration = fc::time_point_sec(fc::time_point::now() + fc::seconds(15));//chain_plug->chain.head_block_time() + fc::seconds(15);
+         trx.ref_block_num = 0;
+         trx.ref_block_prefix = 0;
+         
+         flat_set<public_key_type> available_keys;
+         for (const auto & p : _signature_providers) {
+            available_keys.insert(p.first);
+         }
+         auto required_keys = chain_plug->get_read_only_api().get_required_keys({fc::variant((eosio::chain::transaction)trx), available_keys});
+         for (const auto &key : required_keys.required_keys) {
+            auto private_key_itr = _signature_providers.find(key);
+            if (private_key_itr == _signature_providers.end()) break;
+            auto digest = trx.sig_digest(chain_plug->get_chain_id(), trx.context_free_data);
+            signature_type sig = private_key_itr->second(digest);
+            trx.signatures.push_back(sig);
+         }
+         const auto ptrx = fc::variant(packed_transaction(trx, packed_transaction::compression_type::none));
+         chain_plug->get_read_write_api().push_transaction(ptrx.get_object(),
+            [](const static_variant<shared_ptr<fc::exception>, eosio::chain_apis::read_write::push_transaction_results>& result){
+               if (!result.contains<shared_ptr<fc::exception>>()) {
+                  ilog("send chipcounter: ${txid}",("txid", result.get<eosio::chain_apis::read_write::push_transaction_results>().transaction_id));
+               }
+            });
+      }
 };
 
 void new_chain_banner(const eosio::chain::controller& db)
@@ -911,7 +953,10 @@ void producer_plugin::plugin_startup()
    EOS_ASSERT( my->_producers.empty() || my->chain_plug->accept_transactions(), plugin_config_exception,
               "node cannot have any producer-name configured because no block production is possible with no [api|p2p]-accepted-transactions" );
 
-   my->_accepted_block_connection.emplace(chain.accepted_block.connect( [this]( const auto& bsp ){ my->on_block( bsp ); } ));
+   my->_accepted_block_connection.emplace(chain.accepted_block.connect( [this]( const auto& bsp ){ 
+         ilog("block incoming: ${bid}", ("bid", bsp->id.str().substr(8,16)));
+         my->on_block( bsp ); 
+      } ));
    my->_accepted_block_header_connection.emplace(chain.accepted_block_header.connect( [this]( const auto& bsp ){ my->on_block_header( bsp ); } ));
    my->_irreversible_block_connection.emplace(chain.irreversible_block.connect( [this]( const auto& bsp ){ my->on_irreversible_block( bsp->block ); } ));
 
@@ -1842,7 +1887,6 @@ void producer_plugin_impl::produce_block() {
    chain::controller& chain = chain_plug->chain();
    const auto& hbs = chain.head_block_state();
    EOS_ASSERT(chain.is_building_block(), missing_pending_block_state, "pending_block_state does not exist but it should, another plugin may have corrupted it");
-
 
    const auto& auth = chain.pending_block_signing_authority();
    std::vector<std::reference_wrapper<const signature_provider_type>> relevant_providers;

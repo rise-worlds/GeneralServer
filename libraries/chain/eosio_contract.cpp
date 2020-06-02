@@ -22,8 +22,6 @@
 
 namespace eosio { namespace chain {
 
-
-
 uint128_t transaction_id_to_sender_id( const transaction_id_type& tid ) {
    fc::uint128_t _id(tid._hash[3], tid._hash[2]);
    return (unsigned __int128)_id;
@@ -393,5 +391,12 @@ void apply_eosio_canceldelay(apply_context& context) {
 
    context.cancel_deferred_transaction(transaction_id_to_sender_id(trx_id), account_name());
 }
+
+// void apply_eosio_chipcounter(apply_context& context) {
+//    auto chipcounter = context.get_action().data_as<chipcounter>();
+//    context.require_authorization(chipcounter.account);
+
+   
+// }
 
 } } // namespace eosio::chain

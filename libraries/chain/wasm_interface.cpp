@@ -214,6 +214,10 @@ class privileged_api : public context_aware_api {
          return context.control.set_proposed_producers( std::move(producers) );
       }
 
+      int64_t set_proposed_producers( array_ptr<char> packed_producer_schedule, uint32_t datalen ) {
+         EOS_THROW(wasm_execution_error, "Producer schedule is use new format!");
+      }
+
       int64_t set_proposed_producers_ex( uint64_t packed_producer_format, array_ptr<char> packed_producer_schedule, uint32_t datalen ) {
          if (packed_producer_format == 1) {
             datastream<const char*> ds( packed_producer_schedule, datalen );
@@ -1802,6 +1806,7 @@ REGISTER_INTRINSICS(compiler_builtins,
 REGISTER_INTRINSICS(privileged_api,
    (get_resource_limits,              void(int64_t,int,int,int)             )
    (set_resource_limits,              void(int64_t,int64_t,int64_t,int64_t) )
+   (set_proposed_producers,           int64_t(int, int)                     )
    (set_proposed_producers_ex,        int64_t(int64_t, int, int)            )
    (get_blockchain_parameters_packed, int(int, int)                         )
    (set_blockchain_parameters_packed, void(int,int)                         )
