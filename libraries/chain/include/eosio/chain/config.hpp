@@ -35,7 +35,7 @@ const static name owner_name      { N(owner) };
 const static name eosio_any_name  { N(eosio.any) };
 const static name eosio_code_name { N(eosio.code) };
 
-const static int      block_interval_ms = 500;
+const static int      block_interval_ms = 1500;
 const static int      block_interval_us = block_interval_ms*1000;
 const static uint64_t block_timestamp_epoch = 946684800000ll; // epoch is year 2000.
 const static uint32_t genesis_num_supported_key_types = 3;

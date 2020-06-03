@@ -25,6 +25,7 @@ int main(int argc, char **argv) {
         app().set_version_string(potato::version::version_client());
         app().set_full_version_string(potato::version::version_full());
         std::cout << u8"example " << app().version_string() << std::endl;
+        fc::logger::get(DEFAULT_LOGGER).set_log_level(fc::log_level::debug);
 
         http_plugin::set_defaults({
                 .default_unix_socket_path = "",
