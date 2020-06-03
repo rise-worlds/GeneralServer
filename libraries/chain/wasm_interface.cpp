@@ -147,6 +147,17 @@ class privileged_api : public context_aware_api {
          EOS_ASSERT( context.is_privileged(), unaccessible_api, "${code} does not have permission to call this API", ("code",context.get_receiver()) );
       }
 
+      int is_feature_active( int64_t feature_name ) {
+         return false;
+      }
+
+      void activate_feature( int64_t feature_name ) {
+         EOS_ASSERT( false, unsupported_feature, "Unsupported Hardfork Detected" );
+      }
+
+      void preactivate_feature( const digest_type& feature_digest ) {
+         EOS_ASSERT( false, unsupported_feature, "Unsupported Hardfork Detected" );
+      }
 
       /**
        * update the resource limits associated with an account.  Note these new values will not take effect until the
@@ -995,6 +1006,11 @@ class system_api : public context_aware_api {
       uint64_t publication_time() {
          return static_cast<uint64_t>( context.trx_context.published.time_since_epoch().count() );
       }
+
+      bool is_feature_activated( const digest_type& feature_digest ) {
+         EOS_ASSERT(false, invalid_protocol_features_to_activate, "");
+         return true;
+      }
       
       name get_sender() {
          return context.get_sender();
@@ -1812,6 +1828,9 @@ REGISTER_INTRINSICS(privileged_api,
    (set_blockchain_parameters_packed, void(int,int)                         )
    (is_privileged,                    int(int64_t)                          )
    (set_privileged,                   void(int64_t, int)                    )
+   (is_feature_active,                int(int64_t)                          )
+   (activate_feature,                 void(int64_t)                         )
+   (preactivate_feature,              void(int)                             )
 );
 
 REGISTER_INJECTED_INTRINSICS(transaction_context,
@@ -1890,6 +1909,7 @@ REGISTER_INTRINSICS(permission_api,
 REGISTER_INTRINSICS(system_api,
    (current_time,          int64_t() )
    (publication_time,      int64_t() )
+   (is_feature_activated,  int(int)  )
    (get_sender,            int64_t() )
 );
 

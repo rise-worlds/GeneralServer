@@ -473,8 +473,8 @@ void chain_plugin::plugin_initialize(const variables_map& options) {
                   "signature-cpu-billable-pct must be 0 - 100, ${pct}", ("pct", my->chain_config->sig_cpu_bill_pct) );
       my->chain_config->sig_cpu_bill_pct *= config::percent_1;
 
-      // if( my->wasm_runtime )
-      //    my->chain_config->wasm_runtime = *my->wasm_runtime;
+      if( my->wasm_runtime )
+         my->chain_config->wasm_runtime = *my->wasm_runtime;
 
       my->chain_config->force_all_checks = options.at( "force-all-checks" ).as<bool>();
       my->chain_config->disable_replay_opts = options.at( "disable-replay-opts" ).as<bool>();

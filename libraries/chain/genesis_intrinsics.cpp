@@ -46,8 +46,6 @@ const std::vector<const char*> genesis_intrinsics = {
    "__fixunsdfti",
    "__trunctfdf2",
    "__trunctfsf2",
-   // "is_feature_active",
-   // "activate_feature",
    "get_resource_limits",
    "set_resource_limits",
    "set_proposed_producers",
@@ -172,8 +170,10 @@ const std::vector<const char*> genesis_intrinsics = {
    "memcmp",
    "memset",
    "get_sender",                 //get_sender
-   // "is_feature_activated",       //preactivate_feature
-   // "preactivate_feature",
+   "is_feature_activated",       //preactivate_feature
+   "preactivate_feature",
+   "is_feature_active",
+   "activate_feature",
    "set_proposed_producers_ex",  //wtmsig_block_signatures
 };
 
