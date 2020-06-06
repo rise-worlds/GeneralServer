@@ -47,12 +47,12 @@ pinnable_mapped_file::pinnable_mapped_file(const bfs::path& dir, bool writable, 
          BOOST_THROW_EXCEPTION(std::runtime_error("\"" + _database_name + "\" database format not compatible with this version of chainbase."));
       if(!allow_dirty && dbheader->dirty)
          throw std::runtime_error("\"" + _database_name + "\" database dirty flag set");
-      if(dbheader->environ != environment()) {
+      if(dbheader->dbenviron != environment()) {
          std::cerr << "CHAINBASE: \"" << _database_name << "\" database was created with a chainbase from a different environment" << std::endl;
          std::cerr << "Current compiler environment:" << std::endl;
          std::cerr << environment();
          std::cerr << "DB created with compiler environment:" << std::endl;
-         std::cerr << dbheader->environ;
+         std::cerr << dbheader->dbenviron;
          BOOST_THROW_EXCEPTION(std::runtime_error("All environment parameters must match"));
       }
    }
@@ -60,8 +60,11 @@ pinnable_mapped_file::pinnable_mapped_file(const bfs::path& dir, bool writable, 
    segment_manager* file_mapped_segment_manager = nullptr;
    if(!bfs::exists(_data_file_path)) {
       std::ofstream ofs(_data_file_path.generic_string(), std::ofstream::trunc);
+      //win32 impl of bfs::resize_file() doesn't like the file being open
+      ofs.close();
       bfs::resize_file(_data_file_path, shared_file_size);
-      _file_mapped_region = bip::mapped_region(bip::file_mapping(_data_file_path.generic_string().c_str(), bip::read_write), bip::read_write);
+      _file_mapping = bip::file_mapping(_data_file_path.generic_string().c_str(), bip::read_write);
+      _file_mapped_region = bip::mapped_region(_file_mapping, bip::read_write);
       file_mapped_segment_manager = new ((char*)_file_mapped_region.get_address()+header_size) segment_manager(shared_file_size-header_size);
       new (_file_mapped_region.get_address()) db_header;
    }
@@ -72,13 +75,20 @@ pinnable_mapped_file::pinnable_mapped_file(const bfs::path& dir, bool writable, 
             grow = shared_file_size - existing_file_size;
             bfs::resize_file(_data_file_path, shared_file_size);
          }
-         _file_mapped_region = bip::mapped_region(bip::file_mapping(_data_file_path.generic_string().c_str(), bip::read_write), bip::read_write);
+         else if(shared_file_size < existing_file_size) {
+             std::cerr << "CHAINBASE: \"" << _database_name << "\" requested size of " << shared_file_size << " is less than "
+                "existing size of " << existing_file_size << ". This database will not be shrunk and will "
+                "remain at " << existing_file_size << std::endl;
+         }
+         _file_mapping = bip::file_mapping(_data_file_path.generic_string().c_str(), bip::read_write);
+         _file_mapped_region = bip::mapped_region(_file_mapping, bip::read_write);
          file_mapped_segment_manager = reinterpret_cast<segment_manager*>((char*)_file_mapped_region.get_address()+header_size);
          if(grow)
             file_mapped_segment_manager->grow(grow);
    }
    else {
-         _file_mapped_region = bip::mapped_region(bip::file_mapping(_data_file_path.generic_string().c_str(), bip::read_only), bip::read_only);
+         _file_mapping = bip::file_mapping(_data_file_path.generic_string().c_str(), bip::read_only);
+         _file_mapped_region = bip::mapped_region(_file_mapping, bip::read_only);
          file_mapped_segment_manager = reinterpret_cast<segment_manager*>((char*)_file_mapped_region.get_address()+header_size);
    }
 
@@ -109,7 +119,7 @@ pinnable_mapped_file::pinnable_mapped_file(const bfs::path& dir, bool writable, 
 
       try {
          if(mode == heap)
-            _mapped_region = bip::mapped_region(bip::anonymous_shared_memory(shared_file_size));
+            _mapped_region = bip::mapped_region(bip::anonymous_shared_memory(_file_mapped_region.get_size()));
          else
             _mapped_region = get_huge_region(hugepage_paths);
 
@@ -122,6 +132,8 @@ pinnable_mapped_file::pinnable_mapped_file(const bfs::path& dir, bool writable, 
             std::cerr << "CHAINBASE: Database \"" << _database_name << "\" has been successfully locked in memory" << std::endl;
 #endif
          }
+
+         _file_mapped_region = bip::mapped_region();
       }
       catch(...) {
          if(_writable)
@@ -179,7 +191,7 @@ void pinnable_mapped_file::load_database_file(boost::asio::io_service& sig_ios) 
 
       if(time(nullptr) != t) {
          t = time(nullptr);
-         std::cerr << "              " << offset/(_mapped_region.get_size()/100) << "% complete..." << std::endl;
+         std::cerr << "              " << offset/(_file_mapped_region.get_size()/100) << "% complete..." << std::endl;
       }
       sig_ios.poll();
    }
@@ -244,8 +256,10 @@ pinnable_mapped_file& pinnable_mapped_file::operator=(pinnable_mapped_file&& o) 
 
 pinnable_mapped_file::~pinnable_mapped_file() {
    if(_writable) {
-      if(_mapped_region.get_address()) //in heap or locked mode
+      if(_mapped_region.get_address()) { //in heap or locked mode
+         _file_mapped_region = bip::mapped_region(_file_mapping, bip::read_write);
          save_database_file();
+      }
       else
          if(_file_mapped_region.flush(0, 0, false) == false)
             std::cerr << "CHAINBASE: ERROR: syncing buffers failed" << std::endl;
