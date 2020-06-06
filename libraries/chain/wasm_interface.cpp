@@ -1008,8 +1008,7 @@ class system_api : public context_aware_api {
       }
 
       bool is_feature_activated( const digest_type& feature_digest ) {
-         EOS_ASSERT(false, invalid_protocol_features_to_activate, "");
-         return true;
+         return false;
       }
       
       name get_sender() {
@@ -1820,16 +1819,16 @@ REGISTER_INTRINSICS(compiler_builtins,
 );
 
 REGISTER_INTRINSICS(privileged_api,
+   (is_feature_active,                int(int64_t)                          )
+   (activate_feature,                 void(int64_t)                         )
    (get_resource_limits,              void(int64_t,int,int,int)             )
    (set_resource_limits,              void(int64_t,int64_t,int64_t,int64_t) )
-   (set_proposed_producers,           int64_t(int, int)                     )
+   (set_proposed_producers,           int64_t(int,int)                      )
    (set_proposed_producers_ex,        int64_t(int64_t, int, int)            )
    (get_blockchain_parameters_packed, int(int, int)                         )
    (set_blockchain_parameters_packed, void(int,int)                         )
    (is_privileged,                    int(int64_t)                          )
    (set_privileged,                   void(int64_t, int)                    )
-   (is_feature_active,                int(int64_t)                          )
-   (activate_feature,                 void(int64_t)                         )
    (preactivate_feature,              void(int)                             )
 );
 

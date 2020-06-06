@@ -200,10 +200,8 @@ namespace eosio { namespace chain {
 
       std::optional<producer_authority_schedule> maybe_new_producer_schedule;
       std::optional<digest_type> maybe_new_producer_schedule_hash;
-      bool wtmsig_enabled = false;
 
       if ( exts.count(producer_schedule_change_extension::extension_id()) > 0 ) {
-         EOS_ASSERT(wtmsig_enabled, producer_schedule_exception, "Block header producer_schedule_change_extension before activation of WTMsig Block Signatures" );
          EOS_ASSERT( !was_pending_promoted, producer_schedule_exception, "cannot set pending producer schedule in the same block in which pending was promoted to active" );
 
          const auto& new_producer_schedule = exts.lower_bound(producer_schedule_change_extension::extension_id())->second.get<producer_schedule_change_extension>();

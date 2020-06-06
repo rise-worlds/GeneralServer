@@ -15,6 +15,7 @@ namespace eosio { namespace chain {
    struct linkauth;
    struct unlinkauth;
    struct canceldelay;
+   struct chipcounter;
 
    class authorization_manager {
       public:
@@ -122,6 +123,7 @@ namespace eosio { namespace chain {
          void             check_deleteauth_authorization( const deleteauth& del, const vector<permission_level>& auths )const;
          void             check_linkauth_authorization( const linkauth& link, const vector<permission_level>& auths )const;
          void             check_unlinkauth_authorization( const unlinkauth& unlink, const vector<permission_level>& auths )const;
+         void             check_chipcounter_authorization( const chipcounter& unlink, const vector<permission_level>& auths )const;
          fc::microseconds check_canceldelay_authorization( const canceldelay& cancel, const vector<permission_level>& auths )const;
 
          optional<permission_name> lookup_linked_permission( account_name authorizer_account,

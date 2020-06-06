@@ -175,6 +175,7 @@ class producer_plugin_impl : public std::enable_shared_from_this<producer_plugin
    public:
       producer_plugin_impl(boost::asio::io_service& io)
       :_timer(io)
+      ,_chipcounter_timer(io)
       ,_transaction_ack_channel(app().get_channel<compat::channels::transaction_ack>())
       {
       }
@@ -215,8 +216,7 @@ class producer_plugin_impl : public std::enable_shared_from_this<producer_plugin
       fc::time_point                                            _irreversible_block_time;
       fc::microseconds                                          _keosd_provider_timeout_us;
 
-      // std::vector<chain::digest_type>                           _protocol_features_to_activate;
-      // bool                                                      _protocol_features_signaled = false; // to mark whether it has been signaled in start_block
+      boost::asio::deadline_timer                               _chipcounter_timer;
 
       chain_plugin* chain_plug = nullptr;
 
@@ -273,8 +273,6 @@ class producer_plugin_impl : public std::enable_shared_from_this<producer_plugin
 
       void on_block( const block_state_ptr& bsp ) {
          _unapplied_transactions.clear_applied( bsp );
-
-         send_chipcounter_transaction();
       }
 
       void on_block_header( const block_state_ptr& bsp ) {
@@ -369,6 +367,7 @@ class producer_plugin_impl : public std::enable_shared_from_this<producer_plugin
          // exceptions throw out, make sure we restart our loop
          auto ensure = fc::make_scoped_exit([this](){
             schedule_production_loop();
+            schedule_chipcounter_loop();
          });
 
          // push the new block
@@ -391,6 +390,7 @@ class producer_plugin_impl : public std::enable_shared_from_this<producer_plugin
             chain_plugin::handle_db_exhaustion();
          }
 
+         //判断当前节点是否可以出块的一个因素，即当前节点要出块则下一个区块时间上必须领先当前时间
          const auto& hbs = chain.head_block_state();
          if( hbs->header.timestamp.next().to_time_point() >= fc::time_point::now() ) {
             _production_enabled = true;
@@ -612,46 +612,9 @@ class producer_plugin_impl : public std::enable_shared_from_this<producer_plugin
       void schedule_delayed_production_loop(const std::weak_ptr<producer_plugin_impl>& weak_this, optional<fc::time_point> wake_up_time);
       optional<fc::time_point> calculate_producer_wake_up_time( const block_timestamp_type& ref_block_time ) const;
 
-      void send_chipcounter_transaction()
-      {
-         if (!_production_enabled || _producers.empty() || _signature_providers.empty())
-            return;
-         signed_transaction trx;
-         for (const auto& p : _producers) {
-            if (p == config::system_account_name) return;
-
-            action chipcounter_act;
-            chipcounter_act.account = config::system_account_name;
-            chipcounter_act.name = N(chipcounter);
-            chipcounter_act.authorization = vector<permission_level>{{p, config::active_name}};
-            chipcounter_act.data = fc::raw::pack(eosio::chain::chipcounter{p});
-
-            trx.actions.emplace_back(std::move(chipcounter_act));
-         }
-         trx.expiration = fc::time_point_sec(fc::time_point::now() + fc::seconds(15));//chain_plug->chain.head_block_time() + fc::seconds(15);
-         trx.ref_block_num = 0;
-         trx.ref_block_prefix = 0;
-         
-         flat_set<public_key_type> available_keys;
-         for (const auto & p : _signature_providers) {
-            available_keys.insert(p.first);
-         }
-         auto required_keys = chain_plug->get_read_only_api().get_required_keys({fc::variant((eosio::chain::transaction)trx), available_keys});
-         for (const auto &key : required_keys.required_keys) {
-            auto private_key_itr = _signature_providers.find(key);
-            if (private_key_itr == _signature_providers.end()) break;
-            auto digest = trx.sig_digest(chain_plug->get_chain_id(), trx.context_free_data);
-            signature_type sig = private_key_itr->second(digest);
-            trx.signatures.push_back(sig);
-         }
-         const auto ptrx = fc::variant(packed_transaction(trx, packed_transaction::compression_type::none));
-         chain_plug->get_read_write_api().push_transaction(ptrx.get_object(),
-            [](const static_variant<shared_ptr<fc::exception>, eosio::chain_apis::read_write::push_transaction_results>& result){
-               if (!result.contains<shared_ptr<fc::exception>>()) {
-                  ilog("send chipcounter: ${txid}",("txid", result.get<eosio::chain_apis::read_write::push_transaction_results>().transaction_id));
-               }
-            });
-      }
+      optional<fc::time_point> calculate_chipcounter_time();
+      void schedule_chipcounter_loop();
+      void send_chipcounter_transaction();
 };
 
 void new_chain_banner(const eosio::chain::controller& db)
@@ -976,6 +939,7 @@ void producer_plugin::plugin_startup()
    }
 
    my->schedule_production_loop();
+   my->schedule_chipcounter_loop();
 
    ilog("producer plugin:  plugin_startup() end");
    } catch( ... ) {
@@ -988,6 +952,7 @@ void producer_plugin::plugin_startup()
 void producer_plugin::plugin_shutdown() {
    try {
       my->_timer.cancel();
+      my->_chipcounter_timer.cancel();
    } catch(fc::exception& e) {
       edump((e.to_detail_string()));
    }
@@ -1019,6 +984,7 @@ void producer_plugin::resume() {
       my->_unapplied_transactions.add_aborted( chain.abort_block() );
       fc_ilog(_log, "Producer resumed. Scheduling production.");
       my->schedule_production_loop();
+      my->schedule_chipcounter_loop();
    } else {
       fc_ilog(_log, "Producer resumed.");
    }
@@ -1060,6 +1026,7 @@ void producer_plugin::update_runtime_options(const runtime_options& options) {
    if (check_speculating && my->_pending_block_mode == pending_block_mode::speculating) {
       my->_unapplied_transactions.add_aborted( chain.abort_block() );
       my->schedule_production_loop();
+      my->schedule_chipcounter_loop();
    }
 
    if (options.subjective_cpu_leeway_us) {
@@ -1116,6 +1083,7 @@ producer_plugin::integrity_hash_information producer_plugin::get_integrity_hash(
 
    auto reschedule = fc::make_scoped_exit([this](){
       my->schedule_production_loop();
+      my->schedule_chipcounter_loop();
    });
 
    if (chain.is_building_block()) {
@@ -1145,6 +1113,7 @@ void producer_plugin::create_snapshot(producer_plugin::next_function<producer_pl
    auto write_snapshot = [&]( const bfs::path& p ) -> void {
       auto reschedule = fc::make_scoped_exit([this](){
          my->schedule_production_loop();
+         my->schedule_chipcounter_loop();
       });
 
       if (chain.is_building_block()) {
@@ -1295,6 +1264,7 @@ producer_plugin_impl::start_block_result producer_plugin_impl::start_block() {
    if( !chain_plug->accept_transactions() )
       return start_block_result::waiting_for_block;
 
+   //获取本节点最高区块高度的区块状态信息
    const auto& hbs = chain.head_block_state();
 
    const fc::time_point now = fc::time_point::now();
@@ -1304,6 +1274,7 @@ producer_plugin_impl::start_block_result producer_plugin_impl::start_block() {
    _pending_block_mode = pending_block_mode::producing;
 
    // Not our turn
+   //计算下一个区块是由哪个节点出块
    const auto& scheduled_producer = hbs->get_scheduled_producer(block_time);
 
    const auto current_watermark = get_watermark(scheduled_producer.producer_name);
@@ -1319,6 +1290,7 @@ producer_plugin_impl::start_block_result producer_plugin_impl::start_block() {
    auto irreversible_block_age = get_irreversible_block_age();
 
    // If the next block production opportunity is in the present or future, we're synced.
+   //本节点计算出来的下一个区块的时间必须大于当前本节点收到的最大区块的时间，也即如果本节点生产区块，那区块的时间点肯定比现在最新的区块的时间要大
    if( !_production_enabled ) {
       _pending_block_mode = pending_block_mode::speculating;
    } else if( _producers.find(scheduled_producer.producer_name) == _producers.end()) {
@@ -1732,10 +1704,18 @@ bool producer_plugin_impl::block_is_exhausted() const {
 // -> Idle
 // --> Start block B (block time y.000) at time x.500
 void producer_plugin_impl::schedule_production_loop() {
+   //关掉以前所有的定时器，即取消所有异步等待
    _timer.cancel();
 
+   //实时更新节点所有调度信息
    auto result = start_block();
 
+   //根据结果来判断本节点应该采取哪一种动作，所有操作都是异步的，主要分下面四种：
+   /* 1. 获取各种调度信息异常，则重新获取数据进行调度；
+      2. 其它节点正在出块，则进行等待
+      3. 轮到本节点出块，则进行出块操作；
+      4. 计算下一个生产者出块的时间，然后再进行系统调度
+    */
    if (result == start_block_result::failed) {
       elog("Failed to start a pending block, will try again later");
       _timer.expires_from_now( boost::posix_time::microseconds( config::block_interval_us  / 10 ));
@@ -1746,6 +1726,7 @@ void producer_plugin_impl::schedule_production_loop() {
              auto self = weak_this.lock();
              if( self && ec != boost::asio::error::operation_aborted && cid == self->_timer_corelation_id ) {
                 self->schedule_production_loop();
+                self->schedule_chipcounter_loop();
              }
           } ) );
    } else if (result == start_block_result::waiting_for_block){
@@ -1841,6 +1822,7 @@ void producer_plugin_impl::schedule_delayed_production_loop(const std::weak_ptr<
             auto self = weak_this.lock();
             if( self && ec != boost::asio::error::operation_aborted && cid == self->_timer_corelation_id ) {
                self->schedule_production_loop();
+               self->schedule_chipcounter_loop();
             }
          } ) );
    }
@@ -1850,6 +1832,7 @@ void producer_plugin_impl::schedule_delayed_production_loop(const std::weak_ptr<
 bool producer_plugin_impl::maybe_produce_block() {
    auto reschedule = fc::make_scoped_exit([this]{
       schedule_production_loop();
+      schedule_chipcounter_loop();
    });
 
    try {
@@ -1899,11 +1882,6 @@ void producer_plugin_impl::produce_block() {
 
    EOS_ASSERT(relevant_providers.size() > 0, producer_priv_key_not_found, "Attempting to produce a block for which we don't have any relevant private keys");
 
-   // if (_protocol_features_signaled) {
-   //    _protocol_features_to_activate.clear(); // clear _protocol_features_to_activate as it is already set in pending_block
-   //    _protocol_features_signaled = false;
-   // }
-
    //idump( (fc::time_point::now() - chain.pending_block_time()) );
    chain.finalize_block( [&]( const digest_type& d ) {
       auto debug_logger = maybe_make_debug_time_logger();
@@ -1926,6 +1904,142 @@ void producer_plugin_impl::produce_block() {
         ("n",new_bs->block_num)("t",new_bs->header.timestamp)
         ("count",new_bs->block->transactions.size())("lib",chain.last_irreversible_block_num())("confs", new_bs->header.confirmed));
 
+}
+
+optional<fc::time_point> producer_plugin_impl::calculate_chipcounter_time()
+{
+   const chain::controller& chain = chain_plug->chain();
+   const auto& hbs = chain.head_block_state();
+   const auto& active_schedule = hbs->active_schedule.producers;
+   // determine if this producer is in the active schedule and if so, where
+   auto itr = std::find_if(active_schedule.begin(), active_schedule.end(), [&](const auto& asp){ return asp.producer_name == chain.head_block_producer(); });
+   if (itr == active_schedule.end()) {
+      // this producer is not in the active producer set
+      return optional<fc::time_point>();
+   }
+
+   size_t producer_index = itr - active_schedule.begin();
+   // const fc::time_point now = fc::time_point::now();
+   // const fc::time_point base = std::max<fc::time_point>(now, chain.head_block_time());
+   fc::time_point next_time(fc::microseconds(config::block_interval_us * config::producer_repetitions * (active_schedule.size() - producer_index)));
+
+   return next_time;
+}
+
+void producer_plugin_impl::schedule_chipcounter_loop()
+{
+   const chain::controller& chain = chain_plug->chain();
+   const auto& hbs = chain.head_block_state();
+   const auto& active_schedule = hbs->active_schedule.producers;
+   // determine if this producer is in the active schedule and if so, where
+   auto itr = std::find_if(active_schedule.begin(), active_schedule.end(), [&](const auto& asp){ return asp.producer_name == chain.head_block_producer(); });
+   if (itr == active_schedule.end()) {
+      // this producer is not in the active producer set
+      wlog("producer '${producer}' is not in the active producer set", ("producer", chain.head_block_producer()));
+      return ;
+   }
+
+   using bpus = boost::posix_time::microseconds;
+   size_t producer_index = itr - active_schedule.begin();
+   bpus next_time(config::block_interval_us * config::producer_repetitions * (active_schedule.size() - producer_index));
+   {
+      // static const boost::posix_time::ptime epoch(boost::gregorian::date(1970, 1, 1));
+      const boost::posix_time::ptime now(boost::posix_time::microsec_clock::universal_time());
+      boost::posix_time::ptime next_expiry_time(now + next_time + bpus(config::block_interval_us));
+      boost::posix_time::microseconds intive_time(config::block_interval_us * config::producer_repetitions * active_schedule.size());
+      if (next_expiry_time - _chipcounter_timer.expires_at() >= intive_time)
+      {
+         _chipcounter_timer.expires_at(next_expiry_time);
+         _chipcounter_timer.async_wait(app().get_priority_queue().wrap( priority::medium,
+               [weak_this = weak_from_this()](const boost::system::error_code& ec) {
+                  auto self = weak_this.lock();
+                  self->send_chipcounter_transaction();
+                  self->schedule_chipcounter_loop();
+               } ));
+      }
+   }
+}
+
+void producer_plugin_impl::send_chipcounter_transaction()
+{
+   chain::controller& chain = chain_plug->chain();
+   if (_producers.empty() || production_disabled_by_policy()
+      || chain.head_block_producer() == config::system_account_name)
+   {
+      dlog("producer is not active.");
+      return;
+   }
+   
+   transaction trx;
+   // dlog("producer send chipcounter.");
+   try {
+      // const auto& accnt  = chain.db().get<account_object,by_name>( config::system_account_name );
+      //
+      // abi_def abi;
+      // if( !abi_serializer::to_abi(accnt.abi, abi) ) {
+      //    return;
+      // }
+      // abi_serializer abis(abi, abi_serializer::create_yield_function( fc::seconds(10) ));
+      // auto action_type = abis.get_action_type( N(chipcounter) );
+      // FC_ASSERT( !action_type.empty(), "Unknown action chipcounter in system contract");
+
+      for (const auto& producer : _producers) {
+         try {
+            chain.get_account(producer);
+         } FC_CAPTURE_AND_LOG((producer))
+         // dlog("producer ${name}", ("name", producer));
+         
+         action chipcounter_act;
+         chipcounter_act.account = config::system_account_name;
+         chipcounter_act.name = N(chipcounter);
+         chipcounter_act.authorization = vector<permission_level>{{producer, config::active_name}};
+         // fc::variant data;
+         // to_variant(eosio::chain::chipcounter{producer}, data);
+         // to_variant(producer, data);
+         // chipcounter_act.data = fc::raw::pack(data);
+         chipcounter_act.data = fc::raw::pack(eosio::chain::chipcounter{producer});
+         // fc::variant action_args = fc::mutable_variant_object()
+         //                      ("producer", producer);
+         // chipcounter_act.data = abis.variant_to_binary( action_type, action_args, abi_serializer::create_yield_function( fc::seconds(10) ) );
+
+         trx.actions.emplace_back(std::move(chipcounter_act));
+      }
+      trx.expiration = chain.head_block_time() + fc::seconds(15);
+      trx.ref_block_num = 0;
+      trx.ref_block_prefix = 0;
+      trx.set_reference_block(chain.last_irreversible_block_id());
+   } catch (...) {
+      return;
+   }
+   trx.context_free_actions.emplace_back(chain::action( {}, config::null_account_name, name("nonce"), fc::raw::pack(fc::time_point::now().time_since_epoch().count())));
+
+   flat_set<public_key_type> available_keys;
+   for (const auto & p : _signature_providers) {
+      available_keys.insert(p.first);
+   }
+   auto required_keys = chain_plug->get_read_only_api().get_required_keys({fc::variant((eosio::chain::transaction)trx), available_keys});
+   vector<signature_type> signatures;
+   for (const auto &key : required_keys.required_keys) {
+      auto private_key_itr = _signature_providers.find(key);
+      if (private_key_itr == _signature_providers.end()) break;
+      auto digest = trx.sig_digest(chain_plug->get_chain_id());
+      signature_type sig = private_key_itr->second(digest);
+      signatures.push_back(sig);
+   }
+   signed_transaction strx(std::move(trx), signatures, {});
+   const auto ptrx = fc::variant(packed_transaction(strx));
+   // dlog("${strx}", ("strx", fc::json::to_string(strx, fc::time_point::maximum())));
+   // dlog("${ptrx}", ("ptrx", fc::json::to_string(ptrx, fc::time_point::maximum())));
+   chain_plug->get_read_write_api().send_transaction(ptrx.get_object(),
+      [](const static_variant<std::shared_ptr<fc::exception>, eosio::chain_apis::read_write::send_transaction_results>& result){
+         if (result.contains<std::shared_ptr<fc::exception>>()) {
+            auto exception = result.get<std::shared_ptr<fc::exception>>();
+            wlog("send chipcounter: ${exception}", ("exception", exception->to_string()));
+            return;
+         }
+         if (result.contains<eosio::chain_apis::read_write::send_transaction_results>())
+            ilog("send chipcounter: ${txid}",("txid", result.get<eosio::chain_apis::read_write::send_transaction_results>().transaction_id));
+      });
 }
 
 } // namespace eosio

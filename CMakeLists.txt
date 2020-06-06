@@ -51,76 +51,66 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 7.0)
         message(FATAL_ERROR "GCC version must be at least 7.0!")
     endif()
-    if ("${CMAKE_GENERATOR}" STREQUAL "Ninja")
-        add_compile_options(-fdiagnostics-color=always)
-    endif()
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
     if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 5.0)
         message(FATAL_ERROR "Clang version must be at least 5.0!")
     endif()
-    if ("${CMAKE_GENERATOR}" STREQUAL "Ninja")
-        add_compile_options(-fcolor-diagnostics)
-    endif()
+endif()
+
+if ("${CMAKE_GENERATOR}" STREQUAL "Ninja")
+   add_compile_options(-fdiagnostics-color=always)
 endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS "ON")
 
 # add defaults for openssl
-if ("${OPENSSL_ROOT_DIR}" STREQUAL "")
-    if (NOT "$ENV{OPENSSL_ROOT_DIR}" STREQUAL "")
-        set(OPENSSL_ROOT_DIR $ENV{OPENSSL_ROOT_DIR})
-        set(OPENSSL_INCLUDE_DIR ${OPENSSL_ROOT_DIR}/include)
-    elseif (APPLE)
-        set(OPENSSL_ROOT_DIR "/usr/local/opt/openssl")
-        set(OPENSSL_INCLUDE_DIR "/usr/local/opt/openssl/include")
-    elseif(UNIX AND NOT APPLE)
-        set(OPENSSL_ROOT_DIR "/usr/include/openssl")
-        set(OPENSSL_INCLUDE_DIR "/usr/include/openssl/include")
-    else()
-        message(FATAL_ERROR "openssl not found and don't know where to look, please specify OPENSSL_ROOT_DIR")
-    endif()
+if(APPLE AND UNIX AND "${OPENSSL_ROOT_DIR}" STREQUAL "")
+   set(OPENSSL_ROOT_DIR "/usr/local/opt/openssl@1.1")
 endif()
 
+# WASM runtimes to enable. Each runtime in this list will have:
+#  * definition EOSIO_<RUNTIME>_RUNTIME_ENABLED defined in public libchain interface
+#  * ctest entries with --runtime
+list(APPEND EOSIO_WASM_RUNTIMES wabt)   #always enable wabt; it works everywhere and parts of eosio still assume it's always available
+if(CMAKE_SIZEOF_VOID_P EQUAL 8 AND NOT WIN32)
+   if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux" AND "${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "x86_64")
+      list(APPEND EOSIO_WASM_RUNTIMES eos-vm-oc)
+      # EOS VM OC requires LLVM, but move the check up here to a central location so that the EosioTester.cmakes
+      # can be created with the exact version found
+      find_package(LLVM REQUIRED CONFIG)
+      if(LLVM_VERSION_MAJOR VERSION_LESS 7 OR LLVM_VERSION_MAJOR VERSION_GREATER 10)
+	      message(FATAL_ERROR "EOSIO requires an LLVM version 7.0 to 10.0")
+      endif()
+   endif()
+endif()
+
+if(CMAKE_SIZEOF_VOID_P EQUAL 8 AND NOT WIN32)
+   if(CMAKE_SYSTEM_PROCESSOR STREQUAL x86_64)
+      list(APPEND EOSIO_WASM_RUNTIMES eos-vm eos-vm-jit)
+   endif()
+endif()
 
 if(UNIX)
-    if(APPLE)
-        set(whole_archive_flag "-force_load")
-        set(no_whole_archive_flag "")
-    else()
-        set(whole_archive_flag "--whole-archive")
-        set(no_whole_archive_flag "--no-whole-archive")
-    endif()
-else()
+  if(APPLE)
+    set(whole_archive_flag "-force_load")
+    set(no_whole_archive_flag "")
+  else()
     set(whole_archive_flag "--whole-archive")
     set(no_whole_archive_flag "--no-whole-archive")
+  endif()
+else()
+  set(whole_archive_flag "--whole-archive")
+  set(no_whole_archive_flag "--no-whole-archive")
 endif()
 
-SET( Boost_USE_STATIC_LIBS ON CACHE STRING "ON or OFF" )
-IF( WIN32 )
-    SET(BOOST_ROOT $ENV{BOOST_ROOT})
-    set(Boost_USE_MULTITHREADED ON)
-    set(BOOST_ALL_DYN_LINK OFF) # force dynamic linking for all libraries
-ENDIF(WIN32)
-set( Boost_NO_BOOST_CMAKE ON CACHE STRING "ON or OFF" )
-find_package(Boost 1.71 REQUIRED COMPONENTS
-        date_time
-        filesystem
-        system
-        program_options
-        chrono
-        unit_test_framework
-        iostreams)
-
-add_definitions(-DBOOST_ASIO_DISABLE_STD_EXPERIMENTAL_STRING_VIEW)
-
-set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
-set(THREADS_PREFER_PTHREAD_FLAG TRUE)
-find_package(Threads)
-link_libraries(Threads::Threads)
+set( Boost_USE_STATIC_LIBS ON CACHE STRING "ON or OFF" )
+# Most boost deps get implictly picked up via fc, as just about everything links to fc. In addition we pick up
+# the pthread dependency through fc.
+find_package(Boost 1.71 REQUIRED COMPONENTS program_options unit_test_framework)
 
 if( APPLE AND UNIX )
     # Apple Specific Options Here
-    message( STATUS "Configuring GeneralServer on OS X" )
+    message( STATUS "Configuring GeneralServer on macOS" )
     set( CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_CXX_FLAGS} -Wall -Wno-deprecated-declarations" )
 else()
     # Linux Specific Options Here
@@ -137,17 +127,32 @@ else()
     endif()
 endif()
 
-if( "${CMAKE_GENERATOR}" STREQUAL "Ninja" )
-    if( "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" )
-        set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fcolor-diagnostics" )
-    endif()
+set(ENABLE_COVERAGE_TESTING FALSE CACHE BOOL "Build EOSIO for code coverage analysis")
+
+if(ENABLE_COVERAGE_TESTING)
+  SET(CMAKE_CXX_FLAGS "--coverage ${CMAKE_CXX_FLAGS}")
+  find_program( LCOV_PATH lcov )
+  find_program( LLVMCOV_PATH  llvm-cov )
+  find_program( GENHTML_PATH NAMES genhtml)
 endif()
+
+if ("${CORE_SYMBOL_NAME}" STREQUAL "")
+  set( CORE_SYMBOL_NAME "SYS" )
+endif()
+string(TOUPPER ${CORE_SYMBOL_NAME} CORE_SYMBOL_NAME)
+
+string(LENGTH ${CORE_SYMBOL_NAME} CORE_SYMBOL_NAME_LENGTH)
+if (CORE_SYMBOL_NAME_LENGTH GREATER 7)
+  message(FATAL_ERROR "CORE_SYMBOL_NAME length must be between 1 and 7 characters")
+endif()
+
+message( STATUS "Using '${CORE_SYMBOL_NAME}' as CORE symbol name" )
 
 if ("${EOSIO_ROOT_KEY}" STREQUAL "")
    set(EOSIO_ROOT_KEY "POC6MRyAjQq8ud7hVNYcfnVPJqcVpscN5So8BhtHuGYqET5GDW5CV")
 endif()
 
-message( STATUS "Using '${EOSIO_ROOT_KEY}' as public key for 'potato' account" )
+message( STATUS "Using '${EOSIO_ROOT_KEY}' as public key for 'eosio' account" )
 
 # list(APPEND EOSIO_WASM_RUNTIMES "eos-vm")
 # list(APPEND EOSIO_WASM_RUNTIMES "eos-vm-jit")
@@ -161,19 +166,50 @@ add_subdirectory(plugins)
 add_subdirectory(programs)
 add_subdirectory(tests)
 
-install_directory_permissions(DIRECTORY ${CMAKE_INSTALL_FULL_SYSCONFDIR}/potato)
+install_directory_permissions(DIRECTORY ${CMAKE_INSTALL_FULL_SYSCONFDIR}/eosio)
 
+install(FILES testnet.template DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/eosio/launcher)
+install_directory_permissions(DIRECTORY ${CMAKE_INSTALL_FULL_SYSCONFDIR}/eosio)
+install_directory_permissions(DIRECTORY ${CMAKE_INSTALL_FULL_SYSCONFDIR}/eosio/launcher)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/testnet.template ${CMAKE_CURRENT_BINARY_DIR}/etc/eosio/launcher/testnet.template COPYONLY)
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/eosio.version.in ${CMAKE_CURRENT_BINARY_DIR}/eosio.version.hpp)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/eosio.version.hpp DESTINATION ${CMAKE_INSTALL_FULL_INCLUDEDIR})
+
+set(EOS_ROOT_DIR ${CMAKE_BINARY_DIR})
+configure_file(${CMAKE_SOURCE_DIR}/CMakeModules/eosio-config.cmake.in ${CMAKE_BINARY_DIR}/lib/cmake/eosio/eosio-config.cmake @ONLY)
+configure_file(${CMAKE_SOURCE_DIR}/CMakeModules/EosioTesterBuild.cmake.in ${CMAKE_BINARY_DIR}/lib/cmake/eosio/EosioTester.cmake @ONLY)
+
+set(EOS_ROOT_DIR ${CMAKE_INSTALL_PREFIX})
+configure_file(${CMAKE_SOURCE_DIR}/CMakeModules/eosio-config.cmake.in ${CMAKE_BINARY_DIR}/modules/eosio-config.cmake @ONLY)
+install(FILES ${CMAKE_BINARY_DIR}/modules/eosio-config.cmake DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}/cmake/eosio)
+configure_file(${CMAKE_SOURCE_DIR}/CMakeModules/EosioTester.cmake.in ${CMAKE_BINARY_DIR}/modules/EosioTester.cmake @ONLY)
+install(FILES ${CMAKE_BINARY_DIR}/modules/EosioTester.cmake DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}/cmake/eosio)
+
+configure_file(${CMAKE_SOURCE_DIR}/LICENSE
+               ${CMAKE_BINARY_DIR}/licenses/eosio/LICENSE COPYONLY)
 configure_file(${CMAKE_SOURCE_DIR}/libraries/wabt/LICENSE
-               ${CMAKE_BINARY_DIR}/licenses/potato/LICENSE.wabt COPYONLY)
+               ${CMAKE_BINARY_DIR}/licenses/eosio/LICENSE.wabt COPYONLY)
+configure_file(${CMAKE_SOURCE_DIR}/libraries/softfloat/COPYING.txt
+               ${CMAKE_BINARY_DIR}/licenses/eosio/LICENSE.softfloat COPYONLY)
+configure_file(${CMAKE_SOURCE_DIR}/libraries/wasm-jit/LICENSE
+               ${CMAKE_BINARY_DIR}/licenses/eosio/LICENSE.wavm COPYONLY)
 configure_file(${CMAKE_SOURCE_DIR}/libraries/fc/secp256k1/upstream/COPYING
-               ${CMAKE_BINARY_DIR}/licenses/potato/LICENSE.secp256k1 COPYONLY)
+               ${CMAKE_BINARY_DIR}/licenses/eosio/LICENSE.secp256k1 COPYONLY)
+configure_file(${CMAKE_SOURCE_DIR}/libraries/fc/include/fc/crypto/webauthn_json/license.txt
+               ${CMAKE_BINARY_DIR}/licenses/eosio/LICENSE.rapidjson COPYONLY)
 configure_file(${CMAKE_SOURCE_DIR}/libraries/fc/src/network/LICENSE.go
-               ${CMAKE_BINARY_DIR}/licenses/potato/LICENSE.go COPYONLY)
+               ${CMAKE_BINARY_DIR}/licenses/eosio/LICENSE.go COPYONLY)
 configure_file(${CMAKE_SOURCE_DIR}/libraries/eos-vm/LICENSE
-               ${CMAKE_BINARY_DIR}/licenses/potato/LICENSE.eos-vm COPYONLY)
+               ${CMAKE_BINARY_DIR}/licenses/eosio/LICENSE.eos-vm COPYONLY)
 
-install(FILES libraries/wabt/LICENSE DESTINATION ${CMAKE_INSTALL_FULL_DATAROOTDIR}/licenses/potato/ RENAME LICENSE.wabt COMPONENT base)
-install(FILES libraries/fc/secp256k1/upstream/COPYING DESTINATION ${CMAKE_INSTALL_FULL_DATAROOTDIR}/licenses/potato/ RENAME LICENSE.secp256k1 COMPONENT base)
-install(FILES libraries/fc/src/network/LICENSE.go DESTINATION ${CMAKE_INSTALL_FULL_DATAROOTDIR}/licenses/potato/ COMPONENT base)
-install(FILES libraries/eos-vm/LICENSE DESTINATION ${CMAKE_INSTALL_FULL_DATAROOTDIR}/licenses/potato/ RENAME LICENSE.eos-vm COMPONENT base)
+install(FILES LICENSE DESTINATION ${CMAKE_INSTALL_FULL_DATAROOTDIR}/licenses/eosio/ COMPONENT base)
+install(FILES libraries/wabt/LICENSE DESTINATION ${CMAKE_INSTALL_FULL_DATAROOTDIR}/licenses/eosio/ RENAME LICENSE.wabt COMPONENT base)
+install(FILES libraries/softfloat/COPYING.txt DESTINATION ${CMAKE_INSTALL_FULL_DATAROOTDIR}/licenses/eosio/ RENAME LICENSE.softfloat COMPONENT base)
+install(FILES libraries/wasm-jit/LICENSE DESTINATION ${CMAKE_INSTALL_FULL_DATAROOTDIR}/licenses/eosio/ RENAME LICENSE.wavm COMPONENT base)
+install(FILES libraries/fc/secp256k1/upstream/COPYING DESTINATION ${CMAKE_INSTALL_FULL_DATAROOTDIR}/licenses/eosio/ RENAME LICENSE.secp256k1 COMPONENT base)
+install(FILES libraries/fc/include/fc/crypto/webauthn_json/license.txt DESTINATION ${CMAKE_INSTALL_FULL_DATAROOTDIR}/licenses/eosio/ RENAME LICENSE.rapidjson COMPONENT base)
+install(FILES libraries/fc/src/network/LICENSE.go DESTINATION ${CMAKE_INSTALL_FULL_DATAROOTDIR}/licenses/eosio/ COMPONENT base)
+install(FILES libraries/eos-vm/LICENSE DESTINATION ${CMAKE_INSTALL_FULL_DATAROOTDIR}/licenses/eosio/ RENAME LICENSE.eos-vm COMPONENT base)
 
+include(package)

@@ -111,7 +111,7 @@ void producer_api_plugin::plugin_startup() {
             INVOKE_R_V(producer, get_integrity_hash), 201),
        CALL_ASYNC(producer, producer, create_snapshot, producer_plugin::snapshot_information,
             INVOKE_R_V_ASYNC(producer, create_snapshot), 201),
-   }, appbase::priority::medium);
+   }, appbase::priority::medium_high);
 }
 
 void producer_api_plugin::plugin_initialize(const variables_map& options) {

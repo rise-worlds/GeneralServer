@@ -62,13 +62,17 @@ constexpr auto intrinsic_table = boost::hana::make_tuple(
    "env.__fixunsdfti"_s,
    "env.__trunctfdf2"_s,
    "env.__trunctfsf2"_s,
+   "env.is_feature_active"_s,
+   "env.activate_feature"_s,
    "env.get_resource_limits"_s,
    "env.set_resource_limits"_s,
+   "env.set_proposed_producers"_s,
    "env.set_proposed_producers_ex"_s,
    "env.get_blockchain_parameters_packed"_s,
    "env.set_blockchain_parameters_packed"_s,
    "env.is_privileged"_s,
    "env.set_privileged"_s,
+   "env.preactivate_feature"_s,
    "env.get_active_producers"_s,
    "env.db_store_i64"_s,
    "env.db_update_i64"_s,
@@ -146,6 +150,7 @@ constexpr auto intrinsic_table = boost::hana::make_tuple(
    "env.get_account_creation_time"_s,
    "env.current_time"_s,
    "env.publication_time"_s,
+   "env.is_feature_activated"_s,
    "env.get_sender"_s,
    "env.abort"_s,
    "env.eosio_assert"_s,
@@ -243,11 +248,7 @@ constexpr auto intrinsic_table = boost::hana::make_tuple(
    "eosio_injection._eosio_i32_to_f64"_s,
    "eosio_injection._eosio_i64_to_f64"_s,
    "eosio_injection._eosio_ui32_to_f64"_s,
-   "eosio_injection._eosio_ui64_to_f64"_s,
-   "env.is_feature_active"_s,
-   "env.activate_feature"_s,
-   "env.preactivate_feature"_s,
-   "env.is_feature_activated"_s
+   "eosio_injection._eosio_ui64_to_f64"_s
 );
 
 }}}

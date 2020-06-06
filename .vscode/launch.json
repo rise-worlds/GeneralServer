@@ -5,11 +5,21 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Launch example",
+            "name": "Launch bios",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/programs/example/example",
-            "args": ["-e", "-peosio", "--delete-all-block", "--plugin=eosio::producer_api_plugin", "--plugin=eosio::chain_api_plugin"],
+            "args": [
+                "-e", 
+                "-peosio", 
+                "--delete-all-block", 
+                "--disable-replay-opts",
+                "--disable-ram-billing-notify-checks",
+                "--max-transaction-time=1000",
+                "-d./data-dir/bios",
+                "--plugin=eosio::producer_api_plugin", 
+                "--plugin=eosio::chain_api_plugin"
+            ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
@@ -27,11 +37,21 @@
             }
         },
         {
-            "name": "Launch example peer",
+            "name": "Launch pcbpa",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/programs/example/example",
-            "args": ["--p2p-listen-endpoint=0.0.0.0:6789", "--p2p-peer-address=127.0.0.1:9876"],
+            "args": [
+                "-ppcbpa",
+                "-d./data-dir/pcbpa",
+                "--signature-provider=POC7n1U9Z2NQeVEvQZYjHCedNXRVWshmmuGH2j3r6bD4c8fH4U8QL=KEY:5KdC5izmPV6WkY4afTdzzcyx5dyQ2z6Ax9tDCSqFwGBA5twQogz",
+                "--delete-all-block", 
+                "--plugin=eosio::producer_plugin",
+                "--p2p-listen-endpoint=0.0.0.0:9871", 
+                "--p2p-peer-address=127.0.0.1:9876",
+                "--p2p-peer-address=127.0.0.1:9872",
+                "--p2p-peer-address=127.0.0.1:9873",
+            ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

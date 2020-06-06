@@ -288,7 +288,7 @@ struct controller_impl {
 */
 
    SET_APP_HANDLER( eosio, eosio, canceldelay );
-   // SET_APP_HANDLER( eosio, eosio, chipcounter );
+   SET_APP_HANDLER( eosio, eosio, chipcounter );
    }
 
    /**
@@ -1729,8 +1729,10 @@ struct controller_impl {
          block_state_ptr bsp = block_state_future.get();
          const auto& b = bsp->block;
 
+         //使用checkpoint校验区块id
          emit( self.pre_accepted_block, b );
 
+         //更新fork_db相关的数据
          fork_db.add( bsp );
 
          if (self.is_trusted_producer(b->producer)) {
@@ -1739,6 +1741,7 @@ struct controller_impl {
 
          emit( self.accepted_block_header, bsp );
 
+         //这个条件满足
          if( read_mode != db_read_mode::IRREVERSIBLE ) {
             maybe_switch_forks( fork_db.pending_head(), s, forked_branch_cb, trx_lookup );
          } else {
@@ -1798,6 +1801,8 @@ struct controller_impl {
                             const forked_branch_callback& forked_branch_cb, const trx_meta_cache_lookup& trx_lookup )
    {
       bool head_changed = true;
+      // new_head这里是fork_db中我们上面存储的最新的block_header_state,而head是controller中存储的旧的block_header_state
+      //(非正常情况下head不一定比new_head旧，自行理解...),所以正常情况会进第一个分支，非正常情况就是我们常说的链出现分叉了
       if( new_head->header.previous == head->id ) {
          try {
             apply_block( new_head, s, trx_lookup );
@@ -1807,7 +1812,7 @@ struct controller_impl {
             fork_db.remove( new_head->id );
             throw;
          }
-      } else if( new_head->id != head->id ) {
+      } else if( new_head->id != head->id ) { //链出现分叉时的处理
          auto old_head = head;
          ilog("switching forks from ${current_head_id} (block number ${current_head_num}) to ${new_head_id} (block number ${new_head_num})",
               ("current_head_id", head->id)("current_head_num", head->block_num)("new_head_id", new_head->id)("new_head_num", new_head->block_num) );

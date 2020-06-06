@@ -4,14 +4,32 @@ if( UNIX AND NOT APPLE )
   set(rt_library rt )
 endif()
 
-target_include_directories(example PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+find_package( Gperftools QUIET )
+if( GPERFTOOLS_FOUND )
+    message( STATUS "Found gperftools; compiling ${NODE_EXECUTABLE_NAME} with TCMalloc")
+    list( APPEND PLATFORM_SPECIFIC_LIBS tcmalloc )
+endif()
+
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/../../.git)
+  find_package(Git)
+  if(GIT_FOUND)
+    execute_process(
+      COMMAND ${GIT_EXECUTABLE} rev-parse --short=8 HEAD
+      WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../.."
+      OUTPUT_VARIABLE "nodeos_BUILD_VERSION"
+      ERROR_QUIET
+      OUTPUT_STRIP_TRAILING_WHITESPACE)
+    message(STATUS "Git commit revision: ${BUILD_VERSION}")
+  else()
+    set(nodeos_BUILD_VERSION 0)
+  endif()
+else()
+  set(nodeos_BUILD_VERSION 0)
+endif()
+
 configure_file(config.hpp.in config.hpp ESCAPE_QUOTES)
 
-target_include_directories(example 
-                          PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
-                          ${CMAKE_SOURCE_DIR}/libraries/wabt
-                          ${CMAKE_BINARY_DIR}/libraries/wabt
-                          )
+target_include_directories(example PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
 if(UNIX)
   if(APPLE)
@@ -31,9 +49,13 @@ endif()
 
 target_link_libraries( example 
     PRIVATE appbase version
-    PRIVATE -Wl,${whole_archive_flag} net_plugin          -Wl,${no_whole_archive_flag}
     PRIVATE -Wl,${whole_archive_flag} chain_api_plugin    -Wl,${no_whole_archive_flag}
+    PRIVATE -Wl,${whole_archive_flag} net_plugin          -Wl,${no_whole_archive_flag}
     PRIVATE -Wl,${whole_archive_flag} producer_api_plugin -Wl,${no_whole_archive_flag}
     PRIVATE -Wl,${build_id_flag}
-    PRIVATE http_plugin chain_plugin producer_plugin
-    PRIVATE eosio_chain fc wabt ${CMAKE_DL_LIBS} ${PLATFORM_SPECIFIC_LIBS} )
+    PRIVATE chain_plugin http_plugin producer_plugin
+    PRIVATE eosio_chain fc ${CMAKE_DL_LIBS} ${PLATFORM_SPECIFIC_LIBS} )
+
+include(additionalPlugins)
+
+copy_bin( example )
