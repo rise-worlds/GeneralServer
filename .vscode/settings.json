@@ -3,7 +3,7 @@
     "editor.insertSpaces": true,
     "editor.tabSize": 4,
     "files.associations": {
-        "*.in": "cpp",
+        "*.hpp.in": "cpp",
         "*.ipp": "cpp",
         "iostream": "cpp",
         "cctype": "cpp",
