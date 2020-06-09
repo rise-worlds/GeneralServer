@@ -338,6 +338,7 @@ class producer_plugin_impl : public std::enable_shared_from_this<producer_plugin
          }
       };
 
+      //接收区块
       bool on_incoming_block(const signed_block_ptr& block, const std::optional<block_id_type>& block_id) {
          auto& chain = chain_plug->chain();
          if ( _pending_block_mode == pending_block_mode::producing ) {
@@ -367,7 +368,6 @@ class producer_plugin_impl : public std::enable_shared_from_this<producer_plugin
          // exceptions throw out, make sure we restart our loop
          auto ensure = fc::make_scoped_exit([this](){
             schedule_production_loop();
-            schedule_chipcounter_loop();
          });
 
          // push the new block
@@ -1856,6 +1856,7 @@ static auto maybe_make_debug_time_logger() -> fc::optional<decltype(make_debug_t
    }
 }
 
+// 生产区块
 void producer_plugin_impl::produce_block() {
    //ilog("produce_block ${t}", ("t", fc::time_point::now())); // for testing _produce_time_offset_us
    EOS_ASSERT(_pending_block_mode == pending_block_mode::producing, producer_exception, "called produce_block while not actually producing");
@@ -1926,11 +1927,24 @@ void producer_plugin_impl::schedule_chipcounter_loop()
    const chain::controller& chain = chain_plug->chain();
    const auto& hbs = chain.head_block_state();
    const auto& active_schedule = hbs->active_schedule.producers;
+   const boost::posix_time::ptime now(boost::posix_time::microsec_clock::universal_time());
+   boost::posix_time::microseconds intive_time(config::block_interval_us * config::producer_repetitions * active_schedule.size());
    // determine if this producer is in the active schedule and if so, where
    auto itr = std::find_if(active_schedule.begin(), active_schedule.end(), [&](const auto& asp){ return asp.producer_name == chain.head_block_producer(); });
-   if (itr == active_schedule.end()) {
+   if (itr == active_schedule.end()
+      || chain.head_block_producer() == config::system_account_name
+      || _producers.empty() || production_disabled_by_policy()) {
       // this producer is not in the active producer set
       wlog("producer '${producer}' is not in the active producer set", ("producer", chain.head_block_producer()));
+      _chipcounter_timer.expires_at(now + intive_time);
+      _chipcounter_timer.async_wait(app().get_priority_queue().wrap( priority::medium,
+            [weak_this = weak_from_this()](const boost::system::error_code& ec) {
+               auto self = weak_this.lock();
+               if (self && ec != boost::asio::error::operation_aborted)
+               {
+                  self->schedule_chipcounter_loop();
+               }
+            } ));
       return ;
    }
 
@@ -1938,11 +1952,8 @@ void producer_plugin_impl::schedule_chipcounter_loop()
    size_t producer_index = itr - active_schedule.begin();
    bpus next_time(config::block_interval_us * config::producer_repetitions * (active_schedule.size() - producer_index));
    {
-      // static const boost::posix_time::ptime epoch(boost::gregorian::date(1970, 1, 1));
-      const boost::posix_time::ptime now(boost::posix_time::microsec_clock::universal_time());
       boost::posix_time::ptime next_expiry_time(now + next_time + bpus(config::block_interval_us));
-      boost::posix_time::microseconds intive_time(config::block_interval_us * config::producer_repetitions * active_schedule.size());
-      if (next_expiry_time - _chipcounter_timer.expires_at() >= intive_time)
+      // if (next_expiry_time - _chipcounter_timer.expires_at() >= intive_time)
       {
          _chipcounter_timer.expires_at(next_expiry_time);
          _chipcounter_timer.async_wait(app().get_priority_queue().wrap( priority::medium,
@@ -2032,22 +2043,41 @@ void producer_plugin_impl::send_chipcounter_transaction()
       // dlog("producer send chipcounter.");
    
       // signed_transaction strx(std::move(trx), signatures, {});
-      const auto ptrx = fc::variant(packed_transaction(std::move(trx), packed_transaction::compression_type::zlib));
-      wlog("${trx}", ("trx", fc::json::to_string(trx, fc::time_point::maximum())));
+      // const auto ptrx = fc::variant(packed_transaction(std::move(trx), packed_transaction::compression_type::zlib));
+      const auto ptrx = packed_transaction(std::move(trx), packed_transaction::compression_type::zlib);
+      dlog("${trx}", ("trx", fc::json::to_string(trx, fc::time_point::maximum())));
       // dlog("${strx}", ("strx", fc::json::to_string(strx, fc::time_point::maximum())));
       // dlog("${ptrx}", ("ptrx", fc::json::to_string(ptrx, fc::time_point::maximum())));
-      boost::asio::post( _thread_pool->get_executor(), [ptrx=std::move(ptrx)]() {
-         auto chain_plug = app().find_plugin<chain_plugin>();
-         chain_plug->get_read_write_api().validate();
-         chain_plug->get_read_write_api().push_transaction(ptrx.get_object(),
-            [](const static_variant<std::shared_ptr<fc::exception>, eosio::chain_apis::read_write::push_transaction_results>& result){
-               if (result.contains<std::shared_ptr<fc::exception>>()) {
-                  auto exception = result.get<std::shared_ptr<fc::exception>>();
-                  wlog("send chipcounter: ${exception}", ("exception", exception->to_string()));
-                  return;
+      // boost::asio::post( _thread_pool->get_executor(), [ptrx=std::move(ptrx)]() {
+      //    auto chain_plug = app().find_plugin<chain_plugin>();
+      //    chain_plug->get_read_write_api().validate();
+      //    chain_plug->get_read_write_api().send_transaction(ptrx.as<eosio::chain_apis::read_write::send_transaction_params>(),
+      //       [](const static_variant<std::shared_ptr<fc::exception>, eosio::chain_apis::read_write::send_transaction_results>& results){
+      //          if (results.contains<std::shared_ptr<fc::exception>>()) {
+      //             auto exception = results.get<std::shared_ptr<fc::exception>>();
+      //             wlog("send chipcounter: ${exception}", ("exception", exception->to_string()));
+      //          } else {
+      //             auto result = results.get<eosio::chain_apis::read_write::send_transaction_results>();
+      //             ilog("send chipcounter: ${txid}",("txid", result.transaction_id));
+      //          }
+      //       });
+      //    });
+      // accept_transaction需要在主线程上调用
+      app().post( priority::low, [trx{std::move(ptrx)}, weak = weak_from_this()]() {
+         auto self = weak.lock();
+         self->chain_plug->accept_transaction( std::make_shared<packed_transaction>(trx),
+            [](const static_variant<fc::exception_ptr, transaction_trace_ptr>& result) mutable {
+               // next (this lambda) called from application thread
+               if (result.contains<fc::exception_ptr>()) {
+                  dlog( "bad packed_transaction : ${m}", ("m", result.get<fc::exception_ptr>()->what()) );
+               } else {
+                  const transaction_trace_ptr& trace = result.get<transaction_trace_ptr>();
+                  if( !trace->except ) {
+                     dlog( "chain accepted transaction, bcast ${id}", ("id", trace->id) );
+                  } else {
+                     dlog( "bad packed_transaction : ${m}", ("m", trace->except->what()));
+                  }
                }
-               if (result.contains<eosio::chain_apis::read_write::push_transaction_results>())
-                  ilog("send chipcounter: ${txid}",("txid", result.get<eosio::chain_apis::read_write::push_transaction_results>().transaction_id));
             });
          });
    } catch (...) {

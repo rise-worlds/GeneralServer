@@ -6,3 +6,4 @@ cmake-build-release/
 config-dir/
 data-dir/
 state/
+logging.json
