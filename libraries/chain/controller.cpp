@@ -288,7 +288,7 @@ struct controller_impl {
 */
 
    SET_APP_HANDLER( eosio, eosio, canceldelay );
-   SET_APP_HANDLER( eosio, eosio, chipcounter );
+   // SET_APP_HANDLER( eosio, eosio, chipcounter );
    }
 
    /**

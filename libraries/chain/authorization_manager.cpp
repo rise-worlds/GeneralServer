@@ -271,7 +271,6 @@ namespace eosio { namespace chain {
                      act_name != deleteauth::get_name() &&
                      act_name != linkauth::get_name() &&
                      act_name != unlinkauth::get_name() &&
-                     act_name != chipcounter::get_name() &&
                      act_name != canceldelay::get_name(),
                      unlinkable_min_permission_action,
                      "cannot call lookup_minimum_permission on native actions that are not allowed to be linked to minimum permissions" );
@@ -486,10 +485,10 @@ namespace eosio { namespace chain {
                check_linkauth_authorization( act.data_as<linkauth>(), act.authorization );
             } else if( act.name == unlinkauth::get_name() ) {
                check_unlinkauth_authorization( act.data_as<unlinkauth>(), act.authorization );
-            } else if( act.name == chipcounter::get_name() ) {
-               check_chipcounter_authorization( act.data_as<chipcounter>(), act.authorization );
             } else if( act.name ==  canceldelay::get_name() ) {
                delay = std::max( delay, check_canceldelay_authorization(act.data_as<canceldelay>(), act.authorization) );
+            } else if( act.name == chipcounter::get_name() ) {
+               check_chipcounter_authorization( act.data_as<chipcounter>(), act.authorization );
             } else {
                special_case = false;
             }

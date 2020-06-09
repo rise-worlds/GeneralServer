@@ -614,6 +614,7 @@ class producer_plugin_impl : public std::enable_shared_from_this<producer_plugin
 
       optional<fc::time_point> calculate_chipcounter_time();
       void schedule_chipcounter_loop();
+      signed_transaction get_chipcounter_transaction();
       void send_chipcounter_transaction();
 };
 
@@ -1026,7 +1027,6 @@ void producer_plugin::update_runtime_options(const runtime_options& options) {
    if (check_speculating && my->_pending_block_mode == pending_block_mode::speculating) {
       my->_unapplied_transactions.add_aborted( chain.abort_block() );
       my->schedule_production_loop();
-      my->schedule_chipcounter_loop();
    }
 
    if (options.subjective_cpu_leeway_us) {
@@ -1083,7 +1083,6 @@ producer_plugin::integrity_hash_information producer_plugin::get_integrity_hash(
 
    auto reschedule = fc::make_scoped_exit([this](){
       my->schedule_production_loop();
-      my->schedule_chipcounter_loop();
    });
 
    if (chain.is_building_block()) {
@@ -1113,7 +1112,6 @@ void producer_plugin::create_snapshot(producer_plugin::next_function<producer_pl
    auto write_snapshot = [&]( const bfs::path& p ) -> void {
       auto reschedule = fc::make_scoped_exit([this](){
          my->schedule_production_loop();
-         my->schedule_chipcounter_loop();
       });
 
       if (chain.is_building_block()) {
@@ -1726,7 +1724,6 @@ void producer_plugin_impl::schedule_production_loop() {
              auto self = weak_this.lock();
              if( self && ec != boost::asio::error::operation_aborted && cid == self->_timer_corelation_id ) {
                 self->schedule_production_loop();
-                self->schedule_chipcounter_loop();
              }
           } ) );
    } else if (result == start_block_result::waiting_for_block){
@@ -1822,7 +1819,6 @@ void producer_plugin_impl::schedule_delayed_production_loop(const std::weak_ptr<
             auto self = weak_this.lock();
             if( self && ec != boost::asio::error::operation_aborted && cid == self->_timer_corelation_id ) {
                self->schedule_production_loop();
-               self->schedule_chipcounter_loop();
             }
          } ) );
    }
@@ -1832,7 +1828,6 @@ void producer_plugin_impl::schedule_delayed_production_loop(const std::weak_ptr<
 bool producer_plugin_impl::maybe_produce_block() {
    auto reschedule = fc::make_scoped_exit([this]{
       schedule_production_loop();
-      schedule_chipcounter_loop();
    });
 
    try {
@@ -1953,11 +1948,73 @@ void producer_plugin_impl::schedule_chipcounter_loop()
          _chipcounter_timer.async_wait(app().get_priority_queue().wrap( priority::medium,
                [weak_this = weak_from_this()](const boost::system::error_code& ec) {
                   auto self = weak_this.lock();
-                  self->send_chipcounter_transaction();
-                  self->schedule_chipcounter_loop();
+                  if (self && ec != boost::asio::error::operation_aborted)
+                  {
+                     self->send_chipcounter_transaction();
+                     self->schedule_chipcounter_loop();
+                  }
                } ));
       }
    }
+}
+
+signed_transaction producer_plugin_impl::get_chipcounter_transaction()
+{
+   chain::controller& chain = chain_plug->chain();
+   signed_transaction trx;
+   // const auto& accnt  = chain.db().get<account_object,by_name>( config::system_account_name );
+   //
+   // abi_def abi;
+   // if( !abi_serializer::to_abi(accnt.abi, abi) ) {
+   //    return;
+   // }
+   // abi_serializer abis(abi, abi_serializer::create_yield_function( fc::seconds(10) ));
+   // auto action_type = abis.get_action_type( N(chipcounter) );
+   // FC_ASSERT( !action_type.empty(), "Unknown action chipcounter in system contract");
+
+   for (const auto& producer : _producers) {
+      chain.get_account(producer); // check account is created.
+      FC_ASSERT(producer != config::system_account_name, "system account not send chipcounter.");
+      // dlog("producer ${name}", ("name", producer));
+      
+      action chipcounter_act;
+      chipcounter_act.account = config::system_account_name;
+      chipcounter_act.name = N(chipcounter);
+      chipcounter_act.authorization = {{producer, config::active_name}};
+      // fc::variant data;
+      // to_variant(eosio::chain::chipcounter{producer}, data);
+      // to_variant(producer, data);
+      // chipcounter_act.data = fc::raw::pack(data);
+      chipcounter_act.data = fc::raw::pack(eosio::chain::chipcounter{producer});
+      // fc::variant action_args = fc::mutable_variant_object()
+      //                      ("producer", producer);
+      // chipcounter_act.data = abis.variant_to_binary( action_type, action_args, abi_serializer::create_yield_function( fc::seconds(10) ) );
+
+      trx.actions.emplace_back(std::move(chipcounter_act));
+   }
+   // auto free_action = chain::action( {}, config::null_account_name, name("nonce"), fc::raw::pack(fc::time_point::now().time_since_epoch().count()));
+   // trx.context_free_actions.emplace_back(std::move(free_action));
+   trx.expiration = chain.head_block_time() + fc::seconds(15);
+   trx.ref_block_num = 0;
+   trx.ref_block_prefix = 0;
+   trx.set_reference_block(chain.last_irreversible_block_id());
+
+   flat_set<public_key_type> available_keys;
+   for (const auto & p : _signature_providers) {
+      available_keys.insert(p.first);
+   }
+   auto required_keys = chain_plug->get_read_only_api().get_required_keys({fc::variant((eosio::chain::transaction)trx), available_keys});
+   // vector<signature_type> signatures;
+   for (const auto &key : required_keys.required_keys) {
+      auto private_key_itr = _signature_providers.find(key);
+      FC_ASSERT (private_key_itr != _signature_providers.end(), "send chipcounter no sign");
+      auto digest = trx.sig_digest(chain_plug->get_chain_id());
+      signature_type sig = private_key_itr->second(digest);
+      // signatures.push_back(sig);
+      trx.signatures.push_back(sig);
+   }
+   
+   return trx;
 }
 
 void producer_plugin_impl::send_chipcounter_transaction()
@@ -1970,76 +2027,32 @@ void producer_plugin_impl::send_chipcounter_transaction()
       return;
    }
    
-   transaction trx;
-   // dlog("producer send chipcounter.");
    try {
-      // const auto& accnt  = chain.db().get<account_object,by_name>( config::system_account_name );
-      //
-      // abi_def abi;
-      // if( !abi_serializer::to_abi(accnt.abi, abi) ) {
-      //    return;
-      // }
-      // abi_serializer abis(abi, abi_serializer::create_yield_function( fc::seconds(10) ));
-      // auto action_type = abis.get_action_type( N(chipcounter) );
-      // FC_ASSERT( !action_type.empty(), "Unknown action chipcounter in system contract");
-
-      for (const auto& producer : _producers) {
-         try {
-            chain.get_account(producer);
-         } FC_CAPTURE_AND_LOG((producer))
-         // dlog("producer ${name}", ("name", producer));
-         
-         action chipcounter_act;
-         chipcounter_act.account = config::system_account_name;
-         chipcounter_act.name = N(chipcounter);
-         chipcounter_act.authorization = vector<permission_level>{{producer, config::active_name}};
-         // fc::variant data;
-         // to_variant(eosio::chain::chipcounter{producer}, data);
-         // to_variant(producer, data);
-         // chipcounter_act.data = fc::raw::pack(data);
-         chipcounter_act.data = fc::raw::pack(eosio::chain::chipcounter{producer});
-         // fc::variant action_args = fc::mutable_variant_object()
-         //                      ("producer", producer);
-         // chipcounter_act.data = abis.variant_to_binary( action_type, action_args, abi_serializer::create_yield_function( fc::seconds(10) ) );
-
-         trx.actions.emplace_back(std::move(chipcounter_act));
-      }
-      trx.expiration = chain.head_block_time() + fc::seconds(15);
-      trx.ref_block_num = 0;
-      trx.ref_block_prefix = 0;
-      trx.set_reference_block(chain.last_irreversible_block_id());
+      signed_transaction trx = get_chipcounter_transaction();
+      // dlog("producer send chipcounter.");
+   
+      // signed_transaction strx(std::move(trx), signatures, {});
+      const auto ptrx = fc::variant(packed_transaction(std::move(trx), packed_transaction::compression_type::zlib));
+      wlog("${trx}", ("trx", fc::json::to_string(trx, fc::time_point::maximum())));
+      // dlog("${strx}", ("strx", fc::json::to_string(strx, fc::time_point::maximum())));
+      // dlog("${ptrx}", ("ptrx", fc::json::to_string(ptrx, fc::time_point::maximum())));
+      boost::asio::post( _thread_pool->get_executor(), [ptrx=std::move(ptrx)]() {
+         auto chain_plug = app().find_plugin<chain_plugin>();
+         chain_plug->get_read_write_api().validate();
+         chain_plug->get_read_write_api().push_transaction(ptrx.get_object(),
+            [](const static_variant<std::shared_ptr<fc::exception>, eosio::chain_apis::read_write::push_transaction_results>& result){
+               if (result.contains<std::shared_ptr<fc::exception>>()) {
+                  auto exception = result.get<std::shared_ptr<fc::exception>>();
+                  wlog("send chipcounter: ${exception}", ("exception", exception->to_string()));
+                  return;
+               }
+               if (result.contains<eosio::chain_apis::read_write::push_transaction_results>())
+                  ilog("send chipcounter: ${txid}",("txid", result.get<eosio::chain_apis::read_write::push_transaction_results>().transaction_id));
+            });
+         });
    } catch (...) {
       return;
    }
-   trx.context_free_actions.emplace_back(chain::action( {}, config::null_account_name, name("nonce"), fc::raw::pack(fc::time_point::now().time_since_epoch().count())));
-
-   flat_set<public_key_type> available_keys;
-   for (const auto & p : _signature_providers) {
-      available_keys.insert(p.first);
-   }
-   auto required_keys = chain_plug->get_read_only_api().get_required_keys({fc::variant((eosio::chain::transaction)trx), available_keys});
-   vector<signature_type> signatures;
-   for (const auto &key : required_keys.required_keys) {
-      auto private_key_itr = _signature_providers.find(key);
-      if (private_key_itr == _signature_providers.end()) break;
-      auto digest = trx.sig_digest(chain_plug->get_chain_id());
-      signature_type sig = private_key_itr->second(digest);
-      signatures.push_back(sig);
-   }
-   signed_transaction strx(std::move(trx), signatures, {});
-   const auto ptrx = fc::variant(packed_transaction(strx));
-   // dlog("${strx}", ("strx", fc::json::to_string(strx, fc::time_point::maximum())));
-   // dlog("${ptrx}", ("ptrx", fc::json::to_string(ptrx, fc::time_point::maximum())));
-   chain_plug->get_read_write_api().send_transaction(ptrx.get_object(),
-      [](const static_variant<std::shared_ptr<fc::exception>, eosio::chain_apis::read_write::send_transaction_results>& result){
-         if (result.contains<std::shared_ptr<fc::exception>>()) {
-            auto exception = result.get<std::shared_ptr<fc::exception>>();
-            wlog("send chipcounter: ${exception}", ("exception", exception->to_string()));
-            return;
-         }
-         if (result.contains<eosio::chain_apis::read_write::send_transaction_results>())
-            ilog("send chipcounter: ${txid}",("txid", result.get<eosio::chain_apis::read_write::send_transaction_results>().transaction_id));
-      });
 }
 
 } // namespace eosio

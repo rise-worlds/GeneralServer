@@ -392,10 +392,10 @@ void apply_eosio_canceldelay(apply_context& context) {
    context.cancel_deferred_transaction(transaction_id_to_sender_id(trx_id), account_name());
 }
 
-void apply_eosio_chipcounter(apply_context& context) {
-   //auto cp = context.get_action().data_as<chipcounter>();
-   //context.require_authorization(cp.producer);
+// void apply_eosio_chipcounter(apply_context& context) {
+//    //auto cp = context.get_action().data_as<chipcounter>();
+//    //context.require_authorization(cp.producer);
 
-}
+// }
 
 } } // namespace eosio::chain

@@ -13,6 +13,8 @@
                 "-e", 
                 "-peosio", 
                 "--delete-all-block", 
+                // "--wasm-runtime=eos-vm-oc", "--eos-vm-oc-enable",
+                // "--wasm-runtime=eos-vm",
                 "--disable-replay-opts",
                 "--disable-ram-billing-notify-checks",
                 "--max-transaction-time=1000",
@@ -27,7 +29,7 @@
             "linux": {
                 "MIMode": "gdb",
                 "setupCommands": [{
-                    "description": "Enable pretty-printing for gdb",
+                    "description": "为 gdb 启用整齐打印",
                     "text": "-enable-pretty-printing",
                     "ignoreFailures": true
                 }]
@@ -46,6 +48,8 @@
                 "-d./data-dir/pcbpa",
                 "--signature-provider=POC7n1U9Z2NQeVEvQZYjHCedNXRVWshmmuGH2j3r6bD4c8fH4U8QL=KEY:5KdC5izmPV6WkY4afTdzzcyx5dyQ2z6Ax9tDCSqFwGBA5twQogz",
                 "--delete-all-block", 
+                // "--wasm-runtime=eos-vm-oc", "--eos-vm-oc-enable",
+                // "--wasm-runtime=eos-vm",
                 "--plugin=eosio::producer_plugin",
                 "--p2p-listen-endpoint=0.0.0.0:9871", 
                 "--p2p-peer-address=127.0.0.1:9876",
@@ -59,7 +63,7 @@
             "linux": {
                 "MIMode": "gdb",
                 "setupCommands": [{
-                    "description": "Enable pretty-printing for gdb",
+                    "description": "为 gdb 启用整齐打印",
                     "text": "-enable-pretty-printing",
                     "ignoreFailures": true
                 }]
