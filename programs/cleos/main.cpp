@@ -1317,12 +1317,13 @@ struct list_producers_subcommand {
          auto weight = result.total_producer_vote_weight;
          if ( !weight )
             weight = 1;
-         printf("%-13s %-57s %-59s %s\n", "Producer", "Producer key", "Url", "Scaled votes");
+         printf("%-42s %-57s %-59s %s %s\n", "Producer", "Producer key", "Url", "Chipcounter", "Scaled votes");
          for ( auto& row : result.rows )
-            printf("%-13.13s %-57.57s %-59.59s %1.4f\n",
+            printf("%-42.42s %-57.57s %-59.59s %-11d %1.4f\n",
                    row["owner"].as_string().c_str(),
                    row["producer_key"].as_string().c_str(),
                    clean_output( row["url"].as_string() ).c_str(),
+                   (uint32_t)row["chipcounter_count"].as_uint64(),
                    row["total_votes"].as_double() / weight);
          if ( !result.more.empty() )
             std::cout << "-L " << clean_output( result.more ) << " for more" << std::endl;
@@ -1339,20 +1340,15 @@ struct get_schedule_subcommand {
          return;
       }
       printf("%s schedule version %s\n", name, schedule["version"].as_string().c_str());
-      printf("    %-13s %s\n", "Producer", "Producer Authority");
-      printf("    %-13s %s\n", "=============", "==================");
+      printf("    %-42s %s\n", "Producer", "Producer Authority");
+      printf("    %-42s %s\n", "==========================================", "==================");
       for( auto& row: schedule["producers"].get_array() ) {
-         if( row.get_object().contains("block_signing_key") ) {
-            // pre 2.0
-            printf( "    %-13s %s\n", row["producer_name"].as_string().c_str(), row["block_signing_key"].as_string().c_str() );
-         } else {
-            printf( "    %-13s ", row["producer_name"].as_string().c_str() );
-            auto a = row["authority"].as<block_signing_authority>();
-            static_assert( std::is_same<decltype(a), static_variant<block_signing_authority_v0>>::value,
-                           "Updates maybe needed if block_signing_authority changes" );
-            block_signing_authority_v0 auth = a.get<block_signing_authority_v0>();
-            printf( "%s\n", fc::json::to_string( auth, fc::time_point::maximum() ).c_str() );
-         }
+         printf( "    %-42s ", row["producer_name"].as_string().c_str() );
+         auto a = row["authority"].as<block_signing_authority>();
+         static_assert( std::is_same<decltype(a), static_variant<block_signing_authority_v0>>::value,
+                        "Updates maybe needed if block_signing_authority changes" );
+         block_signing_authority_v0 auth = a.get<block_signing_authority_v0>();
+         printf( "%s\n", fc::json::to_string( auth, fc::time_point::maximum() ).c_str() );
       }
       printf("\n");
    }
@@ -1580,10 +1576,10 @@ struct list_bw_subcommand {
             if (!print_json) {
                auto res = result.as<eosio::chain_apis::read_only::get_table_rows_result>();
                if ( !res.rows.empty() ) {
-                  std::cout << std::setw(13) << std::left << "Receiver" << std::setw(21) << std::left << "Net bandwidth"
+                  std::cout << std::setw(42) << std::left << "Receiver" << std::setw(21) << std::left << "Net bandwidth"
                             << std::setw(21) << std::left << "CPU bandwidth" << std::endl;
                   for ( auto& r : res.rows ){
-                     std::cout << std::setw(13) << std::left << r["to"].as_string()
+                     std::cout << std::setw(42) << std::left << r["to"].as_string()
                                << std::setw(21) << std::left << r["net_weight"].as_string()
                                << std::setw(21) << std::left << r["cpu_weight"].as_string()
                                << std::endl;
