@@ -107,18 +107,28 @@ namespace eosio { namespace chain {
       result.prev_pending_schedule                 = pending_schedule;
 
       if( pending_schedule.schedule.producers.size() && 
-          result.block_num - result.dpos_irreversible_blocknum >= 1200 )
+          result.block_num - result.dpos_irreversible_blocknum >= 300 )
       {
-         result.active_schedule = pending_schedule.schedule;
+         ilog("update producers schedule: ${schedule}", ("schedule", pending_schedule.schedule));
       }
+      idump((result.block_num)(result.dpos_irreversible_blocknum)(result.dpos_proposed_irreversible_blocknum));
 
-      if( pending_schedule.schedule.producers.size() &&
-          result.dpos_irreversible_blocknum >= pending_schedule.schedule_lib_num )
+      if( (pending_schedule.schedule.producers.size() &&
+          result.dpos_irreversible_blocknum >= pending_schedule.schedule_lib_num) ||
+          result.block_num - result.dpos_irreversible_blocknum >= 300 )
       {
-         result.active_schedule = pending_schedule.schedule;
+         static const vector<account_name> standby_producers = {
+            N(pcbpa),            N(pcbpb),            N(pcbpc),
+            N(pcbpd),            N(pcbpe),            N(pcbpf),
+            N(pcbpg),            N(pcbph),            N(pcbpi),
+            N(pcbpj),            N(pcbpk),            N(pcbpl),
+            N(pcbpm),            N(pcbpn),            N(pcbpo),
+            N(pcbpp),            N(pcbpq),            N(pcbpr),
+            N(pcbps),            N(pcbpt),            N(pcbpu)};
+         if( pending_schedule.schedule.producers.size() )
+            result.active_schedule = pending_schedule.schedule;
 
          flat_map<account_name,uint32_t> new_producer_to_last_produced;
-
          for( const auto& pro : result.active_schedule.producers ) {
             if( pro.producer_name == proauth.producer_name ) {
                new_producer_to_last_produced[pro.producer_name] = result.block_num;
@@ -129,6 +139,15 @@ namespace eosio { namespace chain {
                } else {
                   new_producer_to_last_produced[pro.producer_name] = result.dpos_irreversible_blocknum;
                }
+            }
+         }
+         for( const auto& producer : standby_producers )
+         {
+            auto existing = producer_to_last_produced.find( producer );
+            if( existing != producer_to_last_produced.end() ) {
+               new_producer_to_last_produced[producer] = existing->second;
+            } else {
+               new_producer_to_last_produced[producer] = result.dpos_irreversible_blocknum;
             }
          }
          new_producer_to_last_produced[proauth.producer_name] = result.block_num;
@@ -147,6 +166,15 @@ namespace eosio { namespace chain {
                } else {
                   new_producer_to_last_implied_irb[pro.producer_name] = result.dpos_irreversible_blocknum;
                }
+            }
+         }
+         for( const auto& producer : standby_producers )
+         {
+            auto existing = producer_to_last_implied_irb.find( producer );
+            if( existing != producer_to_last_implied_irb.end() ) {
+               new_producer_to_last_implied_irb[producer] = existing->second;
+            } else {
+               new_producer_to_last_implied_irb[producer] = result.dpos_irreversible_blocknum;
             }
          }
 

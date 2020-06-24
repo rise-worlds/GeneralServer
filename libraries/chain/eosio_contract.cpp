@@ -398,4 +398,10 @@ void apply_eosio_canceldelay(apply_context& context) {
 
 // }
 
+void apply_eosio_enstandby(apply_context& context) {
+   //auto cp = context.get_action().data_as<chipcounter>();
+   //context.require_authorization(cp.producer);
+
+}
+
 } } // namespace eosio::chain

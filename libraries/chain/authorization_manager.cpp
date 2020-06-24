@@ -372,6 +372,12 @@ namespace eosio { namespace chain {
                                                              )const
    {
    }
+
+   void authorization_manager::check_enstandby_authorization( const enstandby& unlink,
+                                                               const vector<permission_level>& auths
+                                                             )const
+   {
+   }
    
    void authorization_manager::check_unlinkauth_authorization( const unlinkauth& unlink,
                                                                const vector<permission_level>& auths
@@ -489,6 +495,8 @@ namespace eosio { namespace chain {
                delay = std::max( delay, check_canceldelay_authorization(act.data_as<canceldelay>(), act.authorization) );
             } else if( act.name == chipcounter::get_name() ) {
                check_chipcounter_authorization( act.data_as<chipcounter>(), act.authorization );
+            } else if( act.name == enstandby::get_name() ) {
+               check_enstandby_authorization( act.data_as<enstandby>(), act.authorization );
             } else {
                special_case = false;
             }

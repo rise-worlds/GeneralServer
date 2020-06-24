@@ -290,6 +290,7 @@ struct controller_impl {
 
    SET_APP_HANDLER( eosio, eosio, canceldelay );
    // SET_APP_HANDLER( eosio, eosio, chipcounter );
+   SET_APP_HANDLER( eosio, eosio, enstandby );
    }
 
    /**
@@ -964,29 +965,6 @@ struct controller_impl {
          for(const auto& p : a) {
             gpo.standby_producers.emplace_back(p.to_shared(gpo.standby_producers.get_allocator()));
          }
-         // gpo.standby_producers = {
-         //    {N(pcbpa)},
-         //    {N(pcbpb)},
-         //    {N(pcbpc)},
-         //    {N(pcbpd)},
-         //    {N(pcbpe)},
-         //    {N(pcbpf)},
-         //    {N(pcbpg)},
-         //    {N(pcbph)},
-         //    {N(pcbpi)},
-         //    {N(pcbpj)},
-         //    {N(pcbpk)},
-         //    {N(pcbpl)},
-         //    {N(pcbpm)},
-         //    {N(pcbpn)},
-         //    {N(pcbpo)},
-         //    {N(pcbpp)},
-         //    {N(pcbpq)},
-         //    {N(pcbpr)},
-         //    {N(pcbps)},
-         //    {N(pcbpt)},
-         //    {N(pcbpu)},
-         // };
       });
 
       db.create<protocol_state_object>([&](auto& pso ){
@@ -1487,28 +1465,55 @@ struct controller_impl {
             });
          }
 
-         if ( fork_db.pending_head()->block_num - fork_db.root()->block_num == 1200 )
+         if ( !replay_head_time && fork_db.pending_head()->block_num - fork_db.root()->block_num == 300 )
          {
-            producer_authority_schedule sch;
+            action enstandby_act;
+            enstandby_act.account = config::system_account_name;
+            enstandby_act.name = N(enstandby);
+            enstandby_act.authorization = vector<permission_level>{{config::system_account_name, config::active_name}};
+            // enstandby_act.data = fc::raw::pack(nullptr);
 
-            const auto& pending_sch = self.pending_producers();
+            signed_transaction trx;
+            trx.actions.emplace_back(std::move(enstandby_act));
+            trx.expiration = time_point_sec();
+            trx.ref_block_num = 0;
+            trx.ref_block_prefix = 0;
+            transaction_metadata_ptr enstandby_trx =
+                  transaction_metadata::create_no_recover_keys( packed_transaction( trx ), transaction_metadata::trx_type::implicit );
+            push_transaction( enstandby_trx, fc::time_point::maximum(), self.get_global_properties().configuration.min_transaction_cpu_usage, true );
+         //    producer_authority_schedule sch;
 
-            if( pending_sch.producers.size() == 0 ) {
-               const auto& active_sch = self.active_producers();
-               sch.version = active_sch.version + 1;
-            } else {
-               sch.version = pending_sch.version + 1;
-            }
-            for( const auto& p : gpo.standby_producers ) {
-               sch.producers.emplace_back(eosio::chain::producer_authority::from_shared(p));
-               // ssc.producers.emplace_back(p);
-            }
-            pending->_block_stage.get<building_block>()._new_pending_producer_schedule = sch;
-            db.modify( gpo, [&]( auto& gp ) {
-               gp.proposed_schedule_block_num = optional<block_num_type>();
-               gp.proposed_schedule.version = 0;
-               gp.proposed_schedule.producers.clear();
-            });
+         //    const auto& pending_sch = self.pending_producers();
+         //    if( pending_sch.producers.size() == 0 ) {
+         //       const auto& active_sch = self.active_producers();
+         //       sch.version = active_sch.version + 1;
+         //       ilog("active_sch.version:${version}", ("version", active_sch.version));
+         //    } else {
+         //       ilog("pending_sch.version:${version}", ("version", pending_sch.version));
+         //       sch.version = pending_sch.version;
+         //    }
+         //    for( const auto& p : gpo.standby_producers ) {
+         //       sch.producers.emplace_back(eosio::chain::producer_authority::from_shared(p));
+         //       // ssc.producers.emplace_back(p);
+         //    }
+
+         //    if( pending->_block_stage.contains<completed_block>() ) {
+         //       ilog("update completed_block");
+         //       // pending->_block_stage.get<completed_block>()._block_state->pending_schedule = sch;
+         //    }
+
+         //    if( pending->_block_stage.contains<assembled_block>() ) {
+         //       ilog("update assembled_block");
+         //       pending->_block_stage.get<assembled_block>()._new_producer_authority_cache = sch;
+         //    }
+
+         //    ilog("update producers schedule: ${schedule}", ("schedule", sch));
+         //    pending->_block_stage.get<building_block>()._new_pending_producer_schedule = sch;
+         //    db.modify( gpo, [&]( auto& gp ) {
+         //       gp.proposed_schedule_block_num = optional<block_num_type>();
+         //       gp.proposed_schedule.version = 0;
+         //       gp.proposed_schedule.producers.clear();
+         //    });
          }
 
          try {

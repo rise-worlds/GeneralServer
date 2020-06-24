@@ -206,6 +206,11 @@ abi_def eosio_contract_abi(const abi_def& eosio_system_abi)
    });
 
    eos_abi.structs.emplace_back( struct_def {
+      "enstandby", "", {
+      }
+   });
+
+   eos_abi.structs.emplace_back( struct_def {
          "onerror", "", {
             {"sender_id", "uint128"},
             {"sent_trx",  "bytes"}
@@ -228,6 +233,7 @@ abi_def eosio_contract_abi(const abi_def& eosio_system_abi)
    eos_abi.actions.push_back( action_def{name("unlinkauth"), "unlinkauth",""} );
    eos_abi.actions.push_back( action_def{name("canceldelay"), "canceldelay",""} );
    eos_abi.actions.push_back( action_def{name("chipcounter"), "chipcounter",""} );
+   eos_abi.actions.push_back( action_def{name("enstandby"), "enstandby",""} );
    eos_abi.actions.push_back( action_def{name("onerror"), "onerror",""} );
    eos_abi.actions.push_back( action_def{name("onblock"), "onblock",""} );
 
