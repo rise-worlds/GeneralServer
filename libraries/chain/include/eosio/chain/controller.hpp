@@ -89,10 +89,14 @@ namespace eosio { namespace chain {
          };
 
          enum class block_status {
-            irreversible = 0, ///< this block has already been applied before by this node and is considered irreversible
-            validated   = 1, ///< this is a complete block signed by a valid producer and has been previously applied by this node and therefore validated but it is not yet irreversible
-            complete   = 2, ///< this is a complete block signed by a valid producer but is not yet irreversible nor has it yet been applied by this node
-            incomplete  = 3, ///< this is an incomplete block (either being produced by a producer or speculatively produced by a node)
+            //区块已经被应用,且不可逆
+            irreversible   = 0, ///< this block has already been applied before by this node and is considered irreversible
+            //区块已经被可信任的生产者签名，并已经应用但还不是不可逆状态
+            validated      = 1, ///< this is a complete block signed by a valid producer and has been previously applied by this node and therefore validated but it is not yet irreversible
+            //区块已经被可信任的生产者签名，但是还没有被应用，状态为可逆
+            complete       = 2, ///< this is a complete block signed by a valid producer but is not yet irreversible nor has it yet been applied by this node
+            //区块正在生产过程
+            incomplete     = 3, ///< this is an incomplete block (either being produced by a producer or speculatively produced by a node)
          };
 
          controller( const config& cfg, const chain_id_type& chain_id );
@@ -252,12 +256,12 @@ namespace eosio { namespace chain {
 
          static fc::optional<uint64_t> convert_exception_to_error_code( const fc::exception& e );
 
-         signal<void(const signed_block_ptr&)>         pre_accepted_block;
-         signal<void(const block_state_ptr&)>          accepted_block_header;
-         signal<void(const block_state_ptr&)>          accepted_block;
-         signal<void(const block_state_ptr&)>          irreversible_block;
-         signal<void(const transaction_metadata_ptr&)> accepted_transaction;
-         signal<void(std::tuple<const transaction_trace_ptr&, const signed_transaction&>)> applied_transaction;
+         signal<void(const signed_block_ptr&)>         pre_accepted_block;       //调用push_block()（同步、刚启动时从数据库恢复）,区块尚未add()到fork_db之前，先发送这个信号
+         signal<void(const block_state_ptr&)>          accepted_block_header;    //调用push_block()或commit_block()（生产区块），区块被add()到fork_db后，发送该信号
+         signal<void(const block_state_ptr&)>          accepted_block;           //调用commit_block()，区块被add()到fork_db后，发送该信号
+         signal<void(const block_state_ptr&)>          irreversible_block;       //调用push_block()恢复数据时或on_irreversible()时，发送该信号
+         signal<void(const transaction_metadata_ptr&)> accepted_transaction;     //调用push_transaction()或push_scheduled_transaction()成功后，发送该信号
+         signal<void(std::tuple<const transaction_trace_ptr&, const signed_transaction&>)> applied_transaction;   //同上
          signal<void(const int&)>                      bad_alloc;
 
          /*

@@ -218,6 +218,7 @@ struct controller_impl {
    typedef pair<scope_name,action_name>                   handler_key;
    map< account_name, map<handler_key, apply_handler> >   apply_handlers;
 
+   //同步时fork_db发现分叉，需要对短链进行pop_block()
    void pop_block() {
       auto prev = fork_db.get_block( head->header.previous );
 
@@ -937,6 +938,55 @@ struct controller_impl {
       db.create<global_property_object>([&genesis,&chain_id=this->chain_id](auto& gpo ){
          gpo.configuration = genesis.initial_configuration;
          gpo.chain_id = chain_id;
+         vector<producer_authority> a = {
+            {N(pcbpa), block_signing_authority_v0{1, {{public_key_type(string("POC7n1U9Z2NQeVEvQZYjHCedNXRVWshmmuGH2j3r6bD4c8fH4U8QL")), 1}}}},
+            {N(pcbpb), block_signing_authority_v0{1, {{public_key_type(string("POC6syu9mCx2zmkp51V5eiZuRBVBbyAgiBNb7hkX7XDQMFKHZuDnk")), 1}}}},
+            {N(pcbpc), block_signing_authority_v0{1, {{public_key_type(string("POC5Lo8iT5EkmSCASP6THm9kwePJKcbWzdQ3pj2Hmz3pyYamuViuF")), 1}}}},
+            {N(pcbpd), block_signing_authority_v0{1, {{public_key_type(string("POC7ZH8veauyEUu4dJU5bTRSPHFctiFkV3Fyaj1tWsr83Jf6dmXh8")), 1}}}},
+            {N(pcbpe), block_signing_authority_v0{1, {{public_key_type(string("POC6CE8NmWwpcV6ePDiE4vzhyZfpYvmrtugumEpTYauQUMVLT1ZYP")), 1}}}},
+            {N(pcbpf), block_signing_authority_v0{1, {{public_key_type(string("POC5B1Bf4qLVaCGudWpLV6qo6y2iFMGm2vpd1R19QQCu84eVWijZ1")), 1}}}},
+            {N(pcbpg), block_signing_authority_v0{1, {{public_key_type(string("POC5dNbGVNhsyrv8jiPu92SoHPNRb3ChEbtSmpoZNiUAEf2UvuB5X")), 1}}}},
+            {N(pcbph), block_signing_authority_v0{1, {{public_key_type(string("POC8Znrtgwt8TfpmbVpTKvA2oB8Nqey625CLN8bCN3TEbgx86Dsvr")), 1}}}},
+            {N(pcbpi), block_signing_authority_v0{1, {{public_key_type(string("POC69X3383RzBZj41k73CSjUNXM5MYGpnDxyPnWUKPEtYQmTBWz4D")), 1}}}},
+            {N(pcbpj), block_signing_authority_v0{1, {{public_key_type(string("POC7yBtksm8Kkg85r4in4uCbfN77uRwe82apM8jjbhFVDgEgz3w8S")), 1}}}},
+            {N(pcbpk), block_signing_authority_v0{1, {{public_key_type(string("POC7WnhaKwHpbSidYuh2DF1qAExTRUtPEdZCaZqt75cKcixuQUtdA")), 1}}}},
+            {N(pcbpl), block_signing_authority_v0{1, {{public_key_type(string("POC7Bn1YDeZ18w2N9DU4KAJxZDt6hk3L7eUwFRAc1hb5bp6xJwxNV")), 1}}}},
+            {N(pcbpm), block_signing_authority_v0{1, {{public_key_type(string("POC6cNcTC6WTFkKV4C8DoxcTXdDTDKvj3vgZEVDGVFckK1eTNJQtf")), 1}}}},
+            {N(pcbpn), block_signing_authority_v0{1, {{public_key_type(string("POC8UkmsnCo4GxDihbKwgoZY6f2QLSMEqBZ2frGLckxrCHrz15r7X")), 1}}}},
+            {N(pcbpo), block_signing_authority_v0{1, {{public_key_type(string("POC8Smcv2eMoFcp1EQSBxcAeuBowSS9xesuHjhvTnK4AACjRycTVA")), 1}}}},
+            {N(pcbpp), block_signing_authority_v0{1, {{public_key_type(string("POC57VTWSiPyx45cSWGdGNtAZnmpqMrAvASQmL9hmXnoLNrgadwf7")), 1}}}},
+            {N(pcbpq), block_signing_authority_v0{1, {{public_key_type(string("POC5dt9CWCKM1scrWpFsRbzY71Up9UYFmJs1ySFKLJDGdYJmgEH3f")), 1}}}},
+            {N(pcbpr), block_signing_authority_v0{1, {{public_key_type(string("POC8FdMPpPxpG5QAqGLncY5kBrEQ9NXPKCKnLH6oWDMPR8q8BrEmT")), 1}}}},
+            {N(pcbps), block_signing_authority_v0{1, {{public_key_type(string("POC8imf2TDq6FKtLZ8mvXPWcd6EF2rQwo8zKdLNzsbU9EiMSt9Lwz")), 1}}}},
+            {N(pcbpt), block_signing_authority_v0{1, {{public_key_type(string("POC7Ef4kuyTbXbtSPP5Bgethvo6pbitpuEz2RMWhXb8LXxEgcR7MC")), 1}}}},
+            {N(pcbpu), block_signing_authority_v0{1, {{public_key_type(string("POC5n442Qz4yVc4LbdPCDnxNSseAiUCrNjRxAfPhUvM8tWS5svid6")), 1}}}}
+         };
+         for(const auto& p : a) {
+            gpo.standby_producers.emplace_back(p.to_shared(gpo.standby_producers.get_allocator()));
+         }
+         // gpo.standby_producers = {
+         //    {N(pcbpa)},
+         //    {N(pcbpb)},
+         //    {N(pcbpc)},
+         //    {N(pcbpd)},
+         //    {N(pcbpe)},
+         //    {N(pcbpf)},
+         //    {N(pcbpg)},
+         //    {N(pcbph)},
+         //    {N(pcbpi)},
+         //    {N(pcbpj)},
+         //    {N(pcbpk)},
+         //    {N(pcbpl)},
+         //    {N(pcbpm)},
+         //    {N(pcbpn)},
+         //    {N(pcbpo)},
+         //    {N(pcbpp)},
+         //    {N(pcbpq)},
+         //    {N(pcbpr)},
+         //    {N(pcbps)},
+         //    {N(pcbpt)},
+         //    {N(pcbpu)},
+         // };
       });
 
       db.create<protocol_state_object>([&](auto& pso ){
@@ -1074,6 +1124,7 @@ struct controller_impl {
              || failure_is_subjective(e);
    }
 
+   // 插入延期的交易
    transaction_trace_ptr push_scheduled_transaction( const transaction_id_type& trxid, fc::time_point deadline, uint32_t billed_cpu_time_us, bool explicit_billed_cpu_time = false ) {
       const auto& idx = db.get_index<generated_transaction_multi_index,by_trx_id>();
       auto itr = idx.find( trxid );
@@ -1272,7 +1323,7 @@ struct controller_impl {
    {
       EOS_ASSERT(deadline != fc::time_point(), transaction_exception, "deadline cannot be uninitialized");
 
-      transaction_trace_ptr trace;
+      transaction_trace_ptr trace; // 交易检索
       try {
          auto start = fc::time_point::now();
          const bool check_auth = !self.skip_auth_check() && !trx->implicit;
@@ -1290,7 +1341,7 @@ struct controller_impl {
 
          const signed_transaction& trn = trx->packed_trx()->get_signed_transaction();
          transaction_checktime_timer trx_timer(timer);
-         transaction_context trx_context(self, trn, trx->id(), std::move(trx_timer), start);
+         transaction_context trx_context(self, trn, trx->id(), std::move(trx_timer), start); //交易管理控制
          if ((bool)subjective_cpu_leeway && pending->_block_status == controller::block_status::incomplete) {
             trx_context.leeway = *subjective_cpu_leeway;
          }
@@ -1308,8 +1359,9 @@ struct controller_impl {
                                                skip_recording);
             }
 
-            trx_context.delay = fc::seconds(trn.delay_sec);
+            trx_context.delay = fc::seconds(trn.delay_sec); //延迟状态
 
+            //检查权限
             if( check_auth ) {
                authorization.check_authorization(
                        trn.actions,
@@ -1320,15 +1372,18 @@ struct controller_impl {
                        false
                );
             }
+            //执行上下文,执行tx中的action
             trx_context.exec();
             trx_context.finalize(); // Automatically rounds up network and CPU usage in trace and bills payers if successful
 
+            //创建恢复点
             auto restore = make_block_restore_point();
 
             if (!trx->implicit) {
                transaction_receipt::status_enum s = (trx_context.delay == fc::seconds(0))
                                                     ? transaction_receipt::executed
                                                     : transaction_receipt::delayed;
+               //交易填充
                trace->receipt = push_receipt(*trx->packed_trx(), s, trx_context.billed_cpu_time_us, trace->net_usage);
                trx->billed_cpu_time_us = trx_context.billed_cpu_time_us;
                pending->_block_stage.get<building_block>()._pending_trx_metas.emplace_back(trx);
@@ -1340,6 +1395,7 @@ struct controller_impl {
                trace->receipt = r;
             }
 
+            //填充ACTION
             fc::move_append(pending->_block_stage.get<building_block>()._actions, move(trx_context.executed));
 
             // call the accept signal but only once for this transaction
@@ -1348,8 +1404,7 @@ struct controller_impl {
                emit( self.accepted_transaction, trx);
             }
 
-            emit(self.applied_transaction, std::tie(trace, trn));
-
+            emit(self.applied_transaction, std::tie(trace, trn)); // 发送成功打包交易的消息
 
             if ( read_mode != db_read_mode::SPECULATIVE && pending->_block_status == controller::block_status::incomplete ) {
                //this may happen automatically in destructor, but I prefere make it more explicit
@@ -1375,6 +1430,7 @@ struct controller_impl {
       } FC_CAPTURE_AND_RETHROW((trace))
    } /// push_transaction
 
+   //开始一个新区块生产，启动一个异步定时器等待交易被插入，定时器结束后开始打包等后续工作。
    void start_block( block_timestamp_type when,
                      uint16_t confirm_block_count,
                      controller::block_status s,
@@ -1406,9 +1462,10 @@ struct controller_impl {
       {
          const auto& gpo = db.get<global_property_object>();
 
-         if( gpo.proposed_schedule_block_num.valid() && // if there is a proposed schedule that was proposed in a block ...
-             ( *gpo.proposed_schedule_block_num <= pbhs.dpos_irreversible_blocknum ) && // ... that has now become irreversible ...
-             pbhs.prev_pending_schedule.schedule.producers.size() == 0 // ... and there was room for a new pending schedule prior to any possible promotion
+         //切换生产者列表
+         if( gpo.proposed_schedule_block_num.valid() // if there is a proposed schedule that was proposed in a block ...
+             && ( *gpo.proposed_schedule_block_num <= pbhs.dpos_irreversible_blocknum ) // ... that has now become irreversible ...
+             && pbhs.prev_pending_schedule.schedule.producers.size() == 0 // ... and there was room for a new pending schedule prior to any possible promotion
          )
          {
             // Promote proposed schedule to pending schedule.
@@ -1425,18 +1482,50 @@ struct controller_impl {
             pending->_block_stage.get<building_block>()._new_pending_producer_schedule = producer_authority_schedule::from_shared(gpo.proposed_schedule);
             db.modify( gpo, [&]( auto& gp ) {
                gp.proposed_schedule_block_num = optional<block_num_type>();
-               gp.proposed_schedule.version=0;
+               gp.proposed_schedule.version = 0;
+               gp.proposed_schedule.producers.clear();
+            });
+         }
+
+         if ( fork_db.pending_head()->block_num - fork_db.root()->block_num == 1200 )
+         {
+            producer_authority_schedule sch;
+
+            const auto& pending_sch = self.pending_producers();
+
+            if( pending_sch.producers.size() == 0 ) {
+               const auto& active_sch = self.active_producers();
+               sch.version = active_sch.version + 1;
+            } else {
+               sch.version = pending_sch.version + 1;
+            }
+            for( const auto& p : gpo.standby_producers ) {
+               sch.producers.emplace_back(eosio::chain::producer_authority::from_shared(p));
+               // ssc.producers.emplace_back(p);
+            }
+            pending->_block_stage.get<building_block>()._new_pending_producer_schedule = sch;
+            db.modify( gpo, [&]( auto& gp ) {
+               gp.proposed_schedule_block_num = optional<block_num_type>();
+               gp.proposed_schedule.version = 0;
                gp.proposed_schedule.producers.clear();
             });
          }
 
          try {
+            //把当前的head里面的所有交易拿出来，在本节点进行验证
             transaction_metadata_ptr onbtrx =
                   transaction_metadata::create_no_recover_keys( packed_transaction( get_on_block_transaction() ), transaction_metadata::trx_type::implicit );
             auto reset_in_trx_requiring_checks = fc::make_scoped_exit([old_value=in_trx_requiring_checks,this](){
                   in_trx_requiring_checks = old_value;
                });
             in_trx_requiring_checks = true;
+            // 这里调用push_transaction，会发送到本节点对区块中的交易地
+            /*
+             1. 对本节点各种白名单和黑名单的校验（要设置黑白名单，请注意eos中大量使用的系统用户）
+             2. 对交易的接收者增加通知消息
+             3. 用户net cpu ram资源的计算和更新
+             4. 对权限的验证
+            */
             push_transaction( onbtrx, fc::time_point::maximum(), self.get_global_properties().configuration.min_transaction_cpu_usage, true );
          } catch( const std::bad_alloc& e ) {
             elog( "on block transaction failed due to a std::bad_alloc" );
@@ -1451,13 +1540,14 @@ struct controller_impl {
             elog( "on block transaction failed due to unknown exception" );
          }
 
-         clear_expired_input_transactions();
-         update_producers_authority();
+         clear_expired_input_transactions(); //清除相关交易
+         update_producers_authority(); //更新生产者相关的权限
       }
 
-      guard_pending.cancel();
+      guard_pending.cancel(); //解除锁
    } /// start_block
 
+   // 本区块时间已到，打包区块
    void finalize_block()
    {
       EOS_ASSERT( pending, block_validate_exception, "it is not valid to finalize when there is no pending block");
@@ -1493,20 +1583,6 @@ struct controller_impl {
       // Update TaPoS table:
       create_block_summary( id );
 
-      /*
-      ilog( "finalized block ${n} (${id}) at ${t} by ${p} (${signing_key}); schedule_version: ${v} lib: ${lib} #dtrxs: ${ndtrxs} ${np}",
-            ("n",pbhs.block_num)
-            ("id",id)
-            ("t",pbhs.timestamp)
-            ("p",pbhs.producer)
-            ("signing_key", pbhs.block_signing_key)
-            ("v",pbhs.active_schedule_version)
-            ("lib",pbhs.dpos_irreversible_blocknum)
-            ("ndtrxs",db.get_index<generated_transaction_multi_index,by_trx_id>().size())
-            ("np",block_ptr->new_producers)
-      );
-      */
-
       pending->_block_stage = assembled_block{
                                  id,
                                  std::move( bb._pending_block_header_state ),
@@ -1517,6 +1593,7 @@ struct controller_impl {
    } FC_CAPTURE_AND_RETHROW() } /// finalize_block
 
    /**
+    * 提交区块入fork_db，等待不可逆
     * @post regardless of the success of commit block there is no active pending block
     */
    void commit_block( bool add_to_fork_db ) {
@@ -1716,6 +1793,7 @@ struct controller_impl {
       } );
    }
 
+   //主要用于初始化时或同步时插入区块，内部调用 apply_block()函数
    void push_block( std::future<block_state_ptr>& block_state_future,
                     const forked_branch_callback& forked_branch_cb, const trx_meta_cache_lookup& trx_lookup )
    {
@@ -1873,6 +1951,7 @@ struct controller_impl {
 
    } /// push_block
 
+   //取消上一个正在生产的区块，其中的交易转到本次新区块中处理
    vector<transaction_metadata_ptr> abort_block() {
       vector<transaction_metadata_ptr> applied_trxs;
       if( pending ) {
@@ -2059,6 +2138,7 @@ void controller::start_block( block_timestamp_type when, uint16_t confirm_block_
                     block_status::incomplete, optional<block_id_type>() );
 }
 
+//打包
 block_state_ptr controller::finalize_block( const signer_callback_type& signer_callback ) {
    validate_db_available_size();
 
@@ -2078,6 +2158,7 @@ block_state_ptr controller::finalize_block( const signer_callback_type& signer_c
    return bsp;
 }
 
+//提交
 void controller::commit_block() {
    validate_db_available_size();
    validate_reversible_available_size();
@@ -2308,6 +2389,7 @@ void controller::write_snapshot( const snapshot_writer_ptr& snapshot ) const {
    return my->add_to_snapshot(snapshot);
 }
 
+//更新BP列表
 int64_t controller::set_proposed_producers( vector<producer_authority> producers ) {
    const auto& gpo = get_global_properties();
    auto cur_block_num = head_block_num() + 1;

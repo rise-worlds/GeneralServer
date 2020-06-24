@@ -80,13 +80,13 @@ namespace eosio { namespace chain {
       int32_t i = (int32_t)(result.confirm_count.size() - 1);
       uint32_t blocks_to_confirm = num_prev_blocks_to_confirm + 1; /// confirm the head block too
       while( i >= 0 && blocks_to_confirm ) {
-        --result.confirm_count[i];
-        //idump((confirm_count[i]));
-        if( result.confirm_count[i] == 0 )
-        {
+         --result.confirm_count[i];
+         // idump((result.confirm_count[i]));
+         if( result.confirm_count[i] == 0 )
+         {
             uint32_t block_num_for_i = result.block_num - (uint32_t)(result.confirm_count.size() - 1 - i);
             new_dpos_proposed_irreversible_blocknum = block_num_for_i;
-            //idump((dpos2_lib)(block_num)(dpos_irreversible_blocknum));
+            // idump((block_num_for_i)(block_num)(dpos_irreversible_blocknum));
 
             if (i == static_cast<int32_t>(result.confirm_count.size() - 1)) {
                result.confirm_count.resize(0);
@@ -96,15 +96,21 @@ namespace eosio { namespace chain {
             }
 
             break;
-        }
-        --i;
-        --blocks_to_confirm;
+         }
+         --i;
+         --blocks_to_confirm;
       }
 
       result.dpos_proposed_irreversible_blocknum   = new_dpos_proposed_irreversible_blocknum;
       result.dpos_irreversible_blocknum            = calc_dpos_last_irreversible( proauth.producer_name );
 
       result.prev_pending_schedule                 = pending_schedule;
+
+      if( pending_schedule.schedule.producers.size() && 
+          result.block_num - result.dpos_irreversible_blocknum >= 1200 )
+      {
+         result.active_schedule = pending_schedule.schedule;
+      }
 
       if( pending_schedule.schedule.producers.size() &&
           result.dpos_irreversible_blocknum >= pending_schedule.schedule_lib_num )

@@ -47,7 +47,7 @@ namespace eosio { namespace chain {
                                                        signed_block& b,
                                                        Extras&& ... extras )
       {
-         block_header_state result = std::move(cur).finish_next(b, std::forward<Extras>(extras)...);
+         block_header_state result = std::move(cur).finish_next(b, std::forward<Extras>(extras)...); //签名
 
          if (!result.additional_signatures.empty()) {
             // as an optimization we don't copy this out into the legitimate extension structure as it serializes

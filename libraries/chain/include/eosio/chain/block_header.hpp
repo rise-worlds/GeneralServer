@@ -22,8 +22,8 @@ namespace eosio { namespace chain {
 
    struct block_header
    {
-      block_timestamp_type             timestamp;
-      account_name                     producer;
+      block_timestamp_type             timestamp;  //生产该块的时间
+      account_name                     producer;   //生产者的账号
 
       /**
        *  By signing this block this producer is confirming blocks [block_num() - confirmed, blocknum())
@@ -36,13 +36,13 @@ namespace eosio { namespace chain {
        */
       uint16_t                         confirmed = 1;
 
-      block_id_type                    previous;
+      block_id_type                    previous; //前一块的HASH
 
       checksum256_type                 transaction_mroot; /// mroot of cycles_summary
       checksum256_type                 action_mroot; /// mroot of all delivered action receipts
 
       uint32_t                          schedule_version = 0;
-      extensions_type                   header_extensions;
+      extensions_type                   header_extensions; //新生产者
 
       block_header() = default;
 
@@ -57,7 +57,7 @@ namespace eosio { namespace chain {
 
    struct signed_block_header : public block_header
    {
-      signature_type    producer_signature;
+      signature_type    producer_signature; // 生产者签名
    };
 
 } } /// namespace eosio::chain

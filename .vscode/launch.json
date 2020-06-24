@@ -5,6 +5,26 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "attach node",
+            "type": "cppdbg",
+            "request": "attach",
+            "program": "${workspaceFolder}/build/programs/example/example",
+            "processId": "${command:pickProcess}",
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "为 gdb 启用整齐打印",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    }
+                ]
+            },
+            "osx": {
+                "MIMode": "lldb"
+            }
+        },
+        {
             "name": "Launch bios",
             "type": "cppdbg",
             "request": "launch",
@@ -21,7 +41,6 @@
                 "-d./data-dir/bios",
                 "--plugin=eosio::producer_api_plugin", 
                 "--plugin=eosio::chain_api_plugin",
-                "-l${workspaceFolder}/logging.json",
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
@@ -52,14 +71,15 @@
                 // "--wasm-runtime=eos-vm-oc", "--eos-vm-oc-enable",
                 // "--wasm-runtime=eos-vm",
                 "--plugin=eosio::producer_plugin",
-                "--p2p-listen-endpoint=0.0.0.0:9871", 
+                "--p2p-listen-endpoint=0.0.0.0:9877", 
                 "--p2p-peer-address=127.0.0.1:9876",
-                "--p2p-peer-address=127.0.0.1:9872",
-                "--p2p-peer-address=127.0.0.1:9873",
+                "--p2p-peer-address=127.0.0.1:9878",
+                "--p2p-peer-address=127.0.0.1:9879",
+                "--p2p-peer-address=127.0.0.1:9880",
+                "--p2p-peer-address=127.0.0.1:9881",
                 "--plugin=eosio::http_plugin",
                 "--plugin=eosio::producer_api_plugin",
-                "--http-server-address=127.0.0.1:8881",
-                "-l${workspaceFolder}/logging.json",
+                "--http-server-address=0.0.0.0:8889",
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

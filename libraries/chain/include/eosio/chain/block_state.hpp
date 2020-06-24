@@ -22,7 +22,7 @@ namespace eosio { namespace chain {
       block_state() = default;
 
 
-      signed_block_ptr                                    block;
+      signed_block_ptr                                    block; //前一个block指针
 
    private: // internal use only, not thread safe
       friend struct fc::reflector<block_state>;

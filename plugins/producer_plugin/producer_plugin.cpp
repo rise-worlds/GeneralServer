@@ -271,6 +271,7 @@ class producer_plugin_impl : public std::enable_shared_from_this<producer_plugin
          return itr->second;
       }
 
+      //区块入链成功后，相关状态更新
       void on_block( const block_state_ptr& bsp ) {
          _unapplied_transactions.clear_applied( bsp );
       }
@@ -279,6 +280,7 @@ class producer_plugin_impl : public std::enable_shared_from_this<producer_plugin
          consider_new_watermark( bsp->header.producer, bsp->block_num, bsp->block->timestamp );
       }
 
+      //区块不可逆后，相关状态更新
       void on_irreversible_block( const signed_block_ptr& lib ) {
          _irreversible_block_time = lib->timestamp.to_time_point();
          const chain::controller& chain = chain_plug->chain();
@@ -612,7 +614,7 @@ class producer_plugin_impl : public std::enable_shared_from_this<producer_plugin
       void schedule_delayed_production_loop(const std::weak_ptr<producer_plugin_impl>& weak_this, optional<fc::time_point> wake_up_time);
       optional<fc::time_point> calculate_producer_wake_up_time( const block_timestamp_type& ref_block_time ) const;
 
-      optional<fc::time_point> calculate_chipcounter_time();
+      // optional<fc::time_point> calculate_chipcounter_time();
       void schedule_chipcounter_loop();
       signed_transaction get_chipcounter_transaction();
       void send_chipcounter_transaction();
@@ -1256,6 +1258,7 @@ fc::time_point producer_plugin_impl::calculate_block_deadline( const fc::time_po
    return block_time + fc::microseconds(last_block ? _last_block_time_offset_us : _produce_time_offset_us);
 }
 
+//初始化当前区块数据
 producer_plugin_impl::start_block_result producer_plugin_impl::start_block() {
    chain::controller& chain = chain_plug->chain();
 
@@ -1281,9 +1284,20 @@ producer_plugin_impl::start_block_result producer_plugin_impl::start_block() {
    scheduled_producer.for_each_key([&](const public_key_type& key){
       const auto& iter = _signature_providers.find(key);
       if(iter != _signature_providers.end()) {
-         num_relevant_signatures++;
+         ++num_relevant_signatures;
       }
    });
+
+   // const auto& cfg = chain.get_global_properties();
+   // for (const auto& standby_producer : cfg.standby_producers)
+   // {
+   //    auto it = _producers.find(standby_producer.producer_name);
+   //    if (it == _producers.end()) {
+   //       ++num_relevant_signatures;
+   //    }
+   // }
+   // auto sp_it = std::search(cfg.standby_producers.begin(), cfg.standby_producers.end(), _producers.begin(), _producers.end(), 
+   //    [](const auto&a, const auto&b){ return a.producer_name == b; });
 
    auto irreversible_block_age = get_irreversible_block_age();
 
@@ -1291,7 +1305,7 @@ producer_plugin_impl::start_block_result producer_plugin_impl::start_block() {
    //本节点计算出来的下一个区块的时间必须大于当前本节点收到的最大区块的时间，也即如果本节点生产区块，那区块的时间点肯定比现在最新的区块的时间要大
    if( !_production_enabled ) {
       _pending_block_mode = pending_block_mode::speculating;
-   } else if( _producers.find(scheduled_producer.producer_name) == _producers.end()) {
+   } else if( _producers.find(scheduled_producer.producer_name) == _producers.end() /*&& sp_it == cfg.standby_producers.end()*/ ) {
       _pending_block_mode = pending_block_mode::speculating;
    } else if (num_relevant_signatures == 0) {
       elog("Not producing block because I don't have any private keys relevant to authority: ${authority}", ("authority", scheduled_producer.authority));
@@ -1695,6 +1709,19 @@ bool producer_plugin_impl::block_is_exhausted() const {
    return false;
 }
 
+// 500ms调度不断循环出块
+// 逻辑如下：
+//  关闭之前的定时器：_timer.cancel()
+//  调用start_block()函数初始化新的区块信息。首先调用controller::abort_block()重置数据，然后调用controller::start_block()，
+//    根据上一个区块信息生成一个新的区块，最后将由于controller::abort_block()而未来得及入链的交易(unapplied_transactions)重新push_transaction()进新的区块。
+//  重启定时器_timer()，异步等待新区块截止时间，这期间内，EOS等待并接收用户的交易请求。
+//  如果用户有新交易，调用push_transaction()执行交易并保存到区块中。
+//  如果没有其它情况，定时器到期后，调用produce_block(),对该区块进行打包（finalize_block()）、签名(sign())，然后提交(commit_block())到本节点区块链（fork_db）上，
+//    commit_block()会发送accepted_block信号给订阅者，这其中包括producer_plugin::on_block()，该函数进行相关数据更新。
+//    fork_db每次新增一个区块，就会检查是否有新的不可逆区块产生，如果有，发送irrerersible_block信号给订阅者，这其中包括producer_plugin::on_irreversible_block()，该函数进行相关数据更新。
+//    最后，再次递归调用schedule_production_loop()进行下一个区块生产。
+//  如果出现其它原因，如收到网络上发送过来的区块，且定时器未到期，则会转入区块同步逻辑，之前的所有执行会被重置，未来得及执行的交易会被备份到unapplied_transactions中。
+
 // Example:
 // --> Start block A (block time x.500) at time x.000
 // -> start_block()
@@ -1705,8 +1732,8 @@ void producer_plugin_impl::schedule_production_loop() {
    //关掉以前所有的定时器，即取消所有异步等待
    _timer.cancel();
 
-   //实时更新节点所有调度信息
-   auto result = start_block();
+   // 实时更新节点所有调度信息
+   auto result = start_block(); // 出块
 
    //根据结果来判断本节点应该采取哪一种动作，所有操作都是异步的，主要分下面四种：
    /* 1. 获取各种调度信息异常，则重新获取数据进行调度；
@@ -1824,7 +1851,7 @@ void producer_plugin_impl::schedule_delayed_production_loop(const std::weak_ptr<
    }
 }
 
-
+// 在操作中断时启动异步出块
 bool producer_plugin_impl::maybe_produce_block() {
    auto reschedule = fc::make_scoped_exit([this]{
       schedule_production_loop();
@@ -1856,7 +1883,7 @@ static auto maybe_make_debug_time_logger() -> fc::optional<decltype(make_debug_t
    }
 }
 
-// 生产区块
+// 生产区块(打包、签名、提交区块入链)
 void producer_plugin_impl::produce_block() {
    //ilog("produce_block ${t}", ("t", fc::time_point::now())); // for testing _produce_time_offset_us
    EOS_ASSERT(_pending_block_mode == pending_block_mode::producing, producer_exception, "called produce_block while not actually producing");
@@ -1902,25 +1929,25 @@ void producer_plugin_impl::produce_block() {
 
 }
 
-optional<fc::time_point> producer_plugin_impl::calculate_chipcounter_time()
-{
-   const chain::controller& chain = chain_plug->chain();
-   const auto& hbs = chain.head_block_state();
-   const auto& active_schedule = hbs->active_schedule.producers;
-   // determine if this producer is in the active schedule and if so, where
-   auto itr = std::find_if(active_schedule.begin(), active_schedule.end(), [&](const auto& asp){ return asp.producer_name == chain.head_block_producer(); });
-   if (itr == active_schedule.end()) {
-      // this producer is not in the active producer set
-      return optional<fc::time_point>();
-   }
-
-   size_t producer_index = itr - active_schedule.begin();
-   // const fc::time_point now = fc::time_point::now();
-   // const fc::time_point base = std::max<fc::time_point>(now, chain.head_block_time());
-   fc::time_point next_time(fc::microseconds(config::block_interval_us * config::producer_repetitions * (active_schedule.size() - producer_index)));
-
-   return next_time;
-}
+// optional<fc::time_point> producer_plugin_impl::calculate_chipcounter_time()
+// {
+//    const chain::controller& chain = chain_plug->chain();
+//    const auto& hbs = chain.head_block_state();
+//    const auto& active_schedule = hbs->active_schedule.producers;
+//    // determine if this producer is in the active schedule and if so, where
+//    auto itr = std::find_if(active_schedule.begin(), active_schedule.end(), [&](const auto& asp){ return asp.producer_name == chain.head_block_producer(); });
+//    if (itr == active_schedule.end()) {
+//       // this producer is not in the active producer set
+//       return optional<fc::time_point>();
+//    }
+//
+//    size_t producer_index = itr - active_schedule.begin();
+//    // const fc::time_point now = fc::time_point::now();
+//    // const fc::time_point base = std::max<fc::time_point>(now, chain.head_block_time());
+//    fc::time_point next_time(fc::microseconds(config::block_interval_us * config::producer_repetitions * (active_schedule.size() - producer_index)));
+//
+//    return next_time;
+// }
 
 void producer_plugin_impl::schedule_chipcounter_loop()
 {
@@ -1973,38 +2000,21 @@ signed_transaction producer_plugin_impl::get_chipcounter_transaction()
 {
    chain::controller& chain = chain_plug->chain();
    signed_transaction trx;
-   // const auto& accnt  = chain.db().get<account_object,by_name>( config::system_account_name );
-   //
-   // abi_def abi;
-   // if( !abi_serializer::to_abi(accnt.abi, abi) ) {
-   //    return;
-   // }
-   // abi_serializer abis(abi, abi_serializer::create_yield_function( fc::seconds(10) ));
-   // auto action_type = abis.get_action_type( N(chipcounter) );
-   // FC_ASSERT( !action_type.empty(), "Unknown action chipcounter in system contract");
-
    for (const auto& producer : _producers) {
       chain.get_account(producer); // check account is created.
       FC_ASSERT(producer != config::system_account_name, "system account not send chipcounter.");
-      // dlog("producer ${name}", ("name", producer));
+      // fc_dlog(_log, "producer ${name}", ("name", producer));
       
       action chipcounter_act;
       chipcounter_act.account = config::system_account_name;
       chipcounter_act.name = N(chipcounter);
       chipcounter_act.authorization = {{producer, config::active_name}};
-      // fc::variant data;
-      // to_variant(eosio::chain::chipcounter{producer}, data);
-      // to_variant(producer, data);
-      // chipcounter_act.data = fc::raw::pack(data);
       chipcounter_act.data = fc::raw::pack(eosio::chain::chipcounter{producer});
-      // fc::variant action_args = fc::mutable_variant_object()
-      //                      ("producer", producer);
-      // chipcounter_act.data = abis.variant_to_binary( action_type, action_args, abi_serializer::create_yield_function( fc::seconds(10) ) );
 
       trx.actions.emplace_back(std::move(chipcounter_act));
    }
-   // auto free_action = chain::action( {}, config::null_account_name, name("nonce"), fc::raw::pack(fc::time_point::now().time_since_epoch().count()));
-   // trx.context_free_actions.emplace_back(std::move(free_action));
+   auto free_action = chain::action( {}, config::null_account_name, name("nonce"), fc::raw::pack(fc::time_point::now().time_since_epoch().count()));
+   trx.context_free_actions.emplace_back(std::move(free_action));
    trx.expiration = chain.head_block_time() + fc::seconds(15);
    trx.ref_block_num = 0;
    trx.ref_block_prefix = 0;
@@ -2015,13 +2025,11 @@ signed_transaction producer_plugin_impl::get_chipcounter_transaction()
       available_keys.insert(p.first);
    }
    auto required_keys = chain_plug->get_read_only_api().get_required_keys({fc::variant((eosio::chain::transaction)trx), available_keys});
-   // vector<signature_type> signatures;
    for (const auto &key : required_keys.required_keys) {
       auto private_key_itr = _signature_providers.find(key);
       FC_ASSERT (private_key_itr != _signature_providers.end(), "send chipcounter no sign");
       auto digest = trx.sig_digest(chain_plug->get_chain_id());
       signature_type sig = private_key_itr->second(digest);
-      // signatures.push_back(sig);
       trx.signatures.push_back(sig);
    }
    
@@ -2034,34 +2042,17 @@ void producer_plugin_impl::send_chipcounter_transaction()
    if (_producers.empty() || production_disabled_by_policy()
       || chain.head_block_producer() == config::system_account_name)
    {
-      dlog("producer is not active.");
+      fc_dlog(_log, "producer is not active.");
       return;
    }
    
    try {
       signed_transaction trx = get_chipcounter_transaction();
-      // dlog("producer send chipcounter.");
+      // fc_dlog(_log, "producer send chipcounter.");
    
-      // signed_transaction strx(std::move(trx), signatures, {});
-      // const auto ptrx = fc::variant(packed_transaction(std::move(trx), packed_transaction::compression_type::zlib));
       const auto ptrx = packed_transaction(std::move(trx), packed_transaction::compression_type::zlib);
-      dlog("${trx}", ("trx", fc::json::to_string(trx, fc::time_point::maximum())));
-      // dlog("${strx}", ("strx", fc::json::to_string(strx, fc::time_point::maximum())));
-      // dlog("${ptrx}", ("ptrx", fc::json::to_string(ptrx, fc::time_point::maximum())));
-      // boost::asio::post( _thread_pool->get_executor(), [ptrx=std::move(ptrx)]() {
-      //    auto chain_plug = app().find_plugin<chain_plugin>();
-      //    chain_plug->get_read_write_api().validate();
-      //    chain_plug->get_read_write_api().send_transaction(ptrx.as<eosio::chain_apis::read_write::send_transaction_params>(),
-      //       [](const static_variant<std::shared_ptr<fc::exception>, eosio::chain_apis::read_write::send_transaction_results>& results){
-      //          if (results.contains<std::shared_ptr<fc::exception>>()) {
-      //             auto exception = results.get<std::shared_ptr<fc::exception>>();
-      //             wlog("send chipcounter: ${exception}", ("exception", exception->to_string()));
-      //          } else {
-      //             auto result = results.get<eosio::chain_apis::read_write::send_transaction_results>();
-      //             ilog("send chipcounter: ${txid}",("txid", result.transaction_id));
-      //          }
-      //       });
-      //    });
+      // fc_dlog(_log, "${trx}", ("trx", fc::json::to_string(trx, fc::time_point::maximum())));
+      // fc_dlog(_log, "${ptrx}", ("ptrx", fc::json::to_string(ptrx, fc::time_point::maximum())));
       // accept_transaction需要在主线程上调用
       app().post( priority::low, [trx{std::move(ptrx)}, weak = weak_from_this()]() {
          auto self = weak.lock();
@@ -2069,18 +2060,19 @@ void producer_plugin_impl::send_chipcounter_transaction()
             [](const static_variant<fc::exception_ptr, transaction_trace_ptr>& result) mutable {
                // next (this lambda) called from application thread
                if (result.contains<fc::exception_ptr>()) {
-                  dlog( "bad packed_transaction : ${m}", ("m", result.get<fc::exception_ptr>()->what()) );
+                  fc_dlog(_log, "bad packed_transaction : ${m}", ("m", result.get<fc::exception_ptr>()->what()) );
                } else {
                   const transaction_trace_ptr& trace = result.get<transaction_trace_ptr>();
                   if( !trace->except ) {
-                     dlog( "chain accepted transaction, bcast ${id}", ("id", trace->id) );
+                     fc_ilog(_log, "chain accepted chipcounter transaction, bcast ${id}", ("id", trace->id) );
                   } else {
-                     dlog( "bad packed_transaction : ${m}", ("m", trace->except->what()));
+                     fc_dlog(_log, "bad packed_transaction : ${m}", ("m", trace->except->what()));
                   }
                }
             });
          });
    } catch (...) {
+      fc_dlog(_log, boost::current_exception_diagnostic_information());
       return;
    }
 }

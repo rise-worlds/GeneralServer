@@ -102,6 +102,13 @@
     "C_Cpp.default.configurationProvider": "vector-of-bool.cmake-tools",
     "C_Cpp.default.cStandard":"c11",
     "C_Cpp.default.cppStandard":"c++17",
+    "search.exclude": {
+        "libraries/eos-vm/external/**": true,
+        "libraries/wabt/third_party/gtest/**": true,
+        "libraries/fc/include/fc/crypto/webauthn_json/**": true,
+    },
+    "C_Cpp.default.intelliSenseMode": "clang-x64",
+    "C_Cpp.clang_format_path": "clang-format",
     // "C_Cpp.default.systemIncludePath":[
     //     "${default}",
     //     "~/eosio/2.0/src/boost_1_71_0/include"
