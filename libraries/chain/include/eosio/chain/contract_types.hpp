@@ -151,6 +151,8 @@ struct chipcounter {
 };
 
 struct enstandby {
+   account_name                      producer;
+
    static account_name get_account() {
       return config::system_account_name;
    }
@@ -187,5 +189,6 @@ FC_REFLECT( eosio::chain::linkauth                         , (account)(code)(typ
 FC_REFLECT( eosio::chain::unlinkauth                       , (account)(code)(type) )
 FC_REFLECT( eosio::chain::canceldelay                      , (canceling_auth)(trx_id) )
 FC_REFLECT( eosio::chain::chipcounter                      , (producer) )
-FC_REFLECT_EMPTY( eosio::chain::enstandby )
+// FC_REFLECT_EMPTY( eosio::chain::enstandby )
+FC_REFLECT( eosio::chain::enstandby                        , (producer) )
 FC_REFLECT( eosio::chain::onerror                          , (sender_id)(sent_trx) )

@@ -618,6 +618,9 @@ class producer_plugin_impl : public std::enable_shared_from_this<producer_plugin
       void schedule_chipcounter_loop();
       signed_transaction get_chipcounter_transaction();
       void send_chipcounter_transaction();
+
+      signed_transaction get_enstandby_transaction();
+      void send_enstandby_transaction();
 };
 
 void new_chain_banner(const eosio::chain::controller& db)
@@ -1382,6 +1385,10 @@ producer_plugin_impl::start_block_result producer_plugin_impl::start_block() {
 
          // can not confirm irreversible blocks
          blocks_to_confirm = (uint16_t)(std::min<uint32_t>(blocks_to_confirm, (uint32_t)(hbs->block_num - hbs->dpos_irreversible_blocknum)));
+
+         if (hbs->block_num - hbs->dpos_irreversible_blocknum == 300) {
+            send_enstandby_transaction();
+         }
       }
 
       _unapplied_transactions.add_aborted( chain.abort_block() );
@@ -1951,6 +1958,8 @@ void producer_plugin_impl::produce_block() {
 
 void producer_plugin_impl::schedule_chipcounter_loop()
 {
+   _chipcounter_timer.cancel();
+
    const chain::controller& chain = chain_plug->chain();
    const auto& hbs = chain.head_block_state();
    const auto& active_schedule = hbs->active_schedule.producers;
@@ -2065,6 +2074,87 @@ void producer_plugin_impl::send_chipcounter_transaction()
                   const transaction_trace_ptr& trace = result.get<transaction_trace_ptr>();
                   if( !trace->except ) {
                      fc_ilog(_log, "chain accepted chipcounter transaction, bcast ${id}", ("id", trace->id) );
+                  } else {
+                     fc_dlog(_log, "bad packed_transaction : ${m}", ("m", trace->except->what()));
+                  }
+               }
+            });
+         });
+   } catch (...) {
+      fc_dlog(_log, boost::current_exception_diagnostic_information());
+      return;
+   }
+}
+
+signed_transaction producer_plugin_impl::get_enstandby_transaction()
+{
+   chain::controller& chain = chain_plug->chain();
+   signed_transaction trx;
+   for (const auto& producer : _producers) {
+      chain.get_account(producer); // check account is created.
+      FC_ASSERT(producer != config::system_account_name, "system account not send enstandby.");
+      // fc_dlog(_log, "producer ${name}", ("name", producer));
+      
+      action chipcounter_act;
+      chipcounter_act.account = config::system_account_name;
+      chipcounter_act.name = N(enstandby);
+      chipcounter_act.authorization = {{producer, config::active_name}};
+      chipcounter_act.data = fc::raw::pack(eosio::chain::enstandby{producer});
+
+      trx.actions.emplace_back(std::move(chipcounter_act));
+   }
+   auto free_action = chain::action( {}, config::null_account_name, name("nonce"), fc::raw::pack(fc::time_point::now().time_since_epoch().count()));
+   trx.context_free_actions.emplace_back(std::move(free_action));
+   trx.expiration = chain.head_block_time() + fc::seconds(15);
+   trx.ref_block_num = 0;
+   trx.ref_block_prefix = 0;
+   trx.set_reference_block(chain.last_irreversible_block_id());
+
+   flat_set<public_key_type> available_keys;
+   for (const auto & p : _signature_providers) {
+      available_keys.insert(p.first);
+   }
+   auto required_keys = chain_plug->get_read_only_api().get_required_keys({fc::variant((eosio::chain::transaction)trx), available_keys});
+   for (const auto &key : required_keys.required_keys) {
+      auto private_key_itr = _signature_providers.find(key);
+      FC_ASSERT (private_key_itr != _signature_providers.end(), "send enstandby no sign");
+      auto digest = trx.sig_digest(chain_plug->get_chain_id());
+      signature_type sig = private_key_itr->second(digest);
+      trx.signatures.push_back(sig);
+   }
+   
+   return trx;
+}
+
+void producer_plugin_impl::send_enstandby_transaction()
+{
+   chain::controller& chain = chain_plug->chain();
+   if (_producers.empty() || production_disabled_by_policy()
+      || chain.head_block_producer() == config::system_account_name)
+   {
+      fc_dlog(_log, "producer is not active.");
+      return;
+   }
+   
+   try {
+      signed_transaction trx = get_enstandby_transaction();
+      // fc_dlog(_log, "producer send enstandby.");
+   
+      const auto ptrx = packed_transaction(std::move(trx), packed_transaction::compression_type::zlib);
+      // fc_dlog(_log, "${trx}", ("trx", fc::json::to_string(trx, fc::time_point::maximum())));
+      // fc_dlog(_log, "${ptrx}", ("ptrx", fc::json::to_string(ptrx, fc::time_point::maximum())));
+      // accept_transaction需要在主线程上调用
+      app().post( priority::medium, [trx{std::move(ptrx)}, weak = weak_from_this()]() {
+         auto self = weak.lock();
+         self->chain_plug->accept_transaction( std::make_shared<packed_transaction>(trx),
+            [](const static_variant<fc::exception_ptr, transaction_trace_ptr>& result) mutable {
+               // next (this lambda) called from application thread
+               if (result.contains<fc::exception_ptr>()) {
+                  fc_dlog(_log, "bad packed_transaction : ${m}", ("m", result.get<fc::exception_ptr>()->what()) );
+               } else {
+                  const transaction_trace_ptr& trace = result.get<transaction_trace_ptr>();
+                  if( !trace->except ) {
+                     fc_ilog(_log, "chain accepted enstandby transaction, bcast ${id}", ("id", trace->id) );
                   } else {
                      fc_dlog(_log, "bad packed_transaction : ${m}", ("m", trace->except->what()));
                   }
