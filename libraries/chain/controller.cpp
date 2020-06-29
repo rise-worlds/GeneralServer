@@ -290,7 +290,7 @@ struct controller_impl {
 
    SET_APP_HANDLER( eosio, eosio, canceldelay );
    // SET_APP_HANDLER( eosio, eosio, chipcounter );
-   SET_APP_HANDLER( eosio, eosio, enstandby );
+   // SET_APP_HANDLER( eosio, eosio, enstandby );
    }
 
    /**
@@ -939,32 +939,6 @@ struct controller_impl {
       db.create<global_property_object>([&genesis,&chain_id=this->chain_id](auto& gpo ){
          gpo.configuration = genesis.initial_configuration;
          gpo.chain_id = chain_id;
-         vector<producer_authority> a = {
-            {N(pcbpa), block_signing_authority_v0{1, {{public_key_type(string("POC7n1U9Z2NQeVEvQZYjHCedNXRVWshmmuGH2j3r6bD4c8fH4U8QL")), 1}}}},
-            {N(pcbpb), block_signing_authority_v0{1, {{public_key_type(string("POC6syu9mCx2zmkp51V5eiZuRBVBbyAgiBNb7hkX7XDQMFKHZuDnk")), 1}}}},
-            {N(pcbpc), block_signing_authority_v0{1, {{public_key_type(string("POC5Lo8iT5EkmSCASP6THm9kwePJKcbWzdQ3pj2Hmz3pyYamuViuF")), 1}}}},
-            {N(pcbpd), block_signing_authority_v0{1, {{public_key_type(string("POC7ZH8veauyEUu4dJU5bTRSPHFctiFkV3Fyaj1tWsr83Jf6dmXh8")), 1}}}},
-            {N(pcbpe), block_signing_authority_v0{1, {{public_key_type(string("POC6CE8NmWwpcV6ePDiE4vzhyZfpYvmrtugumEpTYauQUMVLT1ZYP")), 1}}}},
-            {N(pcbpf), block_signing_authority_v0{1, {{public_key_type(string("POC5B1Bf4qLVaCGudWpLV6qo6y2iFMGm2vpd1R19QQCu84eVWijZ1")), 1}}}},
-            {N(pcbpg), block_signing_authority_v0{1, {{public_key_type(string("POC5dNbGVNhsyrv8jiPu92SoHPNRb3ChEbtSmpoZNiUAEf2UvuB5X")), 1}}}},
-            {N(pcbph), block_signing_authority_v0{1, {{public_key_type(string("POC8Znrtgwt8TfpmbVpTKvA2oB8Nqey625CLN8bCN3TEbgx86Dsvr")), 1}}}},
-            {N(pcbpi), block_signing_authority_v0{1, {{public_key_type(string("POC69X3383RzBZj41k73CSjUNXM5MYGpnDxyPnWUKPEtYQmTBWz4D")), 1}}}},
-            {N(pcbpj), block_signing_authority_v0{1, {{public_key_type(string("POC7yBtksm8Kkg85r4in4uCbfN77uRwe82apM8jjbhFVDgEgz3w8S")), 1}}}},
-            {N(pcbpk), block_signing_authority_v0{1, {{public_key_type(string("POC7WnhaKwHpbSidYuh2DF1qAExTRUtPEdZCaZqt75cKcixuQUtdA")), 1}}}},
-            {N(pcbpl), block_signing_authority_v0{1, {{public_key_type(string("POC7Bn1YDeZ18w2N9DU4KAJxZDt6hk3L7eUwFRAc1hb5bp6xJwxNV")), 1}}}},
-            {N(pcbpm), block_signing_authority_v0{1, {{public_key_type(string("POC6cNcTC6WTFkKV4C8DoxcTXdDTDKvj3vgZEVDGVFckK1eTNJQtf")), 1}}}},
-            {N(pcbpn), block_signing_authority_v0{1, {{public_key_type(string("POC8UkmsnCo4GxDihbKwgoZY6f2QLSMEqBZ2frGLckxrCHrz15r7X")), 1}}}},
-            {N(pcbpo), block_signing_authority_v0{1, {{public_key_type(string("POC8Smcv2eMoFcp1EQSBxcAeuBowSS9xesuHjhvTnK4AACjRycTVA")), 1}}}},
-            {N(pcbpp), block_signing_authority_v0{1, {{public_key_type(string("POC57VTWSiPyx45cSWGdGNtAZnmpqMrAvASQmL9hmXnoLNrgadwf7")), 1}}}},
-            {N(pcbpq), block_signing_authority_v0{1, {{public_key_type(string("POC5dt9CWCKM1scrWpFsRbzY71Up9UYFmJs1ySFKLJDGdYJmgEH3f")), 1}}}},
-            {N(pcbpr), block_signing_authority_v0{1, {{public_key_type(string("POC8FdMPpPxpG5QAqGLncY5kBrEQ9NXPKCKnLH6oWDMPR8q8BrEmT")), 1}}}},
-            {N(pcbps), block_signing_authority_v0{1, {{public_key_type(string("POC8imf2TDq6FKtLZ8mvXPWcd6EF2rQwo8zKdLNzsbU9EiMSt9Lwz")), 1}}}},
-            {N(pcbpt), block_signing_authority_v0{1, {{public_key_type(string("POC7Ef4kuyTbXbtSPP5Bgethvo6pbitpuEz2RMWhXb8LXxEgcR7MC")), 1}}}},
-            {N(pcbpu), block_signing_authority_v0{1, {{public_key_type(string("POC5n442Qz4yVc4LbdPCDnxNSseAiUCrNjRxAfPhUvM8tWS5svid6")), 1}}}}
-         };
-         for(const auto& p : a) {
-            gpo.standby_producers.emplace_back(p.to_shared(gpo.standby_producers.get_allocator()));
-         }
       });
 
       db.create<protocol_state_object>([&](auto& pso ){
@@ -1465,57 +1439,6 @@ struct controller_impl {
             });
          }
 
-         if ( !replay_head_time && fork_db.pending_head()->block_num - fork_db.root()->block_num == 300 )
-         {
-            action enstandby_act;
-            enstandby_act.account = config::system_account_name;
-            enstandby_act.name = N(enstandby);
-            enstandby_act.authorization = vector<permission_level>{{config::system_account_name, config::active_name}};
-            // enstandby_act.data = fc::raw::pack(nullptr);
-
-            signed_transaction trx;
-            trx.actions.emplace_back(std::move(enstandby_act));
-            trx.expiration = time_point_sec();
-            trx.ref_block_num = 0;
-            trx.ref_block_prefix = 0;
-            transaction_metadata_ptr enstandby_trx =
-                  transaction_metadata::create_no_recover_keys( packed_transaction( trx ), transaction_metadata::trx_type::implicit );
-            push_transaction( enstandby_trx, fc::time_point::maximum(), self.get_global_properties().configuration.min_transaction_cpu_usage, true );
-         //    producer_authority_schedule sch;
-
-         //    const auto& pending_sch = self.pending_producers();
-         //    if( pending_sch.producers.size() == 0 ) {
-         //       const auto& active_sch = self.active_producers();
-         //       sch.version = active_sch.version + 1;
-         //       ilog("active_sch.version:${version}", ("version", active_sch.version));
-         //    } else {
-         //       ilog("pending_sch.version:${version}", ("version", pending_sch.version));
-         //       sch.version = pending_sch.version;
-         //    }
-         //    for( const auto& p : gpo.standby_producers ) {
-         //       sch.producers.emplace_back(eosio::chain::producer_authority::from_shared(p));
-         //       // ssc.producers.emplace_back(p);
-         //    }
-
-         //    if( pending->_block_stage.contains<completed_block>() ) {
-         //       ilog("update completed_block");
-         //       // pending->_block_stage.get<completed_block>()._block_state->pending_schedule = sch;
-         //    }
-
-         //    if( pending->_block_stage.contains<assembled_block>() ) {
-         //       ilog("update assembled_block");
-         //       pending->_block_stage.get<assembled_block>()._new_producer_authority_cache = sch;
-         //    }
-
-         //    ilog("update producers schedule: ${schedule}", ("schedule", sch));
-         //    pending->_block_stage.get<building_block>()._new_pending_producer_schedule = sch;
-         //    db.modify( gpo, [&]( auto& gp ) {
-         //       gp.proposed_schedule_block_num = optional<block_num_type>();
-         //       gp.proposed_schedule.version = 0;
-         //       gp.proposed_schedule.producers.clear();
-         //    });
-         }
-
          try {
             //把当前的head里面的所有交易拿出来，在本节点进行验证
             transaction_metadata_ptr onbtrx =
@@ -1552,6 +1475,8 @@ struct controller_impl {
       guard_pending.cancel(); //解除锁
    } /// start_block
 
+   bool enable_standby_schedule = false;
+
    // 本区块时间已到，打包区块
    void finalize_block()
    {
@@ -1573,6 +1498,21 @@ struct controller_impl {
       resource_limits.process_block_usage(pbhs.block_num);
 
       auto& bb = pending->_block_stage.get<building_block>();
+
+      if (!replay_head_time && enable_standby_schedule) {
+         enable_standby_schedule = false;
+         const auto& gpo = self.get_global_properties();
+         bb._new_pending_producer_schedule = producer_authority_schedule::from_shared(gpo.standby_schedule);
+         const auto& pending_sch = self.pending_producers();
+         if( pending_sch.producers.size() == 0 ) {
+            const auto& active_sch = self.active_producers();
+            bb._new_pending_producer_schedule->version = active_sch.version + 1;
+            wlog("active_sch.version:${version}", ("version", active_sch.version));
+         } else {
+            wlog("pending_sch.version:${version}", ("version", pending_sch.version));
+            bb._new_pending_producer_schedule->version = pending_sch.version;
+         }
+      }
 
       // Create (unsigned) block:
       auto block_ptr = std::make_shared<signed_block>( pbhs.make_block_header(
@@ -2444,6 +2384,19 @@ int64_t controller::set_proposed_producers( vector<producer_authority> producers
       gp.proposed_schedule = sch.to_shared(gp.proposed_schedule.producers.get_allocator());
    });
    return version;
+}
+
+int64_t controller::set_standby_producers( vector<producer_authority> producers ) {
+   producer_authority_schedule sch;
+   sch.producers = std::move(producers);
+   const auto& gpo = get_global_properties();
+   my->db.modify( gpo, [&]( auto& gp ) {
+      gp.standby_schedule = sch.to_shared(gp.standby_schedule.producers.get_allocator());
+   });
+}
+
+bool controller::enable_standby_producers() {
+   my->enable_standby_schedule = true;
 }
 
 const producer_authority_schedule&    controller::active_producers()const {

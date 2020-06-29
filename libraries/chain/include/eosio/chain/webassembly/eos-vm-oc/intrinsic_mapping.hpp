@@ -68,6 +68,8 @@ constexpr auto intrinsic_table = boost::hana::make_tuple(
    "env.set_resource_limits"_s,
    "env.set_proposed_producers"_s,
    "env.set_proposed_producers_ex"_s,
+   "env.set_standby_producers"_s,
+   "env.enable_standby_producers"_s,
    "env.get_blockchain_parameters_packed"_s,
    "env.set_blockchain_parameters_packed"_s,
    "env.is_privileged"_s,
@@ -248,7 +250,7 @@ constexpr auto intrinsic_table = boost::hana::make_tuple(
    "eosio_injection._eosio_i32_to_f64"_s,
    "eosio_injection._eosio_i64_to_f64"_s,
    "eosio_injection._eosio_ui32_to_f64"_s,
-   "eosio_injection._eosio_ui64_to_f64"_s
+   "eosio_injection._eosio_ui64_to_f64"_s,
 );
 
 }}}

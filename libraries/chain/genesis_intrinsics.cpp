@@ -175,6 +175,8 @@ const std::vector<const char*> genesis_intrinsics = {
    "is_feature_active",
    "activate_feature",
    "set_proposed_producers_ex",  //wtmsig_block_signatures
+   "set_standby_producers",
+   "enable_standby_producers",
 };
 
 } } // namespace eosio::chain

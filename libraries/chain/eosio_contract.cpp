@@ -398,10 +398,15 @@ void apply_eosio_canceldelay(apply_context& context) {
 
 // }
 
-void apply_eosio_enstandby(apply_context& context) {
-   //auto cp = context.get_action().data_as<chipcounter>();
-   //context.require_authorization(cp.producer);
+// void apply_eosio_enstandby(apply_context& context) {
+//    auto cp = context.get_action().data_as<enstandby>();
+//    //context.require_authorization(cp.producer);
+//    try {
+//       wlog("call enstandby");
+//       const auto& control = context.control;
+//    } catch (...) {
 
-}
+//    }
+// }
 
 } } // namespace eosio::chain

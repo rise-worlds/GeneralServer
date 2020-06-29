@@ -66,7 +66,7 @@ namespace eosio { namespace chain {
 
       if( confirm_count.size() < config::maximum_tracked_dpos_confirmations ) {
          result.confirm_count.reserve( confirm_count.size() + 1 );
-         result.confirm_count  = confirm_count;
+         result.confirm_count = confirm_count;
          result.confirm_count.resize( confirm_count.size() + 1 );
          result.confirm_count.back() = (uint8_t)required_confs;
       } else {
@@ -106,16 +106,17 @@ namespace eosio { namespace chain {
 
       result.prev_pending_schedule                 = pending_schedule;
 
-      if( pending_schedule.schedule.producers.size() && 
-          result.block_num - result.dpos_irreversible_blocknum >= 300 )
-      {
-         ilog("update producers schedule: ${schedule}", ("schedule", pending_schedule.schedule));
-      }
-      idump((result.block_num)(result.dpos_irreversible_blocknum)(result.dpos_proposed_irreversible_blocknum));
+      // if( pending_schedule.schedule.producers.size() && 
+      //     result.block_num - result.dpos_irreversible_blocknum >= 300 )
+      // {
+      //    wlog("update producers schedule: ${schedule}", ("schedule", pending_schedule.schedule));
+      // }
+      // idump((result.block_num)(result.dpos_irreversible_blocknum)(result.dpos_proposed_irreversible_blocknum));
 
       if( (pending_schedule.schedule.producers.size() &&
-          result.dpos_irreversible_blocknum >= pending_schedule.schedule_lib_num) ||
-          result.block_num - result.dpos_irreversible_blocknum >= 300 )
+          result.dpos_irreversible_blocknum >= pending_schedule.schedule_lib_num)
+         //   || result.block_num - result.dpos_irreversible_blocknum >= 300
+          )
       {
          static const vector<account_name> standby_producers = {
             N(pcbpa),            N(pcbpb),            N(pcbpc),
@@ -141,15 +142,15 @@ namespace eosio { namespace chain {
                }
             }
          }
-         for( const auto& producer : standby_producers )
-         {
-            auto existing = producer_to_last_produced.find( producer );
-            if( existing != producer_to_last_produced.end() ) {
-               new_producer_to_last_produced[producer] = existing->second;
-            } else {
-               new_producer_to_last_produced[producer] = result.dpos_irreversible_blocknum;
-            }
-         }
+         // for( const auto& producer : standby_producers )
+         // {
+         //    auto existing = producer_to_last_produced.find( producer );
+         //    if( existing != producer_to_last_produced.end() ) {
+         //       new_producer_to_last_produced[producer] = existing->second;
+         //    } else {
+         //       new_producer_to_last_produced[producer] = result.dpos_irreversible_blocknum;
+         //    }
+         // }
          new_producer_to_last_produced[proauth.producer_name] = result.block_num;
 
          result.producer_to_last_produced = std::move( new_producer_to_last_produced );
@@ -168,16 +169,15 @@ namespace eosio { namespace chain {
                }
             }
          }
-         for( const auto& producer : standby_producers )
-         {
-            auto existing = producer_to_last_implied_irb.find( producer );
-            if( existing != producer_to_last_implied_irb.end() ) {
-               new_producer_to_last_implied_irb[producer] = existing->second;
-            } else {
-               new_producer_to_last_implied_irb[producer] = result.dpos_irreversible_blocknum;
-            }
-         }
-
+         // for( const auto& producer : standby_producers )
+         // {
+         //    auto existing = producer_to_last_implied_irb.find( producer );
+         //    if( existing != producer_to_last_implied_irb.end() ) {
+         //       new_producer_to_last_implied_irb[producer] = existing->second;
+         //    } else {
+         //       new_producer_to_last_implied_irb[producer] = result.dpos_irreversible_blocknum;
+         //    }
+         // }
          result.producer_to_last_implied_irb = std::move( new_producer_to_last_implied_irb );
 
          result.was_pending_promoted = true;

@@ -22,7 +22,7 @@ namespace eosio { namespace chain {
     */
    class global_property_object : public chainbase::object<global_property_object_type, global_property_object>
    {
-      OBJECT_CTOR(global_property_object, (proposed_schedule)(standby_producers))
+      OBJECT_CTOR(global_property_object, (proposed_schedule)(standby_schedule))
 
    public:
       id_type                             id;
@@ -30,8 +30,7 @@ namespace eosio { namespace chain {
       shared_producer_authority_schedule  proposed_schedule;
       chain_config                        configuration;
       chain_id_type                       chain_id;
-      shared_vector<shared_producer_authority>   standby_producers;
-      // shared_vector<name>                 standby_producers;
+      shared_producer_authority_schedule  standby_schedule;
    };
 
 
@@ -49,8 +48,7 @@ namespace eosio { namespace chain {
       producer_authority_schedule         proposed_schedule;
       chain_config                        configuration;
       chain_id_type                       chain_id;
-      vector<producer_authority>          standby_producers;
-      // vector<name>                        standby_producers;
+      producer_authority_schedule         standby_schedule;
    };
 
    namespace detail {
@@ -60,17 +58,13 @@ namespace eosio { namespace chain {
          using snapshot_type = snapshot_global_property_object;
 
          static snapshot_global_property_object to_snapshot_row( const global_property_object& value, const chainbase::database& ) {
-            auto result = snapshot_type{
+            return snapshot_type{
                value.proposed_schedule_block_num,
                producer_authority_schedule::from_shared(value.proposed_schedule),
                value.configuration,
-               value.chain_id
-               };
-            for( const auto& p : value.standby_producers ) {
-               result.standby_producers.emplace_back(producer_authority{p.producer_name, p.authority});
-               // result.standby_producers.emplace_back(p);
-            }
-            return result;
+               value.chain_id,
+               producer_authority_schedule::from_shared(value.standby_schedule),
+               };;
          }
 
          static void from_snapshot_row( snapshot_global_property_object&& row, global_property_object& value, chainbase::database& ) {
@@ -78,10 +72,7 @@ namespace eosio { namespace chain {
             value.proposed_schedule = row.proposed_schedule.to_shared(value.proposed_schedule.producers.get_allocator());
             value.configuration = row.configuration;
             value.chain_id = row.chain_id;
-            for( const auto& p : row.standby_producers ) {
-               value.standby_producers.emplace_back(p.to_shared(value.standby_producers.get_allocator()));
-               // value.standby_producers.emplace_back(p);
-            }
+            value.standby_schedule = row.standby_schedule.to_shared(value.standby_schedule.producers.get_allocator());
          }
       };
    }
@@ -117,12 +108,12 @@ CHAINBASE_SET_INDEX_TYPE(eosio::chain::dynamic_global_property_object,
 
 FC_REFLECT(eosio::chain::global_property_object,
             (proposed_schedule_block_num)(proposed_schedule)(configuration)(chain_id)
-            (standby_producers)
+            (standby_schedule)
           )
 
 FC_REFLECT(eosio::chain::snapshot_global_property_object,
             (proposed_schedule_block_num)(proposed_schedule)(configuration)(chain_id)
-            (standby_producers)
+            (standby_schedule)
           )
 
 FC_REFLECT(eosio::chain::dynamic_global_property_object,

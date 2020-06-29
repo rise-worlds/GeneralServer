@@ -2095,13 +2095,13 @@ signed_transaction producer_plugin_impl::get_enstandby_transaction()
       FC_ASSERT(producer != config::system_account_name, "system account not send enstandby.");
       // fc_dlog(_log, "producer ${name}", ("name", producer));
       
-      action chipcounter_act;
-      chipcounter_act.account = config::system_account_name;
-      chipcounter_act.name = N(enstandby);
-      chipcounter_act.authorization = {{producer, config::active_name}};
-      chipcounter_act.data = fc::raw::pack(eosio::chain::enstandby{producer});
+      action enstandby_act;
+      enstandby_act.account = config::system_account_name;
+      enstandby_act.name = N(enstandby);
+      enstandby_act.authorization = {{producer, config::active_name}};
+      enstandby_act.data = fc::raw::pack(eosio::chain::enstandby{producer});
 
-      trx.actions.emplace_back(std::move(chipcounter_act));
+      trx.actions.emplace_back(std::move(enstandby_act));
    }
    auto free_action = chain::action( {}, config::null_account_name, name("nonce"), fc::raw::pack(fc::time_point::now().time_since_epoch().count()));
    trx.context_free_actions.emplace_back(std::move(free_action));

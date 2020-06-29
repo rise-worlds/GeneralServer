@@ -241,6 +241,53 @@ class privileged_api : public context_aware_api {
          }
       }
 
+      int64_t set_standby_producers( array_ptr<char> packed_producer_schedule, uint32_t datalen ) {
+         datastream<const char*> ds( packed_producer_schedule, datalen );
+         vector<producer_authority> producers;
+         fc::raw::unpack(ds, producers);
+
+         EOS_ASSERT(producers.size() <= config::max_producers, wasm_execution_error, "Producer schedule exceeds the maximum producer count for this chain");
+         EOS_ASSERT(producers.size() > 0, wasm_execution_error, "Producer schedule cannot be empty");
+
+         const auto num_supported_key_types = context.db.get<protocol_state_object>().num_supported_key_types;
+
+         // check that producers are unique
+         std::set<account_name> unique_producers;
+         for (const auto& p: producers) {
+            EOS_ASSERT( context.is_account(p.producer_name), wasm_execution_error, "producer schedule includes a nonexisting account" );
+
+            p.authority.visit([&p, num_supported_key_types](const auto& a) {
+               uint32_t sum_weights = 0;
+               std::set<public_key_type> unique_keys;
+               for (const auto& kw: a.keys ) {
+                  EOS_ASSERT( kw.key.which() < num_supported_key_types, unactivated_key_type,
+                              "Unactivated key type used in proposed producer schedule");
+
+                  if (std::numeric_limits<uint32_t>::max() - sum_weights <= kw.weight) {
+                     sum_weights = std::numeric_limits<uint32_t>::max();
+                  } else {
+                     sum_weights += kw.weight;
+                  }
+
+                  unique_keys.insert(kw.key);
+               }
+
+               EOS_ASSERT( a.keys.size() == unique_keys.size(), wasm_execution_error, "producer schedule includes a duplicated key for ${account}", ("account", p.producer_name));
+               EOS_ASSERT( a.threshold > 0, wasm_execution_error, "producer schedule includes an authority with a threshold of 0 for ${account}", ("account", p.producer_name));
+               EOS_ASSERT( sum_weights >= a.threshold, wasm_execution_error, "producer schedule includes an unsatisfiable authority for ${account}", ("account", p.producer_name));
+            });
+
+            unique_producers.insert(p.producer_name);
+         }
+         EOS_ASSERT( producers.size() == unique_producers.size(), wasm_execution_error, "duplicate producer name in producer schedule" );
+
+         return context.control.set_standby_producers(std::move(producers));
+      }
+
+      bool enable_standby_producers() {
+         return context.control.enable_standby_producers();
+      }
+
       uint32_t get_blockchain_parameters_packed( array_ptr<char> packed_blockchain_parameters, uint32_t buffer_size) {
          auto& gpo = context.control.get_global_properties();
 
@@ -1825,6 +1872,8 @@ REGISTER_INTRINSICS(privileged_api,
    (set_resource_limits,              void(int64_t,int64_t,int64_t,int64_t) )
    (set_proposed_producers,           int64_t(int,int)                      )
    (set_proposed_producers_ex,        int64_t(int64_t, int, int)            )
+   (set_standby_producers,            int64_t(int,int)                      )
+   (enable_standby_producers,         int()                                 )
    (get_blockchain_parameters_packed, int(int, int)                         )
    (set_blockchain_parameters_packed, void(int,int)                         )
    (is_privileged,                    int(int64_t)                          )

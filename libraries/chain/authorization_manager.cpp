@@ -353,6 +353,8 @@ namespace eosio { namespace chain {
                      "Cannot link eosio::canceldelay to a minimum permission" );
          EOS_ASSERT( link.type != chipcounter::get_name(), action_validate_exception,
                      "Cannot link eosio::chipcounter to a minimum permission" );
+         EOS_ASSERT( link.type != enstandby::get_name(), action_validate_exception,
+                     "Cannot link eosio::enstandby to a minimum permission" );
       }
 
       const auto linked_permission_name = lookup_minimum_permission(link.account, link.code, link.type);
@@ -367,17 +369,17 @@ namespace eosio { namespace chain {
                   ("auth", auth)("min", permission_level{link.account, *linked_permission_name}) );
    }
 
-   void authorization_manager::check_chipcounter_authorization( const chipcounter& unlink,
-                                                               const vector<permission_level>& auths
-                                                             )const
-   {
-   }
-
-   void authorization_manager::check_enstandby_authorization( const enstandby& unlink,
-                                                               const vector<permission_level>& auths
-                                                             )const
-   {
-   }
+   // void authorization_manager::check_chipcounter_authorization( const chipcounter& unlink,
+   //                                                             const vector<permission_level>& auths
+   //                                                           )const
+   // {
+   // }
+   //
+   // void authorization_manager::check_enstandby_authorization( const enstandby& unlink,
+   //                                                             const vector<permission_level>& auths
+   //                                                           )const
+   // {
+   // }
    
    void authorization_manager::check_unlinkauth_authorization( const unlinkauth& unlink,
                                                                const vector<permission_level>& auths
@@ -493,10 +495,10 @@ namespace eosio { namespace chain {
                check_unlinkauth_authorization( act.data_as<unlinkauth>(), act.authorization );
             } else if( act.name ==  canceldelay::get_name() ) {
                delay = std::max( delay, check_canceldelay_authorization(act.data_as<canceldelay>(), act.authorization) );
-            } else if( act.name == chipcounter::get_name() ) {
-               check_chipcounter_authorization( act.data_as<chipcounter>(), act.authorization );
-            } else if( act.name == enstandby::get_name() ) {
-               check_enstandby_authorization( act.data_as<enstandby>(), act.authorization );
+            // } else if( act.name == chipcounter::get_name() ) {
+            //    check_chipcounter_authorization( act.data_as<chipcounter>(), act.authorization );
+            // } else if( act.name == enstandby::get_name() ) {
+            //    check_enstandby_authorization( act.data_as<enstandby>(), act.authorization );
             } else {
                special_case = false;
             }
