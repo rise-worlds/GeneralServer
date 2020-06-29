@@ -20,7 +20,7 @@ set(ENABLE_TESTS OFF CACHE BOOL "Build tests")
 set(ENABLE_ADDRESS_SANITIZER OFF CACHE BOOL "Use address sanitizer")
 set(ENABLE_UNDEFINED_BEHAVIOR_SANITIZER OFF CACHE BOOL "Use UB sanitizer")
 set(ENABLE_PROFILE OFF CACHE BOOL "Enable for profile builds")
-add_subdirectory(eos-vm)
+#add_subdirectory(eos-vm)
 
 get_property(_CTEST_CUSTOM_TESTS_IGNORE GLOBAL PROPERTY CTEST_CUSTOM_TESTS_IGNORE)
 set_property(GLOBAL PROPERTY CTEST_CUSTOM_TESTS_IGNORE
