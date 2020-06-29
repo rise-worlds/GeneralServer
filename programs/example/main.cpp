@@ -80,6 +80,7 @@ int main(int argc, char **argv)
            ("ver", app().version_string())("fv", app().version_string() == app().full_version_string() ? "" : app().full_version_string()));
       ilog("example using configuration file ${c}", ("c", app().full_config_file_path().string()));
       ilog("example data directory is ${d}", ("d", app().data_dir().string()));
+      ilog("example log file is ${d}", ("d", app().get_logging_conf().string()));
       app().startup();
       app().set_thread_priority_max();
       app().exec();
