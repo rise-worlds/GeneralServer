@@ -1989,19 +1989,16 @@ void producer_plugin_impl::schedule_chipcounter_loop()
    bpus next_time(config::block_interval_us * config::producer_repetitions * (active_schedule.size() - producer_index));
    {
       boost::posix_time::ptime next_expiry_time(now + next_time + bpus(config::block_interval_us));
-      // if (next_expiry_time - _chipcounter_timer.expires_at() >= intive_time)
-      {
-         _chipcounter_timer.expires_at(next_expiry_time);
-         _chipcounter_timer.async_wait(app().get_priority_queue().wrap( priority::medium,
-               [weak_this = weak_from_this()](const boost::system::error_code& ec) {
-                  auto self = weak_this.lock();
-                  if (self && ec != boost::asio::error::operation_aborted)
-                  {
-                     self->send_chipcounter_transaction();
-                     self->schedule_chipcounter_loop();
-                  }
-               } ));
-      }
+      _chipcounter_timer.expires_at(next_expiry_time);
+      _chipcounter_timer.async_wait(app().get_priority_queue().wrap( priority::medium,
+            [weak_this = weak_from_this()](const boost::system::error_code& ec) {
+               auto self = weak_this.lock();
+               if (self && ec != boost::asio::error::operation_aborted)
+               {
+                  self->send_chipcounter_transaction();
+                  self->schedule_chipcounter_loop();
+               }
+            } ));
    }
 }
 
@@ -2061,7 +2058,6 @@ void producer_plugin_impl::send_chipcounter_transaction()
    
       const auto ptrx = packed_transaction(std::move(trx), packed_transaction::compression_type::zlib);
       // fc_dlog(_log, "${trx}", ("trx", fc::json::to_string(trx, fc::time_point::maximum())));
-      // fc_dlog(_log, "${ptrx}", ("ptrx", fc::json::to_string(ptrx, fc::time_point::maximum())));
       // accept_transaction需要在主线程上调用
       app().post( priority::low, [trx{std::move(ptrx)}, weak = weak_from_this()]() {
          auto self = weak.lock();
@@ -2142,7 +2138,6 @@ void producer_plugin_impl::send_enstandby_transaction()
    
       const auto ptrx = packed_transaction(std::move(trx), packed_transaction::compression_type::zlib);
       // fc_dlog(_log, "${trx}", ("trx", fc::json::to_string(trx, fc::time_point::maximum())));
-      // fc_dlog(_log, "${ptrx}", ("ptrx", fc::json::to_string(ptrx, fc::time_point::maximum())));
       // accept_transaction需要在主线程上调用
       app().post( priority::medium, [trx{std::move(ptrx)}, weak = weak_from_this()]() {
          auto self = weak.lock();

@@ -37,7 +37,7 @@ const static name eosio_code_name { N(eosio.code) };
 
 const static int      block_interval_ms = 500;
 const static int      block_interval_us = block_interval_ms*1000;
-const static uint64_t block_timestamp_epoch = 946684800000ll; // epoch is year 2000.
+const static uint64_t block_timestamp_epoch = 1577880000000ll; // epoch is year 2020.
 const static uint32_t genesis_num_supported_key_types = 3;
 
 /** Percentages are fixed point with a denominator of 10,000 */
