@@ -2008,7 +2008,6 @@ signed_transaction producer_plugin_impl::get_chipcounter_transaction()
    signed_transaction trx;
    for (const auto& producer : _producers) {
       chain.get_account(producer); // check account is created.
-      FC_ASSERT(producer != config::system_account_name, "system account not send chipcounter.");
       // fc_dlog(_log, "producer ${name}", ("name", producer));
       
       action chipcounter_act;
@@ -2088,7 +2087,6 @@ signed_transaction producer_plugin_impl::get_enstandby_transaction()
    signed_transaction trx;
    for (const auto& producer : _producers) {
       chain.get_account(producer); // check account is created.
-      FC_ASSERT(producer != config::system_account_name, "system account not send enstandby.");
       // fc_dlog(_log, "producer ${name}", ("name", producer));
       
       action enstandby_act;
