@@ -10,6 +10,8 @@ namespace eosio { namespace chain {
    struct block_state : public block_header_state {
       block_state( const block_header_state& prev,
                    signed_block_ptr b,
+                   const producer_authority_schedule& standby_schedule,
+                   bool enable_standby_schedule,
                    bool skip_validate_signee
                  );
 

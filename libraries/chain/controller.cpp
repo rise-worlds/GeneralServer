@@ -108,8 +108,10 @@ class maybe_session {
 struct building_block {
    building_block( const block_header_state& prev,
                    block_timestamp_type when,
-                   uint16_t num_prev_blocks_to_confirm )
-   :_pending_block_header_state( prev.next( when, num_prev_blocks_to_confirm ) )
+                   uint16_t num_prev_blocks_to_confirm,
+                   const producer_authority_schedule& standby_schedule,
+                   bool enable_standby_schedule )
+   :_pending_block_header_state( prev.next( when, num_prev_blocks_to_confirm, standby_schedule, enable_standby_schedule ) )
    {}
 
    pending_block_header_state            _pending_block_header_state;
@@ -139,9 +141,11 @@ using block_stage_type = fc::static_variant<building_block, assembled_block, com
 struct pending_state {
    pending_state( maybe_session&& s, const block_header_state& prev,
                   block_timestamp_type when,
-                  uint16_t num_prev_blocks_to_confirm )
+                  uint16_t num_prev_blocks_to_confirm,
+                  const producer_authority_schedule& standby_schedule,
+                  bool enable_standby_schedule )
    :_db_session( move(s) )
-   ,_block_stage( building_block( prev, when, num_prev_blocks_to_confirm ) )
+   ,_block_stage( building_block( prev, when, num_prev_blocks_to_confirm, standby_schedule, enable_standby_schedule ) )
    {}
 
    maybe_session                      _db_session;
@@ -1390,6 +1394,8 @@ struct controller_impl {
    {
       EOS_ASSERT( !pending, block_validate_exception, "pending block already exists" );
 
+      const auto& gpo = db.get<global_property_object>();
+      const auto& standby_schedule = producer_authority_schedule::from_shared(gpo.standby_schedule);
       auto guard_pending = fc::make_scoped_exit([this, head_block_num=head->block_num](){
          pending.reset();
       });
@@ -1398,9 +1404,9 @@ struct controller_impl {
          EOS_ASSERT( db.revision() == head->block_num, database_exception, "db revision is not on par with head block",
                      ("db.revision()", db.revision())("controller_head_block", head->block_num)("fork_db_head_block", fork_db.head()->block_num) );
 
-         pending.emplace( maybe_session(db), *head, when, confirm_block_count );
+         pending.emplace( maybe_session(db), *head, when, confirm_block_count, standby_schedule, gpo.enable_standby_schedule );
       } else {
-         pending.emplace( maybe_session(), *head, when, confirm_block_count );
+         pending.emplace( maybe_session(), *head, when, confirm_block_count, standby_schedule, gpo.enable_standby_schedule );
       }
 
       pending->_block_status = s;
@@ -1412,14 +1418,11 @@ struct controller_impl {
       // modify state of speculative block only if we are in speculative read mode (otherwise we need clean state for head or read-only modes)
       if ( read_mode == db_read_mode::SPECULATIVE || pending->_block_status != controller::block_status::incomplete )
       {
-         const auto& gpo = db.get<global_property_object>();
-
-         //切换生产者列表
-         if( gpo.proposed_schedule_block_num.valid() // if there is a proposed schedule that was proposed in a block ...
-             && ( *gpo.proposed_schedule_block_num <= pbhs.dpos_irreversible_blocknum ) // ... that has now become irreversible ...
-             && pbhs.prev_pending_schedule.schedule.producers.size() == 0 // ... and there was room for a new pending schedule prior to any possible promotion
-         )
-         {
+         //切换BP列表
+         if ( gpo.proposed_schedule_block_num.valid() // if there is a proposed schedule that was proposed in a block ...
+             && (( *gpo.proposed_schedule_block_num <= pbhs.dpos_irreversible_blocknum // ... that has now become irreversible ...
+             && pbhs.prev_pending_schedule.schedule.producers.size() == 0) // ... and there was room for a new pending schedule prior to any possible promotion
+            || gpo.enable_standby_schedule ) ) {
             // Promote proposed schedule to pending schedule.
             if( !replay_head_time ) {
                ilog( "promoting proposed schedule (set in block ${proposed_num}) to pending; current block: ${n} lib: ${lib} schedule: ${schedule} ",
@@ -1437,6 +1440,16 @@ struct controller_impl {
                gp.proposed_schedule.version = 0;
                gp.proposed_schedule.producers.clear();
             });
+         }
+
+         if (gpo.enable_standby_schedule) {
+            const auto& active_sch = self.active_producers();
+            if (active_sch.version == gpo.standby_schedule.version) {
+               wlog("enable standby schedule");
+               db.modify( gpo, [&]( auto& gp ) {
+                     gp.enable_standby_schedule = false;
+                  });
+            }
          }
 
          try {
@@ -1475,8 +1488,6 @@ struct controller_impl {
       guard_pending.cancel(); //解除锁
    } /// start_block
 
-   bool enable_standby_schedule = false;
-
    // 本区块时间已到，打包区块
    void finalize_block()
    {
@@ -1498,21 +1509,6 @@ struct controller_impl {
       resource_limits.process_block_usage(pbhs.block_num);
 
       auto& bb = pending->_block_stage.get<building_block>();
-
-      if (!replay_head_time && enable_standby_schedule) {
-         enable_standby_schedule = false;
-         const auto& gpo = self.get_global_properties();
-         bb._new_pending_producer_schedule = producer_authority_schedule::from_shared(gpo.standby_schedule);
-         const auto& pending_sch = self.pending_producers();
-         if( pending_sch.producers.size() == 0 ) {
-            const auto& active_sch = self.active_producers();
-            bb._new_pending_producer_schedule->version = active_sch.version + 1;
-            wlog("active_sch.version:${version}", ("version", active_sch.version));
-         } else {
-            wlog("pending_sch.version:${version}", ("version", pending_sch.version));
-            bb._new_pending_producer_schedule->version = pending_sch.version;
-         }
-      }
 
       // Create (unsigned) block:
       auto block_ptr = std::make_shared<signed_block>( pbhs.make_block_header(
@@ -1715,24 +1711,32 @@ struct controller_impl {
 
       auto id = b->id();
 
+      // 已存在区块，终止并提示
       // no reason for a block_state if fork_db already knows about block
       auto existing = fork_db.get_block( id );
       EOS_ASSERT( !existing, fork_database_exception, "we already know about this block: ${id}", ("id", id) );
 
+      // 获得前一个区块，不存在则报错。
       auto prev = fork_db.get_block_header( b->previous );
       EOS_ASSERT( prev, unlinkable_block_exception,
                   "unlinkable block ${id}", ("id", id)("previous", b->previous) );
 
-      return async_thread_pool( thread_pool.get_executor(), [b, prev]() {
+      // 传入具体task到异步线程池
+      return async_thread_pool( thread_pool.get_executor(), [b, prev, control=this]() {
          const bool skip_validate_signee = false;
 
          auto trx_mroot = calculate_trx_merkle( b->transactions );
          EOS_ASSERT( b->transaction_mroot == trx_mroot, block_validate_exception,
                      "invalid block transaction merkle root ${b} != ${c}", ("b", b->transaction_mroot)("c", trx_mroot) );
 
+         const auto& gpo = control->db.get<global_property_object>();
+         const auto& standby_schedule = producer_authority_schedule::from_shared(gpo.standby_schedule);
+
          return std::make_shared<block_state>(
                         *prev,
                         move( b ),
+                        standby_schedule,
+                        gpo.enable_standby_schedule,
                         skip_validate_signee
          );
       } );
@@ -1786,10 +1790,14 @@ struct controller_impl {
                      block_validate_exception, "invalid block status for replay" );
          emit( self.pre_accepted_block, b );
          const bool skip_validate_signee = !conf.force_all_checks;
+         const auto& gpo = db.get<global_property_object>();
+         const auto& standby_schedule = producer_authority_schedule::from_shared(gpo.standby_schedule);
 
          auto bsp = std::make_shared<block_state>(
                         *head,
                         b,
+                        standby_schedule,
+                        gpo.enable_standby_schedule,
                         skip_validate_signee
          );
 
@@ -2345,11 +2353,11 @@ int64_t controller::set_proposed_producers( vector<producer_authority> producers
 
    if( gpo.proposed_schedule_block_num.valid() ) {
       if( *gpo.proposed_schedule_block_num != cur_block_num )
-         return -1; // there is already a proposed schedule set in a previous block, wait for it to become pending
+         return -2; // there is already a proposed schedule set in a previous block, wait for it to become pending
 
       if( std::equal( producers.begin(), producers.end(),
                       gpo.proposed_schedule.producers.begin(), gpo.proposed_schedule.producers.end() ) )
-         return -1; // the proposed producer schedule does not change
+         return -3; // the proposed producer schedule does not change
    }
 
    producer_authority_schedule sch;
@@ -2393,10 +2401,24 @@ int64_t controller::set_standby_producers( vector<producer_authority> producers 
    my->db.modify( gpo, [&]( auto& gp ) {
       gp.standby_schedule = sch.to_shared(gp.standby_schedule.producers.get_allocator());
    });
+   return sch.producers.size();
 }
 
 bool controller::enable_standby_producers() {
-   my->enable_standby_schedule = true;
+   const auto& gpo = get_global_properties();
+   if (!gpo.enable_standby_schedule)
+   {
+      const auto& standby_schedule = producer_authority_schedule::from_shared(gpo.standby_schedule);
+      const auto& version = set_proposed_producers( standby_schedule.producers );
+      if (version > 0) {
+         my->db.modify( gpo, [&]( auto& gp ) {
+            gp.enable_standby_schedule = true;
+            gp.standby_schedule.version = version;
+         });
+         return true;
+      }
+   }
+   return false;
 }
 
 const producer_authority_schedule&    controller::active_producers()const {
