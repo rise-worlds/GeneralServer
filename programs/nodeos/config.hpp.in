@@ -1,4 +1,4 @@
 #pragma once
-namespace GeneralServer { namespace example { namespace config {
+namespace GeneralServer { namespace nodeos { namespace config {
   constexpr uint64_t version = 0x${BUILD_VERSION};
 }}}

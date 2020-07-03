@@ -58,7 +58,7 @@ int main(int argc, char **argv)
 {
    try
    {
-      app().set_version(GeneralServer::example::config::version);
+      app().set_version(GeneralServer::nodeos::config::version);
       app().set_version_string(potato::version::version_client());
       app().set_full_version_string(potato::version::version_full());
 
@@ -76,11 +76,11 @@ int main(int argc, char **argv)
          return -1;
       }
       initialize_logging();
-      ilog("example version ${ver} ${fv}",
+      ilog("nodeos version ${ver} ${fv}",
            ("ver", app().version_string())("fv", app().version_string() == app().full_version_string() ? "" : app().full_version_string()));
-      ilog("example using configuration file ${c}", ("c", app().full_config_file_path().string()));
-      ilog("example data directory is ${d}", ("d", app().data_dir().string()));
-      ilog("example log file is ${d}", ("d", app().get_logging_conf().string()));
+      ilog("nodeos using configuration file ${c}", ("c", app().full_config_file_path().string()));
+      ilog("nodeos data directory is ${d}", ("d", app().data_dir().string()));
+      ilog("nodeos log file is ${d}", ("d", app().get_logging_conf().string()));
       app().startup();
       app().set_thread_priority_max();
       app().exec();
@@ -144,6 +144,6 @@ int main(int argc, char **argv)
       return -2;
    }
 
-   ilog("example successfully exiting");
+   ilog("nodeos successfully exiting");
    return 0;
 }
