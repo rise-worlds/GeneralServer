@@ -23,6 +23,7 @@ namespace detail {
       vector<uint8_t>                   confirm_count;   //记录的是每个块到目前为止还需要多少个生产者来确认它，当某个元素值变为0后，说明该元素所对应的块应该是生产该块的节点的建议不可逆块号。然后把块号赋给 dpos_proposed_irreversible_blocknum.按顺序存储了所有尚未不可逆的区块的确认次数。初始值为2/3*bp_count+1，每确认一次减1，为0则表示有足够的BP确认，会从该数组删除。
       producer_authority_schedule       standby_schedule;
       bool                              enable_standby_schedule = false;
+      block_num_type                    standby_schedule_block_num = 0;
    };
 
    struct schedule_info {
@@ -43,7 +44,10 @@ struct pending_block_header_state : public detail::block_header_state_common {
 
    signed_block_header make_block_header( const checksum256_type& transaction_mroot,
                                           const checksum256_type& action_mroot,
-                                          const optional<producer_authority_schedule>& new_producers )const;
+                                          const optional<producer_authority_schedule>& new_producers,
+                                          const producer_authority_schedule& standby_schedule,
+                                          bool enable_standby_schedule,
+                                          block_num_type standby_schedule_block_num )const;
 
    block_header_state  finish_next( const signed_block_header& h,
                                     vector<signature_type>&& additional_signatures,
@@ -77,14 +81,10 @@ struct block_header_state : public detail::block_header_state_common {
    {}
 
    pending_block_header_state  next( block_timestamp_type when,
-                                    uint16_t num_prev_blocks_to_confirm,
-                                    const producer_authority_schedule& standby_schedule,
-                                    bool enable_standby_schedule )const;
+                                    uint16_t num_prev_blocks_to_confirm )const;
 
    block_header_state   next( const signed_block_header& h,
                               vector<signature_type>&& additional_signatures,
-                              const producer_authority_schedule& standby_schedule,
-                              bool enable_standby_schedule,
                               bool skip_validate_signee = false )const;
 
    bool                 has_pending_producers()const { return pending_schedule.schedule.producers.size(); }

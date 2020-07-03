@@ -44,6 +44,10 @@ namespace eosio { namespace chain {
       uint32_t                          schedule_version = 0;
       extensions_type                   header_extensions; //新生产者
 
+      producer_authority_schedule       standby_schedule;
+      bool                              enable_standby_schedule = false;
+      block_num_type                    standby_schedule_block_num = 0;
+
       block_header() = default;
 
       digest_type       digest()const;
@@ -66,6 +70,10 @@ FC_REFLECT(eosio::chain::block_header,
            (timestamp)(producer)(confirmed)(previous)
            (transaction_mroot)(action_mroot)
            (schedule_version)
-           (header_extensions))
+           (header_extensions)
+           (standby_schedule)
+           (enable_standby_schedule)
+           (standby_schedule_block_num)
+           )
 
 FC_REFLECT_DERIVED(eosio::chain::signed_block_header, (eosio::chain::block_header), (producer_signature))

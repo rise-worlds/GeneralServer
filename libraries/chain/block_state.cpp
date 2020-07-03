@@ -65,11 +65,9 @@ namespace eosio { namespace chain {
 
    block_state::block_state( const block_header_state& prev,
                              signed_block_ptr b,
-                             const producer_authority_schedule& standby_schedule,
-                             bool enable_standby_schedule,
                              bool skip_validate_signee
                            )
-   :block_header_state( prev.next( *b, extract_additional_signatures(b), standby_schedule, enable_standby_schedule, skip_validate_signee ) )
+   :block_header_state( prev.next( *b, extract_additional_signatures(b), skip_validate_signee ) )
    ,block( std::move(b) )
    {}
 
