@@ -489,7 +489,7 @@ namespace impl {
       template<typename Resolver>
       static void add( mutable_variant_object &out, const char* name, const signed_block& block, Resolver resolver, abi_traverse_context& ctx )
       {
-         static_assert(fc::reflector<signed_block>::total_member_count == 14);
+         static_assert(fc::reflector<signed_block>::total_member_count == 13);
          auto h = ctx.enter_scope();
          mutable_variant_object mvo;
          mvo("timestamp", block.timestamp);
@@ -507,7 +507,6 @@ namespace impl {
             mvo("new_producer_schedule", new_producer_schedule);
          }
 
-         mvo("standby_schedule", block.standby_schedule);
          mvo("enable_standby_schedule", block.enable_standby_schedule);
          mvo("standby_schedule_block_num", block.standby_schedule_block_num);
 

@@ -1296,17 +1296,6 @@ producer_plugin_impl::start_block_result producer_plugin_impl::start_block() {
       }
    });
 
-   // const auto& cfg = chain.get_global_properties();
-   // for (const auto& standby_producer : cfg.standby_producers)
-   // {
-   //    auto it = _producers.find(standby_producer.producer_name);
-   //    if (it == _producers.end()) {
-   //       ++num_relevant_signatures;
-   //    }
-   // }
-   // auto sp_it = std::search(cfg.standby_producers.begin(), cfg.standby_producers.end(), _producers.begin(), _producers.end(), 
-   //    [](const auto&a, const auto&b){ return a.producer_name == b; });
-
    auto irreversible_block_age = get_irreversible_block_age();
 
    // If the next block production opportunity is in the present or future, we're synced.
@@ -1391,9 +1380,9 @@ producer_plugin_impl::start_block_result producer_plugin_impl::start_block() {
          // can not confirm irreversible blocks
          blocks_to_confirm = (uint16_t)(std::min<uint32_t>(blocks_to_confirm, (uint32_t)(hbs->block_num - hbs->dpos_irreversible_blocknum)));
 
-         // if (hbs->block_num - hbs->dpos_irreversible_blocknum == 300) {
-         //    send_enstandby_transaction();
-         // }
+          if (hbs->block_num - hbs->dpos_irreversible_blocknum == 1024) {
+             send_enstandby_transaction();
+          }
       }
 
       _unapplied_transactions.add_aborted( chain.abort_block() );

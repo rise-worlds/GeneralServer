@@ -21,9 +21,8 @@ namespace detail {
       flat_map<account_name,uint32_t>   producer_to_last_implied_irb;   //该BP认为的异步BFT共识算法第二阶段(Commit)的结果，主要用来计算不可逆块号。它是一个map结构，记录的是每个生产节点它的建议块号。
       block_signing_authority           valid_block_signing_authority;
       vector<uint8_t>                   confirm_count;   //记录的是每个块到目前为止还需要多少个生产者来确认它，当某个元素值变为0后，说明该元素所对应的块应该是生产该块的节点的建议不可逆块号。然后把块号赋给 dpos_proposed_irreversible_blocknum.按顺序存储了所有尚未不可逆的区块的确认次数。初始值为2/3*bp_count+1，每确认一次减1，为0则表示有足够的BP确认，会从该数组删除。
-      producer_authority_schedule       standby_schedule;
       bool                              enable_standby_schedule = false;
-      block_num_type                    standby_schedule_block_num = 0;
+      optional<block_num_type>          standby_schedule_block_num;
    };
 
    struct schedule_info {
@@ -45,9 +44,8 @@ struct pending_block_header_state : public detail::block_header_state_common {
    signed_block_header make_block_header( const checksum256_type& transaction_mroot,
                                           const checksum256_type& action_mroot,
                                           const optional<producer_authority_schedule>& new_producers,
-                                          const producer_authority_schedule& standby_schedule,
                                           bool enable_standby_schedule,
-                                          block_num_type standby_schedule_block_num )const;
+                                          optional<block_num_type> standby_schedule_block_num )const;
 
    block_header_state  finish_next( const signed_block_header& h,
                                     vector<signature_type>&& additional_signatures,
@@ -111,8 +109,8 @@ FC_REFLECT( eosio::chain::detail::block_header_state_common,
             (producer_to_last_implied_irb)
             (valid_block_signing_authority)
             (confirm_count)
-            (standby_schedule)
             (enable_standby_schedule)
+            (standby_schedule_block_num)
 )
 
 FC_REFLECT( eosio::chain::detail::schedule_info,

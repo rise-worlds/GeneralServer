@@ -32,7 +32,7 @@ namespace eosio { namespace chain {
       chain_id_type                       chain_id;
       shared_producer_authority_schedule  standby_schedule;
       bool                                enable_standby_schedule = false;
-      block_num_type                      standby_schedule_block_num = 0;
+      optional<block_num_type>            standby_schedule_block_num;
    };
 
 
@@ -52,7 +52,7 @@ namespace eosio { namespace chain {
       chain_id_type                       chain_id;
       producer_authority_schedule         standby_schedule;
       bool                                enable_standby_schedule;
-      block_num_type                      standby_schedule_block_num;
+      optional<block_num_type>            standby_schedule_block_num;
    };
 
    namespace detail {

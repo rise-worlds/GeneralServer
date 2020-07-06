@@ -106,13 +106,11 @@ namespace eosio { namespace chain {
 
       result.prev_pending_schedule                 = pending_schedule;
       result.enable_standby_schedule               = enable_standby_schedule;
-      result.standby_schedule                      = standby_schedule;
       result.standby_schedule_block_num            = standby_schedule_block_num;
-      edump((block_num)(enable_standby_schedule)(standby_schedule_block_num));
 
       if( pending_schedule.schedule.producers.size() &&
           ((result.dpos_irreversible_blocknum >= pending_schedule.schedule_lib_num )
-           || (enable_standby_schedule && standby_schedule_block_num <= block_num) ) )
+           || (enable_standby_schedule && *standby_schedule_block_num && *standby_schedule_block_num <= block_num) ) )
       {
          result.active_schedule = pending_schedule.schedule;
 
@@ -164,13 +162,11 @@ namespace eosio { namespace chain {
                                                       const checksum256_type& transaction_mroot,
                                                       const checksum256_type& action_mroot,
                                                       const optional<producer_authority_schedule>& new_producers,
-                                                      const producer_authority_schedule& standby_schedule,
                                                       bool enable_standby_schedule,
-                                                      block_num_type standby_schedule_block_num
+                                                      optional<block_num_type> standby_schedule_block_num
    )const
    {
       signed_block_header h;
-      edump((block_num)(enable_standby_schedule));
 
       h.timestamp         = timestamp;
       h.producer          = producer;
@@ -179,7 +175,6 @@ namespace eosio { namespace chain {
       h.transaction_mroot = transaction_mroot;
       h.action_mroot      = action_mroot;
       h.schedule_version  = active_schedule_version;
-      h.standby_schedule = standby_schedule;
       h.enable_standby_schedule = enable_standby_schedule;
       h.standby_schedule_block_num = standby_schedule_block_num;
 
@@ -229,16 +224,6 @@ namespace eosio { namespace chain {
 
       result.id      = h.id();
       result.header  = h;
-      edump((block_num)(enable_standby_schedule));
-      // if (enable_standby_schedule) {
-      //    was_pending_promoted = false;
-      //    auto new_producer_schedule = standby_schedule;
-      //    new_producer_schedule.version = active_schedule.version;
-      //    maybe_new_producer_schedule_hash.emplace(digest_type::hash(new_producer_schedule));
-      //    maybe_new_producer_schedule.emplace(new_producer_schedule);
-      //    result.enable_standby_schedule = false;
-      // }
-      result.standby_schedule = h.standby_schedule;
       result.enable_standby_schedule = h.enable_standby_schedule;
       result.standby_schedule_block_num = h.standby_schedule_block_num;
 
@@ -267,7 +252,6 @@ namespace eosio { namespace chain {
                                  bool skip_validate_signee
    )&&
    {
-      edump((block_num)(enable_standby_schedule));
       auto result = std::move(*this)._finish_next( h );
 
       if( !additional_signatures.empty() ) {
@@ -287,7 +271,6 @@ namespace eosio { namespace chain {
                                  const signer_callback_type& signer
    )&&
    {
-      edump((block_num)(enable_standby_schedule));
       auto result = std::move(*this)._finish_next( h );
       result.sign( signer );
       h.producer_signature = result.header.producer_signature;
@@ -308,7 +291,6 @@ namespace eosio { namespace chain {
                         vector<signature_type>&& _additional_signatures,
                         bool skip_validate_signee )const
    {
-      edump((block_num)(enable_standby_schedule));
       return next( h.timestamp, h.confirmed )
                .finish_next( h, std::move(_additional_signatures), skip_validate_signee );
    }
