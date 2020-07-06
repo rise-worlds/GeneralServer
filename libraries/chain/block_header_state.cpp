@@ -110,7 +110,7 @@ namespace eosio { namespace chain {
 
       if( pending_schedule.schedule.producers.size() &&
           ((result.dpos_irreversible_blocknum >= pending_schedule.schedule_lib_num )
-           || (enable_standby_schedule && *standby_schedule_block_num && *standby_schedule_block_num <= block_num) ) )
+           || (enable_standby_schedule && standby_schedule_block_num.valid() && *standby_schedule_block_num <= block_num) ) )
       {
          result.active_schedule = pending_schedule.schedule;
 
