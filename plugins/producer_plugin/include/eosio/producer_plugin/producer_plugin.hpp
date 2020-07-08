@@ -23,6 +23,15 @@ public:
       fc::optional<uint32_t>  greylist_limit;
    };
 
+   struct allowlist_denylist {
+      fc::optional< flat_set<account_name> > actor_allowlist;
+      fc::optional< flat_set<account_name> > actor_denylist;
+      fc::optional< flat_set<account_name> > contract_allowlist;
+      fc::optional< flat_set<account_name> > contract_denylist;
+      fc::optional< flat_set< std::pair<account_name, action_name> > > action_denylist;
+      fc::optional< flat_set<public_key_type> > key_denylist;
+   };
+
    struct greylist_params {
       std::vector<account_name> accounts;
    };
@@ -66,6 +75,9 @@ public:
    void remove_greylist_accounts(const greylist_params& params);
    greylist_params get_greylist() const;
 
+   allowlist_denylist get_allowlist_denylist() const;
+   void set_allowlist_denylist(const allowlist_denylist& params);
+
    integrity_hash_information get_integrity_hash() const;
    void create_snapshot(next_function<snapshot_information> next);
 
@@ -77,5 +89,6 @@ private:
 
 FC_REFLECT(eosio::producer_plugin::runtime_options, (max_transaction_time)(max_irreversible_block_age)(produce_time_offset_us)(last_block_time_offset_us)(max_scheduled_transaction_time_per_block_ms)(subjective_cpu_leeway_us)(incoming_defer_ratio)(greylist_limit));
 FC_REFLECT(eosio::producer_plugin::greylist_params, (accounts));
+FC_REFLECT(eosio::producer_plugin::allowlist_denylist, (actor_allowlist)(actor_denylist)(contract_allowlist)(contract_denylist)(action_denylist)(key_denylist) )
 FC_REFLECT(eosio::producer_plugin::integrity_hash_information, (head_block_id)(integrity_hash))
 FC_REFLECT(eosio::producer_plugin::snapshot_information, (head_block_id)(snapshot_name))

@@ -1,20 +1,33 @@
 # Generated from CLion C/C++ Code Style settings
 BasedOnStyle: LLVM
-AccessModifierOffset: -4
+AccessModifierOffset: -3
 AlignAfterOpenBracket: Align
-AlignConsecutiveAssignments: false
 AlignOperands: true
 AllowAllArgumentsOnNextLine: false
 AllowAllConstructorInitializersOnNextLine: false
+# 允许函数声明的所有参数在放在下一行
 AllowAllParametersOfDeclarationOnNextLine: false
+# 允许短的块放在同一行
 AllowShortBlocksOnASingleLine: Always
-AllowShortCaseLabelsOnASingleLine: false
+# 允许短的case标签放在同一行
+AllowShortCaseLabelsOnASingleLine: true
+# 允许短的函数放在同一行
 AllowShortFunctionsOnASingleLine: All
+# 允许短的if语句保持在同一行
 AllowShortIfStatementsOnASingleLine: Always
 AllowShortLambdasOnASingleLine: All
+# 允许短的循环保持在同一行
 AllowShortLoopsOnASingleLine: true
+# 总是在返回类型后换行
 AlwaysBreakAfterReturnType: None
+# 总是在template声明后换行
 AlwaysBreakTemplateDeclarations: Yes
+# 连续赋值时，对齐所有等号
+AlignConsecutiveAssignments: true
+# 连续声明时，对齐所有声明的变量名
+AlignConsecutiveDeclarations: true
+# 总是在多行string字面量前换行
+AlwaysBreakBeforeMultilineStrings: true
 BreakBeforeBraces: Custom
 BraceWrapping:
   AfterCaseLabel: false
@@ -31,24 +44,32 @@ BraceWrapping:
   SplitEmptyRecord: true
 BreakBeforeBinaryOperators: None
 BreakBeforeTernaryOperators: true
-BreakConstructorInitializers: BeforeColon
+#在构造函数初始化时按逗号断行，并以冒号对齐
+BreakConstructorInitializers: BeforeComma
 BreakInheritanceList: BeforeColon
-ColumnLimit: 0
+# 每行字符的长度
+ColumnLimit: 120
 CompactNamespaces: false
 ContinuationIndentWidth: 8
 IndentCaseLabels: true
 IndentPPDirectives: None
+#缩进宽度
 IndentWidth: 3
 KeepEmptyLinesAtTheStartOfBlocks: true
+# 连续的空行保留几行
 MaxEmptyLinesToKeep: 2
 NamespaceIndentation: All
-ObjCSpaceAfterProperty: false
+# 在 @property 后面添加空格
+ObjCSpaceAfterProperty: true
 ObjCSpaceBeforeProtocolList: true
-PointerAlignment: Right
+#指针的*的挨着哪边
+PointerAlignment: Left
 ReflowComments: false
+#括号后添加空格
 SpaceAfterCStyleCast: true
 SpaceAfterLogicalNot: false
 SpaceAfterTemplateKeyword: false
+#等号两边的空格
 SpaceBeforeAssignmentOperators: true
 SpaceBeforeCpp11BracedList: false
 SpaceBeforeCtorInitializerColon: true
@@ -57,10 +78,15 @@ SpaceBeforeParens: ControlStatements
 SpaceBeforeRangeBasedForLoopColon: true
 SpaceInEmptyParentheses: false
 SpacesBeforeTrailingComments: 0
+# 在尖括号的<后和>前添加空格
 SpacesInAngles: false
+# 在C风格类型转换的括号中添加空格
 SpacesInCStyleCastParentheses: false
 SpacesInContainerLiterals: false
-SpacesInParentheses: false
-SpacesInSquareBrackets: false
+# 小括号两边添加空格
+SpacesInParentheses: true
+# 中括号两边空格 []，lamda表达式和未指明大小的数组的声明不受影响
+SpacesInSquareBrackets: true
 TabWidth: 3
 UseTab: Never
+IndentWrappedFunctionNames: true

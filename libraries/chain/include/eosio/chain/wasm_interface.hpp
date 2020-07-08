@@ -1,7 +1,7 @@
 #pragma once
 #include <eosio/chain/code_object.hpp>
 #include <eosio/chain/types.hpp>
-#include <eosio/chain/whitelisted_intrinsics.hpp>
+#include <eosio/chain/allowlisted_intrinsics.hpp>
 #include <eosio/chain/exceptions.hpp>
 #if defined(EOSIO_EOS_VM_RUNTIME_ENABLED) || defined(EOSIO_EOS_VM_JIT_RUNTIME_ENABLED)
 #include <eosio/vm/allocator.hpp>
@@ -32,8 +32,8 @@ namespace eosio { namespace chain {
 
          root_resolver() {}
 
-         root_resolver( const whitelisted_intrinsics_type& whitelisted_intrinsics )
-         :whitelisted_intrinsics(&whitelisted_intrinsics)
+         root_resolver( const allowlisted_intrinsics_type& allowlisted_intrinsics )
+         :allowlisted_intrinsics(&allowlisted_intrinsics)
          {}
 
          bool resolve(const string& mod_name,
@@ -43,15 +43,15 @@ namespace eosio { namespace chain {
          { try {
             bool fail = false;
 
-            if( whitelisted_intrinsics != nullptr ) {
+            if( allowlisted_intrinsics != nullptr ) {
                // Protect access to "private" injected functions; so for now just simply allow "env" since injected
                // functions are in a different module.
                EOS_ASSERT( mod_name == "env", wasm_exception,
                            "importing from module that is not 'env': ${module}.${export}",
                            ("module",mod_name)("export",export_name) );
 
-               // Only consider imports that are in the whitelisted set of intrinsics
-               fail = !is_intrinsic_whitelisted( *whitelisted_intrinsics, export_name );
+               // Only consider imports that are in the allowlisted set of intrinsics
+               fail = !is_intrinsic_allowlisted( *allowlisted_intrinsics, export_name );
             }
 
             // Try to resolve an intrinsic first.
@@ -65,7 +65,7 @@ namespace eosio { namespace chain {
          } FC_CAPTURE_AND_RETHROW( (mod_name)(export_name) ) }
 
       protected:
-         const whitelisted_intrinsics_type* whitelisted_intrinsics = nullptr;
+         const allowlisted_intrinsics_type* allowlisted_intrinsics = nullptr;
       };
    } }
 

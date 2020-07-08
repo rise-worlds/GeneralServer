@@ -57,6 +57,13 @@ namespace eosio { namespace chain {
    class controller {
       public:
          struct config {
+            flat_set<account_name>   sender_bypass_allowdenylist;
+            flat_set<account_name>   actor_allowlist;
+            flat_set<account_name>   actor_denylist;
+            flat_set<account_name>   contract_allowlist;
+            flat_set<account_name>   contract_denylist;
+            flat_set< pair<account_name, action_name> > action_denylist;
+            flat_set<public_key_type> key_denylist;
             path                     blocks_dir             =  chain::config::default_blocks_dir_name;
             path                     state_dir              =  chain::config::default_state_dir_name;
             uint64_t                 state_size             =  chain::config::default_state_size;
@@ -162,6 +169,20 @@ namespace eosio { namespace chain {
          const authorization_manager&          get_authorization_manager()const;
          authorization_manager&                get_mutable_authorization_manager();
 
+         const flat_set<account_name>&   get_actor_allowlist() const;
+         const flat_set<account_name>&   get_actor_denylist() const;
+         const flat_set<account_name>&   get_contract_allowlist() const;
+         const flat_set<account_name>&   get_contract_denylist() const;
+         const flat_set< pair<account_name, action_name> >& get_action_denylist() const;
+         const flat_set<public_key_type>& get_key_denylist() const;
+
+         void   set_actor_allowlist( const flat_set<account_name>& );
+         void   set_actor_denylist( const flat_set<account_name>& );
+         void   set_contract_allowlist( const flat_set<account_name>& );
+         void   set_contract_denylist( const flat_set<account_name>& );
+         void   set_action_denylist( const flat_set< pair<account_name, action_name> >& );
+         void   set_key_denylist( const flat_set<public_key_type>& );
+
          uint32_t             head_block_num()const;
          time_point           head_block_time()const;
          block_id_type        head_block_id()const;
@@ -205,6 +226,11 @@ namespace eosio { namespace chain {
          sha256 calculate_integrity_hash()const;
          void write_snapshot( const snapshot_writer_ptr& snapshot )const;
 
+         bool sender_avoids_allowlist_denylist_enforcement( account_name sender )const;
+         void check_actor_list( const flat_set<account_name>& actors )const;
+         void check_contract_list( account_name code )const;
+         void check_action_list( account_name code, action_name action )const;
+         void check_key_list( const public_key_type& key )const;
          bool is_building_block()const;
          bool is_producing_block()const;
 
@@ -250,6 +276,7 @@ namespace eosio { namespace chain {
          void set_greylist_limit( uint32_t limit );
          uint32_t get_greylist_limit()const;
 
+         void add_to_ram_correction( account_name account, uint64_t ram_bytes );
          bool all_subjective_mitigations_disabled()const;
 
 #if defined(EOSIO_EOS_VM_RUNTIME_ENABLED) || defined(EOSIO_EOS_VM_JIT_RUNTIME_ENABLED)

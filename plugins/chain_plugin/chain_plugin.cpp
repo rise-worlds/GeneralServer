@@ -252,6 +252,20 @@ void chain_plugin::set_program_options(options_description& cli, options_descrip
           "Number of worker threads in controller thread pool")
          ("contracts-console", bpo::bool_switch()->default_value(false),
           "print contract's output to console")
+         ("actor-allowlist", boost::program_options::value<vector<string>>()->composing()->multitoken(),
+          "Account added to actor allowlist (may specify multiple times)")
+         ("actor-denylist", boost::program_options::value<vector<string>>()->composing()->multitoken(),
+          "Account added to actor denylist (may specify multiple times)")
+         ("contract-allowlist", boost::program_options::value<vector<string>>()->composing()->multitoken(),
+          "Contract account added to contract allowlist (may specify multiple times)")
+         ("contract-denylist", boost::program_options::value<vector<string>>()->composing()->multitoken(),
+          "Contract account added to contract denylist (may specify multiple times)")
+         ("action-denylist", boost::program_options::value<vector<string>>()->composing()->multitoken(),
+          "Action (in the form code::action) added to action denylist (may specify multiple times)")
+         ("key-denylist", boost::program_options::value<vector<string>>()->composing()->multitoken(),
+          "Public key added to denylist of keys that should not be included in authorities (may specify multiple times)")
+         ("sender-bypass-allowdenylist", boost::program_options::value<vector<string>>()->composing()->multitoken(),
+          "Deferred transactions sent by accounts in this list do not have any of the subjective allowlist/denylist checks applied to them (may specify multiple times)")
          ("read-mode", boost::program_options::value<eosio::chain::db_read_mode>()->default_value(eosio::chain::db_read_mode::SPECULATIVE),
           "Database read mode (\"speculative\", \"head\", \"read-only\", \"irreversible\").\n"
           "In \"speculative\" mode: database contains state changes by transactions in the blockchain up to the head block as well as some transactions not yet included in the blockchain.\n"
@@ -444,7 +458,33 @@ void chain_plugin::plugin_initialize(const variables_map& options) {
          EOS_THROW( node_management_success, "reported build environment information" );
       }
 
+      LOAD_VALUE_SET( options, "sender-bypass-allowdenylist", my->chain_config->sender_bypass_allowdenylist );
+      LOAD_VALUE_SET( options, "actor-allowlist", my->chain_config->actor_allowlist );
+      LOAD_VALUE_SET( options, "actor-denylist", my->chain_config->actor_denylist );
+      LOAD_VALUE_SET( options, "contract-allowlist", my->chain_config->contract_allowlist );
+      LOAD_VALUE_SET( options, "contract-denylist", my->chain_config->contract_denylist );
+
       LOAD_VALUE_SET( options, "trusted-producer", my->chain_config->trusted_producers );
+
+      if( options.count( "action-denylist" )) {
+         const std::vector<std::string>& acts = options["action-denylist"].as<std::vector<std::string>>();
+         auto& list = my->chain_config->action_denylist;
+         for( const auto& a : acts ) {
+            auto pos = a.find( "::" );
+            EOS_ASSERT( pos != std::string::npos, plugin_config_exception, "Invalid entry in action-denylist: '${a}'", ("a", a));
+            account_name code( a.substr( 0, pos ));
+            action_name act( a.substr( pos + 2 ));
+            list.emplace( code, act );
+         }
+      }
+
+      if( options.count( "key-denylist" )) {
+         const std::vector<std::string>& keys = options["key-denylist"].as<std::vector<std::string>>();
+         auto& list = my->chain_config->key_denylist;
+         for( const auto& key_str : keys ) {
+            list.emplace( key_str );
+         }
+      }
 
       if( options.count( "blocks-dir" )) {
          auto bld = options.at( "blocks-dir" ).as<bfs::path>();

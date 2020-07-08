@@ -53,7 +53,7 @@ namespace eosio { namespace chain {
 
       const auto& pso = control.db().get<protocol_state_object>();
 
-      root_resolver resolver( pso.whitelisted_intrinsics );
+      root_resolver resolver( pso.allowlisted_intrinsics );
       LinkResult link_result = linkModule(module, resolver);
 
       //there are a couple opportunties for improvement here--

@@ -10,7 +10,7 @@ struct chain_snapshot_header {
     *   1: initial version
     *   2: Updated chain snapshot for v1.8.0 initial protocol features release:
     *         - Incompatible with version 1.
-    *         - Adds new indices for: protocol_state_object
+    *         - Adds new indices for: protocol_state_object and account_ram_correction_object
     *   3: Updated for v2.0.0 protocol features:
     *         - forwards compatible with version 2
     *         - WebAuthn keys
