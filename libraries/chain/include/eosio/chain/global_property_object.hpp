@@ -31,6 +31,8 @@ namespace eosio { namespace chain {
       chain_config                        configuration;
       chain_id_type                       chain_id;
       shared_producer_authority_schedule  standby_schedule;
+      bool                                enable_standby_schedule = false;
+      optional<block_num_type>            standby_schedule_block_num;
    };
 
 
@@ -49,6 +51,8 @@ namespace eosio { namespace chain {
       chain_config                        configuration;
       chain_id_type                       chain_id;
       producer_authority_schedule         standby_schedule;
+      bool                                enable_standby_schedule;
+      optional<block_num_type>            standby_schedule_block_num;
    };
 
    namespace detail {
@@ -64,6 +68,8 @@ namespace eosio { namespace chain {
                value.configuration,
                value.chain_id,
                producer_authority_schedule::from_shared(value.standby_schedule),
+               value.enable_standby_schedule,
+               value.standby_schedule_block_num,
                };;
          }
 
@@ -73,6 +79,8 @@ namespace eosio { namespace chain {
             value.configuration = row.configuration;
             value.chain_id = row.chain_id;
             value.standby_schedule = row.standby_schedule.to_shared(value.standby_schedule.producers.get_allocator());
+            value.enable_standby_schedule = row.enable_standby_schedule;
+            value.standby_schedule_block_num = row.standby_schedule_block_num;
          }
       };
    }
@@ -108,12 +116,12 @@ CHAINBASE_SET_INDEX_TYPE(eosio::chain::dynamic_global_property_object,
 
 FC_REFLECT(eosio::chain::global_property_object,
             (proposed_schedule_block_num)(proposed_schedule)(configuration)(chain_id)
-            (standby_schedule)
+            (standby_schedule)(enable_standby_schedule)(standby_schedule_block_num)
           )
 
 FC_REFLECT(eosio::chain::snapshot_global_property_object,
             (proposed_schedule_block_num)(proposed_schedule)(configuration)(chain_id)
-            (standby_schedule)
+            (standby_schedule)(enable_standby_schedule)(standby_schedule_block_num)
           )
 
 FC_REFLECT(eosio::chain::dynamic_global_property_object,

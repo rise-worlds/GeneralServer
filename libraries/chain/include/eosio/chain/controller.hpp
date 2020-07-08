@@ -43,15 +43,15 @@ namespace eosio { namespace chain {
    class fork_database;
 
    enum class db_read_mode {
-      SPECULATIVE,
-      HEAD,
-      READ_ONLY,
-      IRREVERSIBLE
+      SPECULATIVE,   // 推测模式。内容为两个主体的数据：已完成的头区块，以及还未上链的事务。
+      HEAD,          // 头块模式。内容为当前头区块数据。
+      READ_ONLY,     // 只读模式。内容为同步进来的区块数据，不包括推测状态的事务处理数据。
+      IRREVERSIBLE   // 不可逆模式。内容为当前不可逆区块的数据。
    };
 
    enum class validation_mode {
-      FULL,
-      LIGHT
+      FULL,          // 完全模式。所有同步进来的区块都将被完整地校验。
+      LIGHT          // 轻量模式。所有同步进来的区块头都将被完整的校验，通过校验的区块头所在区块的全部事务被认为可信。
    };
 
    class controller {
@@ -258,12 +258,19 @@ namespace eosio { namespace chain {
 
          static fc::optional<uint64_t> convert_exception_to_error_code( const fc::exception& e );
 
+         // 预承认区块(承认其他节点广播过来的区块是正确的)
          signal<void(const signed_block_ptr&)>         pre_accepted_block;       //调用push_block()（同步、刚启动时从数据库恢复）,区块尚未add()到fork_db之前，先发送这个信号
+         // 承认区块头(对区块头做过校验)
          signal<void(const block_state_ptr&)>          accepted_block_header;    //调用push_block()或commit_block()（生产区块），区块被add()到fork_db后，发送该信号
+         // 承认区块
          signal<void(const block_state_ptr&)>          accepted_block;           //调用commit_block()，区块被add()到fork_db后，发送该信号
+         // 不可逆区块
          signal<void(const block_state_ptr&)>          irreversible_block;       //调用push_block()恢复数据时或on_irreversible()时，发送该信号
+         // 承认事务
          signal<void(const transaction_metadata_ptr&)> accepted_transaction;     //调用push_transaction()或push_scheduled_transaction()成功后，发送该信号
+         // 应用事务(承认其他节点数据要先校验，通过以后可以应用在本地节点)
          signal<void(std::tuple<const transaction_trace_ptr&, const signed_transaction&>)> applied_transaction;   //同上
+         // 内存分配错误信号
          signal<void(const int&)>                      bad_alloc;
 
          /*

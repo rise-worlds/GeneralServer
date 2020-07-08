@@ -167,8 +167,8 @@ using pending_snapshot_index = multi_index_container<
 >;
 
 enum class pending_block_mode {
-   producing,
-   speculating
+   producing,     // 本地生产
+   speculating    // 外部确认有可能确认失败不一定能成为不可逆，因此是投机性的。
 };
 
 class producer_plugin_impl : public std::enable_shared_from_this<producer_plugin_impl> {
@@ -357,21 +357,25 @@ class producer_plugin_impl : public std::enable_shared_from_this<producer_plugin
          EOS_ASSERT( block->timestamp < (fc::time_point::now() + fc::seconds( 7 )), block_from_the_future,
                      "received a block from the future, ignoring it: ${id}", ("id", id) );
 
+         /* 如果本地已经存在接收的区块了，则不必处理，直接返回。*/
          /* de-dupe here... no point in aborting block if we already know the block */
          auto existing = chain.fetch_block_by_id( id );
          if( existing ) { return false; }
 
+         // 启动多线程验证区块
          // start processing of block
          auto bsf = chain.create_block_state_future( block );
 
          // abort the pending block
          _unapplied_transactions.add_aborted( chain.abort_block() );
 
+         // 抛出异常，保证重启定时生产循环
          // exceptions throw out, make sure we restart our loop
          auto ensure = fc::make_scoped_exit([this](){
             schedule_production_loop();
          });
 
+         // 向本地链推送新区块
          // push the new block
          try {
             chain.push_block( bsf, [this]( const branch_type& forked_branch ) {
@@ -384,6 +388,7 @@ class producer_plugin_impl : public std::enable_shared_from_this<producer_plugin
             return false;
          } catch( const fc::exception& e ) {
             elog((e.to_detail_string()));
+            // rejected_block频道发布某区块已被拒绝的消息
             app().get_channel<channels::rejected_block>().publish( priority::medium, block );
             throw;
          } catch ( const std::bad_alloc& ) {
@@ -392,7 +397,7 @@ class producer_plugin_impl : public std::enable_shared_from_this<producer_plugin
             chain_plugin::handle_db_exhaustion();
          }
 
-         //判断当前节点是否可以出块的一个因素，即当前节点要出块则下一个区块时间上必须领先当前时间
+         // 当链的头块状态中时间戳的下一个点大于等于当前时间时，本地则具备生产能力。
          const auto& hbs = chain.head_block_state();
          if( hbs->header.timestamp.next().to_time_point() >= fc::time_point::now() ) {
             _production_enabled = true;
@@ -926,12 +931,12 @@ void producer_plugin::plugin_startup()
    my->_accepted_block_header_connection.emplace(chain.accepted_block_header.connect( [this]( const auto& bsp ){ my->on_block_header( bsp ); } ));
    my->_irreversible_block_connection.emplace(chain.irreversible_block.connect( [this]( const auto& bsp ){ my->on_irreversible_block( bsp->block ); } ));
 
-   const auto lib_num = chain.last_irreversible_block_num();
-   const auto lib = chain.fetch_block_by_number(lib_num);
-   if (lib) {
-      my->on_irreversible_block(lib);
-   } else {
-      my->_irreversible_block_time = fc::time_point::maximum();
+   const auto lib_num = chain.last_irreversible_block_num(); // 获取当前最后不可逆区块号
+   const auto lib = chain.fetch_block_by_number(lib_num); // 获取最后不可逆区块
+   if (lib) { // 如果最后不可逆区块存在
+      my->on_irreversible_block(lib); // 执行函数同步更新本地区块的不可逆时间
+   } else { // 如果最后不可逆区块不存在
+      my->_irreversible_block_time = fc::time_point::maximum(); // 区块不可逆时间设置为最大值。
    }
 
    if (!my->_producers.empty()) {
@@ -1291,17 +1296,6 @@ producer_plugin_impl::start_block_result producer_plugin_impl::start_block() {
       }
    });
 
-   // const auto& cfg = chain.get_global_properties();
-   // for (const auto& standby_producer : cfg.standby_producers)
-   // {
-   //    auto it = _producers.find(standby_producer.producer_name);
-   //    if (it == _producers.end()) {
-   //       ++num_relevant_signatures;
-   //    }
-   // }
-   // auto sp_it = std::search(cfg.standby_producers.begin(), cfg.standby_producers.end(), _producers.begin(), _producers.end(), 
-   //    [](const auto&a, const auto&b){ return a.producer_name == b; });
-
    auto irreversible_block_age = get_irreversible_block_age();
 
    // If the next block production opportunity is in the present or future, we're synced.
@@ -1386,9 +1380,9 @@ producer_plugin_impl::start_block_result producer_plugin_impl::start_block() {
          // can not confirm irreversible blocks
          blocks_to_confirm = (uint16_t)(std::min<uint32_t>(blocks_to_confirm, (uint32_t)(hbs->block_num - hbs->dpos_irreversible_blocknum)));
 
-         if (hbs->block_num - hbs->dpos_irreversible_blocknum == 300) {
-            send_enstandby_transaction();
-         }
+          if (hbs->block_num - hbs->dpos_irreversible_blocknum == 1024) {
+             send_enstandby_transaction();
+          }
       }
 
       _unapplied_transactions.add_aborted( chain.abort_block() );
@@ -1893,16 +1887,17 @@ static auto maybe_make_debug_time_logger() -> fc::optional<decltype(make_debug_t
 // 生产区块(打包、签名、提交区块入链)
 void producer_plugin_impl::produce_block() {
    //ilog("produce_block ${t}", ("t", fc::time_point::now())); // for testing _produce_time_offset_us
+   // 区块生产必须是pending区块状态为producing，否则输出错误日志：实际上并没有真正生产区块。
    EOS_ASSERT(_pending_block_mode == pending_block_mode::producing, producer_exception, "called produce_block while not actually producing");
    chain::controller& chain = chain_plug->chain();
-   const auto& hbs = chain.head_block_state();
+   const auto& hbs = chain.head_block_state(); // 从chain实例获取当前头区块
    EOS_ASSERT(chain.is_building_block(), missing_pending_block_state, "pending_block_state does not exist but it should, another plugin may have corrupted it");
 
    const auto& auth = chain.pending_block_signing_authority();
    std::vector<std::reference_wrapper<const signature_provider_type>> relevant_providers;
 
    relevant_providers.reserve(_signature_providers.size());
-
+   // 通过pending区块的区块签名公钥去内存多索引表_signature_providers中差找relevant_providers
    producer_authority::for_each_key(auth, [&](const public_key_type& key){
       const auto& iter = _signature_providers.find(key);
       if (iter != _signature_providers.end()) {
@@ -1925,36 +1920,16 @@ void producer_plugin_impl::produce_block() {
       return sigs;
    } );
 
-   chain.commit_block();
+   chain.commit_block(); // 仍旧是执行controller的commit_block函数进行区块提交
 
    block_state_ptr new_bs = chain.head_block_state();
-
+   // 打印生产结果日志
    ilog("Produced block ${id}... #${n} @ ${t} signed by ${p} [trxs: ${count}, lib: ${lib}, confirmed: ${confs}]",
         ("p",new_bs->header.producer)("id",new_bs->id.str().substr(8,16))
         ("n",new_bs->block_num)("t",new_bs->header.timestamp)
         ("count",new_bs->block->transactions.size())("lib",chain.last_irreversible_block_num())("confs", new_bs->header.confirmed));
 
 }
-
-// optional<fc::time_point> producer_plugin_impl::calculate_chipcounter_time()
-// {
-//    const chain::controller& chain = chain_plug->chain();
-//    const auto& hbs = chain.head_block_state();
-//    const auto& active_schedule = hbs->active_schedule.producers;
-//    // determine if this producer is in the active schedule and if so, where
-//    auto itr = std::find_if(active_schedule.begin(), active_schedule.end(), [&](const auto& asp){ return asp.producer_name == chain.head_block_producer(); });
-//    if (itr == active_schedule.end()) {
-//       // this producer is not in the active producer set
-//       return optional<fc::time_point>();
-//    }
-//
-//    size_t producer_index = itr - active_schedule.begin();
-//    // const fc::time_point now = fc::time_point::now();
-//    // const fc::time_point base = std::max<fc::time_point>(now, chain.head_block_time());
-//    fc::time_point next_time(fc::microseconds(config::block_interval_us * config::producer_repetitions * (active_schedule.size() - producer_index)));
-//
-//    return next_time;
-// }
 
 void producer_plugin_impl::schedule_chipcounter_loop()
 {

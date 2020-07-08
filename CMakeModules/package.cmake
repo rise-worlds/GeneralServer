@@ -1,8 +1,8 @@
-set(VENDOR "block.one")
-set(PROJECT_NAME "eosio")
-set(DESC "Software for the EOS.IO network")
+set(VENDOR "potatocoin.com")
+set(PROJECT_NAME "potato")
+set(DESC "Software for the PotatoCoin.Com network")
 set(URL "https://github.com/eosio/eos")
-set(EMAIL "support@block.one")
+set(EMAIL "support@potatocoin.com")
 
 configure_file(${CMAKE_SOURCE_DIR}/scripts/generate_package.sh.in ${CMAKE_BINARY_DIR}/packages/generate_package.sh @ONLY)
 configure_file(${CMAKE_SOURCE_DIR}/scripts/generate_bottle.sh ${CMAKE_BINARY_DIR}/packages/generate_bottle.sh COPYONLY)

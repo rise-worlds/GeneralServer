@@ -19,8 +19,8 @@ namespace eosio { namespace chain {
 
       if( blocknums.size() == 0 ) return 0;
 
-      std::size_t index = (blocknums.size()-1) / 3;
-      std::nth_element( blocknums.begin(),  blocknums.begin() + index, blocknums.end() );
+      std::size_t index = (blocknums.size()-1) / 3; // dpos最后不可逆区块的判断条件是必须在池子里面保持有2/3个区块号是大于自己的
+      std::nth_element( blocknums.begin(), blocknums.begin() + index, blocknums.end() );
       return blocknums[ index ];
    }
 
@@ -105,29 +105,14 @@ namespace eosio { namespace chain {
       result.dpos_irreversible_blocknum            = calc_dpos_last_irreversible( proauth.producer_name );
 
       result.prev_pending_schedule                 = pending_schedule;
+      result.enable_standby_schedule               = enable_standby_schedule;
+      result.standby_schedule_block_num            = standby_schedule_block_num;
 
-      // if( pending_schedule.schedule.producers.size() && 
-      //     result.block_num - result.dpos_irreversible_blocknum >= 300 )
-      // {
-      //    wlog("update producers schedule: ${schedule}", ("schedule", pending_schedule.schedule));
-      // }
-      // idump((result.block_num)(result.dpos_irreversible_blocknum)(result.dpos_proposed_irreversible_blocknum));
-
-      if( (pending_schedule.schedule.producers.size() &&
-          result.dpos_irreversible_blocknum >= pending_schedule.schedule_lib_num)
-         //   || result.block_num - result.dpos_irreversible_blocknum >= 300
-          )
+      if( pending_schedule.schedule.producers.size() &&
+          ((result.dpos_irreversible_blocknum >= pending_schedule.schedule_lib_num )
+           || (enable_standby_schedule && standby_schedule_block_num.valid() && *standby_schedule_block_num <= block_num) ) )
       {
-         static const vector<account_name> standby_producers = {
-            N(pcbpa),            N(pcbpb),            N(pcbpc),
-            N(pcbpd),            N(pcbpe),            N(pcbpf),
-            N(pcbpg),            N(pcbph),            N(pcbpi),
-            N(pcbpj),            N(pcbpk),            N(pcbpl),
-            N(pcbpm),            N(pcbpn),            N(pcbpo),
-            N(pcbpp),            N(pcbpq),            N(pcbpr),
-            N(pcbps),            N(pcbpt),            N(pcbpu)};
-         if( pending_schedule.schedule.producers.size() )
-            result.active_schedule = pending_schedule.schedule;
+         result.active_schedule = pending_schedule.schedule;
 
          flat_map<account_name,uint32_t> new_producer_to_last_produced;
          for( const auto& pro : result.active_schedule.producers ) {
@@ -142,17 +127,7 @@ namespace eosio { namespace chain {
                }
             }
          }
-         // for( const auto& producer : standby_producers )
-         // {
-         //    auto existing = producer_to_last_produced.find( producer );
-         //    if( existing != producer_to_last_produced.end() ) {
-         //       new_producer_to_last_produced[producer] = existing->second;
-         //    } else {
-         //       new_producer_to_last_produced[producer] = result.dpos_irreversible_blocknum;
-         //    }
-         // }
          new_producer_to_last_produced[proauth.producer_name] = result.block_num;
-
          result.producer_to_last_produced = std::move( new_producer_to_last_produced );
 
          flat_map<account_name,uint32_t> new_producer_to_last_implied_irb;
@@ -169,18 +144,9 @@ namespace eosio { namespace chain {
                }
             }
          }
-         // for( const auto& producer : standby_producers )
-         // {
-         //    auto existing = producer_to_last_implied_irb.find( producer );
-         //    if( existing != producer_to_last_implied_irb.end() ) {
-         //       new_producer_to_last_implied_irb[producer] = existing->second;
-         //    } else {
-         //       new_producer_to_last_implied_irb[producer] = result.dpos_irreversible_blocknum;
-         //    }
-         // }
          result.producer_to_last_implied_irb = std::move( new_producer_to_last_implied_irb );
 
-         result.was_pending_promoted = true;
+         result.was_pending_promoted = !enable_standby_schedule;
       } else {
          result.active_schedule                  = active_schedule;
          result.producer_to_last_produced        = producer_to_last_produced;
@@ -195,7 +161,9 @@ namespace eosio { namespace chain {
    signed_block_header pending_block_header_state::make_block_header(
                                                       const checksum256_type& transaction_mroot,
                                                       const checksum256_type& action_mroot,
-                                                      const optional<producer_authority_schedule>& new_producers
+                                                      const optional<producer_authority_schedule>& new_producers,
+                                                      bool enable_standby_schedule,
+                                                      optional<block_num_type> standby_schedule_block_num
    )const
    {
       signed_block_header h;
@@ -207,6 +175,8 @@ namespace eosio { namespace chain {
       h.transaction_mroot = transaction_mroot;
       h.action_mroot      = action_mroot;
       h.schedule_version  = active_schedule_version;
+      h.enable_standby_schedule = enable_standby_schedule;
+      h.standby_schedule_block_num = standby_schedule_block_num;
 
       if (new_producers) {
          // add the header extension to update the block schedule
@@ -240,8 +210,8 @@ namespace eosio { namespace chain {
 
          const auto& new_producer_schedule = exts.lower_bound(producer_schedule_change_extension::extension_id())->second.get<producer_schedule_change_extension>();
 
-         EOS_ASSERT( new_producer_schedule.version == active_schedule.version + 1, producer_schedule_exception, "wrong producer schedule version specified" );
-         EOS_ASSERT( prev_pending_schedule.schedule.producers.empty(), producer_schedule_exception,
+         EOS_ASSERT( h.enable_standby_schedule || new_producer_schedule.version == active_schedule.version + 1, producer_schedule_exception, "wrong producer schedule version specified" );
+         EOS_ASSERT( h.enable_standby_schedule || prev_pending_schedule.schedule.producers.empty(), producer_schedule_exception,
                      "cannot set new pending producers until last pending is confirmed" );
 
          maybe_new_producer_schedule_hash.emplace(digest_type::hash(new_producer_schedule));
@@ -254,6 +224,8 @@ namespace eosio { namespace chain {
 
       result.id      = h.id();
       result.header  = h;
+      result.enable_standby_schedule = h.enable_standby_schedule;
+      result.standby_schedule_block_num = h.standby_schedule_block_num;
 
       result.header_exts = std::move(exts);
 
@@ -273,7 +245,7 @@ namespace eosio { namespace chain {
 
       return result;
    }
-
+   //验证调用
    block_header_state pending_block_header_state::finish_next(
                                  const signed_block_header& h,
                                  vector<signature_type>&& additional_signatures,
@@ -293,7 +265,7 @@ namespace eosio { namespace chain {
 
       return result;
    }
-
+   //生产BP调用
    block_header_state pending_block_header_state::finish_next(
                                  signed_block_header& h,
                                  const signer_callback_type& signer
@@ -305,7 +277,7 @@ namespace eosio { namespace chain {
 
       return result;
    }
-
+   //验证调用
    /**
     *  Transitions the current header state into the next header state given the supplied signed block header.
     *
@@ -319,7 +291,8 @@ namespace eosio { namespace chain {
                         vector<signature_type>&& _additional_signatures,
                         bool skip_validate_signee )const
    {
-      return next( h.timestamp, h.confirmed ).finish_next( h, std::move(_additional_signatures), skip_validate_signee );
+      return next( h.timestamp, h.confirmed )
+               .finish_next( h, std::move(_additional_signatures), skip_validate_signee );
    }
 
    digest_type   block_header_state::sig_digest()const {

@@ -1,4 +1,4 @@
-add_executable( example main.cpp )
+add_executable( nodeos main.cpp )
 
 if( UNIX AND NOT APPLE )
   set(rt_library rt )
@@ -29,7 +29,7 @@ endif()
 
 configure_file(config.hpp.in config.hpp ESCAPE_QUOTES)
 
-target_include_directories(example PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories(nodeos PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
 if(UNIX)
   if(APPLE)
@@ -47,7 +47,7 @@ else()
   set(build_id_flag "")
 endif()
 
-target_link_libraries( example 
+target_link_libraries( nodeos 
     PRIVATE appbase version
     PRIVATE -Wl,${whole_archive_flag} chain_api_plugin    -Wl,${no_whole_archive_flag}
     PRIVATE -Wl,${whole_archive_flag} net_plugin          -Wl,${no_whole_archive_flag}
@@ -58,4 +58,4 @@ target_link_libraries( example
 
 include(additionalPlugins)
 
-copy_bin( example )
+copy_bin( nodeos )
