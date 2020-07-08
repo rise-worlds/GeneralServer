@@ -49,6 +49,7 @@ endif()
 
 target_link_libraries( nodeos 
     PRIVATE appbase version
+    PRIVATE -Wl,${whole_archive_flag} state_history_plugin       -Wl,${no_whole_archive_flag}
     PRIVATE -Wl,${whole_archive_flag} chain_api_plugin    -Wl,${no_whole_archive_flag}
     PRIVATE -Wl,${whole_archive_flag} net_plugin          -Wl,${no_whole_archive_flag}
     PRIVATE -Wl,${whole_archive_flag} producer_api_plugin -Wl,${no_whole_archive_flag}
