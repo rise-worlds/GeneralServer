@@ -10,7 +10,7 @@ namespace eosio { namespace chain {
       {
          snapshot_protocol_state_object res;
 
-         res.whitelisted_intrinsics = convert_intrinsic_whitelist_to_set( value.whitelisted_intrinsics );
+         res.allowlisted_intrinsics = convert_intrinsic_allowlist_to_set( value.allowlisted_intrinsics );
 
          res.num_supported_key_types = value.num_supported_key_types;
 
@@ -22,7 +22,7 @@ namespace eosio { namespace chain {
                                                                      protocol_state_object& value,
                                                                      chainbase::database& db )
       {
-         reset_intrinsic_whitelist( value.whitelisted_intrinsics, row.whitelisted_intrinsics );
+         reset_intrinsic_allowlist( value.allowlisted_intrinsics, row.allowlisted_intrinsics );
 
          value.num_supported_key_types = row.num_supported_key_types;
       }

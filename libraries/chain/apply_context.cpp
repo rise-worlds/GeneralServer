@@ -65,7 +65,7 @@ void apply_context::exec_one()
          privileged = receiver_account->is_privileged();
          auto native = control.find_apply_handler( receiver, act->account, act->name );
          if( native ) {
-            if( trx_context.enforce_whiteblacklist && control.is_producing_block() ) {
+            if( trx_context.enforce_allowdenylist && control.is_producing_block() ) {
                control.check_contract_list( receiver );
                control.check_action_list( act->account, act->name );
             }
@@ -73,7 +73,7 @@ void apply_context::exec_one()
          }
 
          if( receiver_account->code_hash != digest_type() )  {
-            if( trx_context.enforce_whiteblacklist && control.is_producing_block() ) {
+            if( trx_context.enforce_allowdenylist && control.is_producing_block() ) {
                control.check_contract_list( receiver );
                control.check_action_list( act->account, act->name );
             }
@@ -251,7 +251,7 @@ void apply_context::execute_inline( action&& a ) {
    EOS_ASSERT( code != nullptr, action_validate_exception,
                "inline action's code account ${account} does not exist", ("account", a.account) );
 
-   bool enforce_actor_whitelist_blacklist = trx_context.enforce_whiteblacklist && control.is_producing_block();
+   bool enforce_actor_allowlist_denylist = trx_context.enforce_allowdenylist && control.is_producing_block();
    flat_set<account_name> actors;
    flat_set<permission_level> inherited_authorizations;
 
@@ -262,11 +262,11 @@ void apply_context::execute_inline( action&& a ) {
       EOS_ASSERT( control.get_authorization_manager().find_permission(auth) != nullptr, action_validate_exception,
                   "inline action's authorizations include a non-existent permission: ${permission}",
                   ("permission", auth) );
-      if( enforce_actor_whitelist_blacklist )
+      if( enforce_actor_allowlist_denylist )
          actors.insert( auth.actor );
    }
 
-   if( enforce_actor_whitelist_blacklist ) {
+   if( enforce_actor_allowlist_denylist ) {
       control.check_actor_list( actors );
    }
 
@@ -320,9 +320,9 @@ void apply_context::execute_context_free_inline( action&& a ) {
 void apply_context::schedule_deferred_transaction( const uint128_t& sender_id, account_name payer, transaction&& trx, bool replace_existing ) {
    EOS_ASSERT( trx.context_free_actions.size() == 0, cfa_inside_generated_tx, "context free actions are not currently allowed in generated transactions" );
 
-   bool enforce_actor_whitelist_blacklist = trx_context.enforce_whiteblacklist && control.is_producing_block()
-                                             && !control.sender_avoids_whitelist_blacklist_enforcement( receiver );
-   trx_context.validate_referenced_accounts( trx, enforce_actor_whitelist_blacklist );
+   bool enforce_actor_allowlist_denylist = trx_context.enforce_allowdenylist && control.is_producing_block()
+                                             && !control.sender_avoids_allowlist_denylist_enforcement( receiver );
+   trx_context.validate_referenced_accounts( trx, enforce_actor_allowlist_denylist );
 
    auto exts = trx.validate_and_extract_extensions();
    if( exts.size() > 0 ) {

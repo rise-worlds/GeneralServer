@@ -2,7 +2,7 @@
 
 #include <eosio/chain/types.hpp>
 #include <eosio/chain/snapshot.hpp>
-#include <eosio/chain/whitelisted_intrinsics.hpp>
+#include <eosio/chain/allowlisted_intrinsics.hpp>
 #include <chainbase/chainbase.hpp>
 #include "multi_index_includes.hpp"
 
@@ -16,11 +16,11 @@ namespace eosio { namespace chain {
     */
    class protocol_state_object : public chainbase::object<protocol_state_object_type, protocol_state_object>
    {
-      OBJECT_CTOR(protocol_state_object, (whitelisted_intrinsics))
+      OBJECT_CTOR(protocol_state_object, (allowlisted_intrinsics))
 
    public:
       id_type                                    id;
-      whitelisted_intrinsics_type                whitelisted_intrinsics;
+      allowlisted_intrinsics_type                allowlisted_intrinsics;
       uint32_t                                   num_supported_key_types = 0;
    };
 
@@ -34,7 +34,7 @@ namespace eosio { namespace chain {
    >;
 
    struct snapshot_protocol_state_object {
-      std::set<std::string>                                     whitelisted_intrinsics;
+      std::set<std::string>                                     allowlisted_intrinsics;
       uint32_t                                                  num_supported_key_types = 0;
    };
 
@@ -58,9 +58,9 @@ namespace eosio { namespace chain {
 CHAINBASE_SET_INDEX_TYPE(eosio::chain::protocol_state_object, eosio::chain::protocol_state_multi_index)
 
 FC_REFLECT(eosio::chain::protocol_state_object,
-            (whitelisted_intrinsics)(num_supported_key_types)
+            (allowlisted_intrinsics)(num_supported_key_types)
           )
 
 FC_REFLECT(eosio::chain::snapshot_protocol_state_object,
-            (whitelisted_intrinsics)(num_supported_key_types)
+            (allowlisted_intrinsics)(num_supported_key_types)
           )

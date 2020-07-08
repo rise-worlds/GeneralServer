@@ -126,7 +126,7 @@ namespace eosio { namespace chain { namespace wasm_injections {
       static void initializer();
    };
 
-   struct blacklist_injection_visitor {
+   struct denylist_injection_visitor {
       static void inject( IR::Module& m );
       static void initializer();
    };

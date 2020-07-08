@@ -51,7 +51,7 @@ void validate_authority_precondition( const apply_context& context, const author
       }
    }
 
-   if( context.trx_context.enforce_whiteblacklist && context.control.is_producing_block() ) {
+   if( context.trx_context.enforce_allowdenylist && context.control.is_producing_block() ) {
       for( const auto& p : auth.keys ) {
          context.control.check_key_list( p.key );
       }

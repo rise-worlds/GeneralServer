@@ -96,7 +96,7 @@ add_library( eosio_chain
              protocol_state_object.cpp
              producer_schedule.cpp
              genesis_intrinsics.cpp
-             whitelisted_intrinsics.cpp
+             allowlisted_intrinsics.cpp
              thread_utils.cpp
              platform_timer_accuracy.cpp
              ${PLATFORM_TIMER_IMPL}
