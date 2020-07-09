@@ -46,6 +46,10 @@ else()
   set(BUILD_VERSION 0)
 endif()
 
+set( CLI_CLIENT_EXECUTABLE_NAME cleos )
+set( NODE_EXECUTABLE_NAME nodeos )
+set( KEY_STORE_EXECUTABLE_NAME keosd )
+
 # http://stackoverflow.com/a/18369825
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 7.0)
@@ -161,10 +165,10 @@ message( STATUS "Using '${EOSIO_ROOT_KEY}' as public key for 'eosio' account" )
 add_subdirectory(libraries)
 add_subdirectory(plugins)
 add_subdirectory(programs)
-add_subdirectory(scripts)
-add_subdirectory(unittests)
-add_subdirectory(tests)
-add_subdirectory(tools)
+#add_subdirectory(scripts)
+#add_subdirectory(unittests)
+#add_subdirectory(tests)
+#add_subdirectory(tools)
 
 install_directory_permissions(DIRECTORY ${CMAKE_INSTALL_FULL_SYSCONFDIR}/eosio)
 

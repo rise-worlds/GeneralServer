@@ -1,4 +1,4 @@
-add_executable( nodeos main.cpp )
+add_executable( ${NODE_EXECUTABLE_NAME} main.cpp )
 
 if( UNIX AND NOT APPLE )
   set(rt_library rt )
@@ -29,7 +29,7 @@ endif()
 
 configure_file(config.hpp.in config.hpp ESCAPE_QUOTES)
 
-target_include_directories(nodeos PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories(${NODE_EXECUTABLE_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
 if(UNIX)
   if(APPLE)
@@ -47,7 +47,7 @@ else()
   set(build_id_flag "")
 endif()
 
-target_link_libraries( nodeos 
+target_link_libraries( ${NODE_EXECUTABLE_NAME} 
     PRIVATE appbase version
     PRIVATE -Wl,${whole_archive_flag} state_history_plugin       -Wl,${no_whole_archive_flag}
     PRIVATE -Wl,${whole_archive_flag} chain_api_plugin    -Wl,${no_whole_archive_flag}
@@ -59,4 +59,27 @@ target_link_libraries( nodeos
 
 include(additionalPlugins)
 
-copy_bin( nodeos )
+copy_bin( ${NODE_EXECUTABLE_NAME} )
+install( TARGETS
+   ${NODE_EXECUTABLE_NAME} RUNTIME DESTINATION ${CMAKE_INSTALL_FULL_BINDIR} COMPONENT base
+)
+install(DIRECTORY DESTINATION ${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/log/eosio
+        DIRECTORY_PERMISSIONS OWNER_READ
+                              OWNER_WRITE
+                              OWNER_EXECUTE
+                              GROUP_READ
+                              GROUP_WRITE
+                              GROUP_EXECUTE
+                              WORLD_READ
+                              WORLD_EXECUTE
+)
+install(DIRECTORY DESTINATION ${CMAKE_INSTALL_FULL_LOCALSTATEDIR}/lib/eosio
+        DIRECTORY_PERMISSIONS OWNER_READ
+                              OWNER_WRITE
+                              OWNER_EXECUTE
+                              GROUP_READ
+                              GROUP_WRITE
+                              GROUP_EXECUTE
+                              WORLD_READ
+                              WORLD_EXECUTE
+			)
