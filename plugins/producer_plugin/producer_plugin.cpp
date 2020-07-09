@@ -2052,12 +2052,12 @@ void producer_plugin_impl::send_chipcounter_transaction()
       signed_transaction trx = get_chipcounter_transaction();
       // fc_dlog(_log, "producer send chipcounter.");
    
-      const auto ptrx = packed_transaction(std::move(trx), packed_transaction::compression_type::zlib);
+      auto ptrx = packed_transaction(std::move(trx), packed_transaction::compression_type::zlib);
       // fc_dlog(_log, "${trx}", ("trx", fc::json::to_string(trx, fc::time_point::maximum())));
       // accept_transaction需要在主线程上调用
-      app().post( priority::low, [trx{std::move(ptrx)}, weak = weak_from_this()]() {
+      app().post( priority::low, [ptrx{std::move(ptrx)}, weak = weak_from_this()]() {
          auto self = weak.lock();
-         self->chain_plug->accept_transaction( std::make_shared<packed_transaction>(trx),
+         self->chain_plug->accept_transaction( std::make_shared<packed_transaction>(ptrx),
             [](const static_variant<fc::exception_ptr, transaction_trace_ptr>& result) mutable {
                // next (this lambda) called from application thread
                if (result.contains<fc::exception_ptr>()) {
@@ -2131,12 +2131,12 @@ void producer_plugin_impl::send_enstandby_transaction()
       signed_transaction trx = get_enstandby_transaction();
       // fc_dlog(_log, "producer send enstandby.");
    
-      const auto ptrx = packed_transaction(std::move(trx), packed_transaction::compression_type::zlib);
+      auto ptrx = packed_transaction(std::move(trx), packed_transaction::compression_type::zlib);
       // fc_dlog(_log, "${trx}", ("trx", fc::json::to_string(trx, fc::time_point::maximum())));
       // accept_transaction需要在主线程上调用
-      app().post( priority::medium, [trx{std::move(ptrx)}, weak = weak_from_this()]() {
+      app().post( priority::medium, [ptrx{std::move(ptrx)}, weak = weak_from_this()]() {
          auto self = weak.lock();
-         self->chain_plug->accept_transaction( std::make_shared<packed_transaction>(trx),
+         self->chain_plug->accept_transaction( std::make_shared<packed_transaction>(ptrx),
             [](const static_variant<fc::exception_ptr, transaction_trace_ptr>& result) mutable {
                // next (this lambda) called from application thread
                if (result.contains<fc::exception_ptr>()) {
