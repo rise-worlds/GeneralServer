@@ -30,6 +30,7 @@ for f in ${FILES[@]}; do
     PFILES="${PFILES}/${f}\n"
   fi
 done
+mkdir -p ~/rpmbuild/BUILD
 echo -e ${PFILES} &> ~/rpmbuild/BUILD/filenames.txt
 
 mkdir -p ${PROJECT}
