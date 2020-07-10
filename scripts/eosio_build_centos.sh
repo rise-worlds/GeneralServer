@@ -5,7 +5,7 @@ echo "Physical Memory: ${MEM_GIG}G"
 echo "Disk space total: ${DISK_TOTAL}G"
 echo "Disk space available: ${DISK_AVAIL}G"
 
-( [[ $NAME == "CentOS Linux" ]] && [[ "$(echo ${VERSION} | sed 's/ .*//g')" < 7 ]] ) && echo " - You must be running Centos 7 or higher to install EOSIO." && exit 1
+( [[ $NAME == "CentOS Linux" ]] && [[ "$(echo ${VERSION_ID} | sed 's/ .*//g')" < 7 ]] ) && echo " - You must be running Centos 7 or higher to install EOSIO." && exit 1
 
 [[ $MEM_GIG -lt 7 ]] && echo "Your system must have 7 or more Gigabytes of physical memory installed." && exit 1
 [[ "${DISK_AVAIL}" -lt "${DISK_MIN}" ]] && echo " - You must have at least ${DISK_MIN}GB of available storage to install EOSIO." && exit 1
@@ -29,6 +29,11 @@ if $DRYRUN || [ -d $PYTHON3PATH ]; then
 	execute source $PYTHON3PATH/enable
 	echo " ${COLOR_GREEN}- Python36 successfully enabled!${COLOR_NC}"
 	echo ""
+fi
+if [[ -d /opt/rh/llvm-toolset-7.0 ]]; then
+	echo "${COLOR_CYAN}[Enabling Centos llvm-toolset-7.0 (so we can use clang 7)]${COLOR_NC}"
+	execute-always source /opt/rh/llvm-toolset-7.0/enable
+	echo " - ${COLOR_GREEN}Centos llvm-toolset-7.0 successfully enabled!${COLOR_NC}"
 fi
 # Handle clang/compiler
 ensure-compiler

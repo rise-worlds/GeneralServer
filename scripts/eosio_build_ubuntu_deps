@@ -10,6 +10,8 @@ graphviz,dpkg -s
 libgmp3-dev,dpkg -s
 autotools-dev,dpkg -s
 libicu-dev,dpkg -s
+libxml2-dev,dpkg -s
+ocaml,dpkg -s
 python2.7,dpkg -s
 python2.7-dev,dpkg -s
 python3,dpkg -s

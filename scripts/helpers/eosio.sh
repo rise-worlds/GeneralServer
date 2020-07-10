@@ -303,13 +303,13 @@ function build-clang() {
             && rm -rf clang10 \
             && git clone --depth 1 --single-branch --branch $PINNED_COMPILER_BRANCH https://github.com/llvm/llvm-project.git clang10 \
             && cd clang10 && git checkout $PINNED_COMPILER_LLVM_COMMIT \
-            && cd ${TEMP_DIR}/clang10 \
             && mkdir build && cd build \
             && ${CMAKE} -G 'Unix Makefiles' -DCMAKE_INSTALL_PREFIX='${CLANG_ROOT}' \
+              -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ \
               -DCMAKE_EXE_LINKER_FLAGS=-pthread -DCMAKE_SHARED_LINKER_FLAGS=-pthread \
               -DLLVM_BUILD_EXTERNAL_COMPILER_RT=ON -DLLVM_BUILD_LLVM_DYLIB=ON -DLLVM_ENABLE_LIBCXX=ON -DLLVM_ENABLE_RTTI=ON \
-              -DLLVM_INCLUDE_DOCS=OFF -DLLVM_OPTIMIZED_TABLEGEN=ON  -DLLVM_TOOL_CLANG_TOOLS_EXTRA_BUILD=ON \
-              -DLLVM_TARGETS_TO_BUILD='clang;clang-tools-extra;libclc;libcxx;lld;lldb;' -DLLVM_TARGETS_TO_BUILD='host' -DCMAKE_BUILD_TYPE=Release ../llvm \
+              -DLLVM_INCLUDE_DOCS=OFF -DLLVM_OPTIMIZED_TABLEGEN=ON -DLLVM_TOOL_CLANG_TOOLS_EXTRA_BUILD=ON \
+              -DLLVM_TARGETS_TO_BUILD='clang;clang-tools-extra;lld;lldb;libcxx;libcxxabi' -DLLVM_TARGETS_TO_BUILD='host' -DCMAKE_BUILD_TYPE=Release ../llvm \
             && make -j${JOBS} \
             && make install \
             && rm -rf ${TEMP_DIR}/clang10"

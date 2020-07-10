@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -eo pipefail
-VERSION=2.1
+VERSION=1.0
 ##########################################################################
 # This is the EOSIO automated install script for Linux and Mac OS.
 # This file was downloaded from https://github.com/EOSIO/eos

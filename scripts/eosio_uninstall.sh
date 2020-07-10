@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -eo pipefail
-VERSION=2.1
+VERSION=1.0
 # User input handling
 DEP_PROCEED=false
 FULL=false
