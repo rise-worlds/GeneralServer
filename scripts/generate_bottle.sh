@@ -7,10 +7,23 @@ then
    VERS=`sw_vers -productVersion | awk '/10\.14.*/{print $0}'`
    if [[ -z "$VERS" ]];
    then
-      echo "Error, unsupported OS X version"
-      exit -1
+      VERS=`sw_vers -productVersion | awk '/10\.15.*/{print $0}'`
+      if [[ -z "$VERS" ]];
+      then
+          VERS=`sw_vers -productVersion | awk '/10\.16.*/{print $0}'`
+          if [[ -z "$VERS" ]];
+          then
+              echo "Error, unsupported OS X version"
+              exit -1
+          else
+             MAC_VERSION="big_sur"
+          fi
+      else
+         MAC_VERSION="catalina"
+      fi
+   else
+      MAC_VERSION="mojave"
    fi
-   MAC_VERSION="mojave"
 else
    MAC_VERSION="high_sierra"
 fi
