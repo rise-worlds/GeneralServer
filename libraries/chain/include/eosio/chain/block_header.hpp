@@ -41,11 +41,11 @@ namespace eosio { namespace chain {
       checksum256_type                 transaction_mroot; /// mroot of cycles_summary
       checksum256_type                 action_mroot; /// mroot of all delivered action receipts
 
-      uint32_t                          schedule_version = 0;
-      extensions_type                   header_extensions; //新生产者
+      uint32_t                         schedule_version = 0;
+      extensions_type                  header_extensions; //新生产者
 
-      bool                              enable_standby_schedule = false;
-      optional<block_num_type>          standby_schedule_block_num;
+      bool                             enable_standby_schedule = false;
+      optional<block_num_type>         standby_schedule_block_num;
 
       block_header() = default;
 

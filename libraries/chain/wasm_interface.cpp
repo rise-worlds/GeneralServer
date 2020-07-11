@@ -284,7 +284,7 @@ class privileged_api : public context_aware_api {
          return context.control.set_standby_producers(std::move(producers));
       }
 
-      bool enable_standby_producers() {
+      int64_t enable_standby_producers() {
          return context.control.enable_standby_producers();
       }
 
@@ -1873,7 +1873,7 @@ REGISTER_INTRINSICS(privileged_api,
    (set_proposed_producers,           int64_t(int,int)                      )
    (set_proposed_producers_ex,        int64_t(int64_t, int, int)            )
    (set_standby_producers,            int64_t(int,int)                      )
-   (enable_standby_producers,         int()                                 )
+   (enable_standby_producers,         int64_t()                             )
    (get_blockchain_parameters_packed, int(int, int)                         )
    (set_blockchain_parameters_packed, void(int,int)                         )
    (is_privileged,                    int(int64_t)                          )

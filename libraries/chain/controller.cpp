@@ -2579,7 +2579,7 @@ int64_t controller::set_standby_producers( vector<producer_authority> producers 
    return sch.producers.size();
 }
 
-bool controller::enable_standby_producers() {
+int64_t controller::enable_standby_producers() {
    const auto& gpo = get_global_properties();
    if (!gpo.enable_standby_schedule)
    {
@@ -2596,15 +2596,16 @@ bool controller::enable_standby_producers() {
             gp.enable_standby_schedule = true;
             gp.standby_schedule.version = version;
          });
-         return true;
+         return version;
       }
       my->db.modify( gpo, [&]( auto& gp ) {
         gp.enable_standby_schedule = false;
         gp.standby_schedule_block_num = optional<block_num_type>();
         gp.proposed_schedule_block_num = last_proposed_schedule_block_num;
       });
+      return version;
    }
-   return false;
+   return 0;
 }
 
 const producer_authority_schedule&    controller::active_producers()const {
