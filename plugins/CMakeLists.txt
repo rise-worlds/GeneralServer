@@ -1,4 +1,5 @@
 add_subdirectory(net_plugin)
+add_subdirectory(net_api_plugin)
 add_subdirectory(http_plugin)
 add_subdirectory(chain_plugin)
 add_subdirectory(chain_api_plugin)
@@ -7,6 +8,7 @@ add_subdirectory(producer_api_plugin)
 add_subdirectory(state_history_plugin)
 add_subdirectory(wallet_plugin)
 add_subdirectory(wallet_api_plugin)
+add_subdirectory(mongo_db_plugin)
 
 # Forward variables to top level so packaging picks them up
 set(CPACK_DEBIAN_PACKAGE_DEPENDS ${CPACK_DEBIAN_PACKAGE_DEPENDS} PARENT_SCOPE)

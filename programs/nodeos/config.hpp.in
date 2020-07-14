@@ -1,4 +1,6 @@
 #pragma once
+#include <eosio/chain/types.hpp>
 namespace GeneralServer { namespace nodeos { namespace config {
   constexpr uint64_t version = 0x${BUILD_VERSION};
+  const std::string node_executable_name = "${NODE_EXECUTABLE_NAME}";
 }}}

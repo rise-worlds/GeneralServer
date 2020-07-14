@@ -67,7 +67,7 @@ endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS "ON")
 set(BUILD_DOXYGEN FALSE CACHE BOOL "Build doxygen documentation on every make")
-set(BUILD_MONGO_DB_PLUGIN FALSE CACHE BOOL "Build mongo database plugin")
+set(BUILD_MONGO_DB_PLUGIN TRUE CACHE BOOL "Build mongo database plugin")
 
 # add defaults for openssl
 if(APPLE AND UNIX AND "${OPENSSL_ROOT_DIR}" STREQUAL "")

@@ -52,10 +52,15 @@ target_link_libraries( ${NODE_EXECUTABLE_NAME}
     PRIVATE -Wl,${whole_archive_flag} state_history_plugin       -Wl,${no_whole_archive_flag}
     PRIVATE -Wl,${whole_archive_flag} chain_api_plugin    -Wl,${no_whole_archive_flag}
     PRIVATE -Wl,${whole_archive_flag} net_plugin          -Wl,${no_whole_archive_flag}
+    PRIVATE -Wl,${whole_archive_flag} net_api_plugin      -Wl,${no_whole_archive_flag}
     PRIVATE -Wl,${whole_archive_flag} producer_api_plugin -Wl,${no_whole_archive_flag}
     PRIVATE -Wl,${build_id_flag}
     PRIVATE chain_plugin http_plugin producer_plugin
     PRIVATE eosio_chain fc ${CMAKE_DL_LIBS} ${PLATFORM_SPECIFIC_LIBS} )
+
+if(BUILD_MONGO_DB_PLUGIN)
+  target_link_libraries( ${NODE_EXECUTABLE_NAME} PRIVATE -Wl,${whole_archive_flag} mongo_db_plugin -Wl,${no_whole_archive_flag} )
+endif()
 
 include(additionalPlugins)
 

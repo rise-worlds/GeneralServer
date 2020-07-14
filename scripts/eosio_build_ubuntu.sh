@@ -44,6 +44,9 @@ build-clang
 # BOOST Installation
 ensure-boost
 if $INSTALL_MONGO; then
+    # mongodb not support 20.04
+    VERSION_MAJ="18"
+    VERSION_MIN="04"
 	echo "${COLOR_CYAN}[Ensuring MongoDB installation]${COLOR_NC}"
 	if [[ ! -d $MONGODB_ROOT ]]; then
 		execute bash -c "cd $SRC_DIR && \
