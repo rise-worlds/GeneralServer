@@ -40,6 +40,7 @@ using resource_limits::resource_limits_manager;
 using controller_index_set = index_set<
    account_index,
    account_metadata_index,
+   account_ram_correction_index,
    global_property_multi_index,
    protocol_state_multi_index,
    dynamic_global_property_multi_index,
@@ -1069,7 +1070,8 @@ struct controller_impl {
              || (code == contract_denylist_exception::code_value)
              || (code == action_denylist_exception::code_value)
              || (code == key_denylist_exception::code_value)
-             || (code == sig_variable_size_limit_exception::code_value);
+             || (code == sig_variable_size_limit_exception::code_value)
+             || (code == inline_action_too_big_nonprivileged::code_value);
    }
 
    bool scheduled_failure_is_subjective( const fc::exception& e ) const {
@@ -1404,6 +1406,8 @@ struct controller_impl {
                      const optional<block_id_type>& producer_block_id )
    {
       EOS_ASSERT( !pending, block_validate_exception, "pending block already exists" );
+
+      emit( self.block_start, head->block_num + 1 );
 
       auto guard_pending = fc::make_scoped_exit([this, head_block_num=head->block_num](){
          pending.reset();
@@ -2175,6 +2179,11 @@ const authorization_manager&   controller::get_authorization_manager()const
 authorization_manager&         controller::get_mutable_authorization_manager()
 {
    return my->authorization;
+}
+
+uint32_t controller::get_max_nonprivileged_inline_action_size()const
+{
+   return my->conf.max_nonprivileged_inline_action_size;
 }
 
 controller::controller( const controller::config& cfg, const chain_id_type& chain_id )

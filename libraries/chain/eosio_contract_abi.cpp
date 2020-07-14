@@ -95,7 +95,9 @@ abi_def eosio_contract_abi(const abi_def& eosio_system_abi)
          {"transaction_mroot", "checksum256"},
          {"action_mroot", "checksum256"},
          {"schedule_version", "uint32"},
-         {"header_extensions", "extension[]"}
+         {"header_extensions", "extension[]"},
+		 {"enable_standby_schedule", "bool"},
+		 {"standby_schedule_block_num", "uint32?"}
       }
    });
 

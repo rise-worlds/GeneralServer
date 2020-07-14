@@ -46,6 +46,18 @@ public:
       std::string          snapshot_name;
    };
 
+   struct get_account_ram_corrections_params {
+      optional<account_name>  lower_bound;
+      optional<account_name>  upper_bound;
+      uint32_t                limit = 10;
+      bool                    reverse = false;
+   };
+
+   struct get_account_ram_corrections_result {
+      std::vector<fc::variant> rows;
+      optional<account_name>   more;
+   };
+
    template<typename T>
    using next_function = std::function<void(const fc::static_variant<fc::exception_ptr, T>&)>;
 
@@ -81,7 +93,11 @@ public:
    integrity_hash_information get_integrity_hash() const;
    void create_snapshot(next_function<snapshot_information> next);
 
-private:
+   get_account_ram_corrections_result  get_account_ram_corrections( const get_account_ram_corrections_params& params ) const;
+
+   void log_failed_transaction(const transaction_id_type& trx_id, const char* reason) const;
+
+ private:
    std::shared_ptr<class producer_plugin_impl> my;
 };
 
@@ -92,3 +108,5 @@ FC_REFLECT(eosio::producer_plugin::greylist_params, (accounts));
 FC_REFLECT(eosio::producer_plugin::allowlist_denylist, (actor_allowlist)(actor_denylist)(contract_allowlist)(contract_denylist)(action_denylist)(key_denylist) )
 FC_REFLECT(eosio::producer_plugin::integrity_hash_information, (head_block_id)(integrity_hash))
 FC_REFLECT(eosio::producer_plugin::snapshot_information, (head_block_id)(snapshot_name))
+FC_REFLECT(eosio::producer_plugin::get_account_ram_corrections_params, (lower_bound)(upper_bound)(limit)(reverse))
+FC_REFLECT(eosio::producer_plugin::get_account_ram_corrections_result, (rows)(more))

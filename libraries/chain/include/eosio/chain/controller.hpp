@@ -72,6 +72,7 @@ namespace eosio { namespace chain {
             uint64_t                 reversible_guard_size  =  chain::config::default_reversible_guard_size;
             uint32_t                 sig_cpu_bill_pct       =  chain::config::default_sig_cpu_bill_pct;
             uint16_t                 thread_pool_size       =  chain::config::default_controller_thread_pool_size;
+            uint32_t   max_nonprivileged_inline_action_size =  chain::config::default_max_nonprivileged_inline_action_size;
             bool                     read_only              =  false;
             bool                     force_all_checks       =  false;
             bool                     disable_replay_opts    =  false;
@@ -168,6 +169,7 @@ namespace eosio { namespace chain {
          resource_limits_manager&              get_mutable_resource_limits_manager();
          const authorization_manager&          get_authorization_manager()const;
          authorization_manager&                get_mutable_authorization_manager();
+         uint32_t                              get_max_nonprivileged_inline_action_size()const;
 
          const flat_set<account_name>&   get_actor_allowlist() const;
          const flat_set<account_name>&   get_actor_denylist() const;
@@ -285,6 +287,7 @@ namespace eosio { namespace chain {
 
          static fc::optional<uint64_t> convert_exception_to_error_code( const fc::exception& e );
 
+         signal<void(uint32_t)>                        block_start; // block_num
          // 预承认区块(承认其他节点广播过来的区块是正确的)
          signal<void(const signed_block_ptr&)>         pre_accepted_block;       //调用push_block()（同步、刚启动时从数据库恢复）,区块尚未add()到fork_db之前，先发送这个信号
          // 承认区块头(对区块头做过校验)
