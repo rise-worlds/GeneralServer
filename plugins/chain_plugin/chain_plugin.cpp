@@ -815,6 +815,7 @@ void chain_plugin::plugin_initialize(const variables_map& options) {
             }
          }
       }
+      ilog("chain id: ${chain_id}", ("chain_id", chain_id));
 
       if ( options.count("read-mode") ) {
          my->chain_config->read_mode = options.at("read-mode").as<db_read_mode>();

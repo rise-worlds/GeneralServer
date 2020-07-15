@@ -22,7 +22,7 @@ set(ENABLE_ADDRESS_SANITIZER OFF CACHE BOOL "Use address sanitizer")
 set(ENABLE_UNDEFINED_BEHAVIOR_SANITIZER OFF CACHE BOOL "Use UB sanitizer")
 set(ENABLE_PROFILE OFF CACHE BOOL "Enable for profile builds")
 if(eos-vm IN_LIST EOSIO_WASM_RUNTIMES OR eos-vm-jit IN_LIST EOSIO_WASM_RUNTIMES)
-#add_subdirectory(eos-vm)
+add_subdirectory(eos-vm)
 endif()
 
 get_property(_CTEST_CUSTOM_TESTS_IGNORE GLOBAL PROPERTY CTEST_CUSTOM_TESTS_IGNORE)
