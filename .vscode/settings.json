@@ -104,7 +104,6 @@
     "C_Cpp.default.cppStandard":"c++17",
     "search.exclude": {
         "libraries/eos-vm/external/**": true,
-        "libraries/wabt/third_party/gtest/**": true,
         "libraries/fc/include/fc/crypto/webauthn_json/**": true,
     },
     "C_Cpp.default.intelliSenseMode": "clang-x64",

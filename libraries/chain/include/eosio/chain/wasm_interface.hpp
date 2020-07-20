@@ -76,7 +76,6 @@ namespace eosio { namespace chain {
    class wasm_interface {
       public:
          enum class vm_type {
-            wabt,
             eos_vm,
             eos_vm_jit,
             eos_vm_oc
@@ -87,12 +86,10 @@ namespace eosio { namespace chain {
              switch (vmtype) {
              case vm_type::eos_vm:
                 return "eos-vm";
-             case vm_type::eos_vm_jit:
-                return "eos-vm-jit";
              case vm_type::eos_vm_oc:
                 return "eos-vm-oc";
              default:
-                return "wabt";
+                return "eos-vm-jit";
              }
          }
 
@@ -128,4 +125,4 @@ namespace eosio{ namespace chain {
    std::istream& operator>>(std::istream& in, wasm_interface::vm_type& runtime);
 }}
 
-FC_REFLECT_ENUM( eosio::chain::wasm_interface::vm_type, (wabt)(eos_vm)(eos_vm_jit)(eos_vm_oc) )
+FC_REFLECT_ENUM( eosio::chain::wasm_interface::vm_type, (eos_vm)(eos_vm_jit)(eos_vm_oc) )

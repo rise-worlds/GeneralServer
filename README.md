@@ -6,7 +6,6 @@ Potato base on [EOSIO](https://github.com/eosio) source code.
 
 - boost 1.71.0
 - fc
-- wabt
 - eos-vm
 
 ## Install

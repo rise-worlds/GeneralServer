@@ -4,9 +4,6 @@
 [submodule "libraries/fc"]
 	path = libraries/fc
 	url = https://github.com/rise-worlds/fc-1.git
-[submodule "libraries/wabt"]
-	path = libraries/wabt
-	url = https://github.com/EOSIO/wabt
 [submodule "libraries/eos-vm"]
 	path = libraries/eos-vm
 	url = https://github.com/rise-worlds/eos-vm
