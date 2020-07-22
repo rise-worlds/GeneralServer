@@ -58,9 +58,9 @@ class eos_vm_instantiated_module : public wasm_instantiated_module_interface {
          auto fn = [&]() {
             _runtime->_bkend->initialize(&context);
             const auto& res = _runtime->_bkend->call(
-                &context, "env", "apply", context.get_receiver().to_uint64_t(),
-                context.get_action().account.to_uint64_t(),
-                context.get_action().name.to_uint64_t());
+                &context, "env", "apply", context.get_receiver().to_uint256_t().to_uint64(),
+                context.get_action().account.to_uint256_t().to_uint64(),
+                context.get_action().name.to_uint256_t().to_uint64());
          };
          try {
             checktime_watchdog wd(context.trx_context.transaction_timer);

@@ -8,8 +8,8 @@ namespace eosio::chain {
 
    void name::set( std::string_view str ) {
       const auto len = str.size();
-      EOS_ASSERT(len <= 13, name_type_exception, "Name is longer than 13 characters (${name}) ", ("name", std::string(str)));
-      value = string_to_uint64_t(str);
+      EOS_ASSERT(len <= 43, name_type_exception, "Name is longer than 43 characters (${name}) ", ("name", std::string(str)));
+      value = string_to_uint256_t(str);
       EOS_ASSERT(to_string() == str, name_type_exception,
                  "Name not properly normalized (name: ${name}, normalized: ${normalized}) ",
                  ("name", std::string(str))("normalized", to_string()));
@@ -17,19 +17,34 @@ namespace eosio::chain {
 
    // keep in sync with name::to_string() in contract definition for name
    std::string name::to_string()const {
-     static const char* charmap = ".12345abcdefghijklmnopqrstuvwxyz";
+      static const char* charmap = ".-0123456789abcdefghijklmnopqrstuvwxyz_:<>[]{}()`~..............";
+      std::string str(43, '.');
 
-      std::string str(13,'.');
-
-      uint64_t tmp = value;
-      for( uint32_t i = 0; i <= 12; ++i ) {
-         char c = charmap[tmp & (i == 0 ? 0x0f : 0x1f)];
-         str[12-i] = c;
-         tmp >>= (i == 0 ? 4 : 5);
+      fc::uint256_t tmp = value;
+      tmp >>= 4;
+      for( uint32_t i = 0; i < 42; ++i ) {
+         char c = charmap[static_cast<uint8_t >(tmp.low_64_bits() & 0x3f)];
+         str[i] = c;
+         tmp >>= 6;
       }
 
       boost::algorithm::trim_right_if( str, []( char c ){ return c == '.'; } );
       return str;
+      /*
+      static const char* charmap = ".-0123456789abcdefghijklmnopqrstuvwxyz_:<>[]{}()`~..............";
+
+      std::string str(43,'.');
+
+      fc::uint256_t tmp = value;
+      for( uint32_t i = 0; i <= 42; ++i ) {
+         char c = charmap[tmp.low_64_bits() & (i == 0 ? 0x0f : 0x3f)];
+         str[42-i] = c;
+         tmp >>= (i == 0 ? 4 : 6);
+      }
+
+      boost::algorithm::trim_right_if( str, []( char c ){ return c == '.'; } );
+      return str;
+       */
    }
 
 } // eosio::chain

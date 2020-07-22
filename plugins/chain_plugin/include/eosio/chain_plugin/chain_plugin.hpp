@@ -66,6 +66,9 @@ template<>
 uint64_t convert_to_type(const string& str, const string& desc);
 
 template<>
+fc::uint256 convert_to_type(const string& str, const string& desc);
+
+template<>
 double convert_to_type(const string& str, const string& desc);
 
 template<typename Type>
@@ -77,6 +80,8 @@ string convert_to_string(const chain::key256_t& source, const string& key_type, 
 template<>
 string convert_to_string(const float128_t& source, const string& key_type, const string& encode_type, const string& desc);
 
+template<>
+string convert_to_string(const fc::uint256& source, const string& key_type, const string& encode_type, const string& desc);
 
 class read_only {
    const controller& db;
@@ -404,19 +409,19 @@ public:
       }
    }
 
-   static uint64_t get_table_index_name(const read_only::get_table_rows_params& p, bool& primary);
+   static fc::uint256_t get_table_index_name(const read_only::get_table_rows_params& p, bool& primary);
 
    template <typename IndexType, typename SecKeyType, typename ConvFn>
    read_only::get_table_rows_result get_table_rows_by_seckey( const read_only::get_table_rows_params& p, const abi_def& abi, ConvFn conv )const {
       read_only::get_table_rows_result result;
       const auto& d = db.db();
 
-      name scope{ convert_to_type<uint64_t>(p.scope, "scope") };
+      name scope{ convert_to_type<fc::uint256_t>(p.scope, "scope") };
 
       abi_serializer abis;
       abis.set_abi(abi, abi_serializer::create_yield_function( abi_serializer_max_time ) );
       bool primary = false;
-      const uint64_t table_with_index = get_table_index_name(p, primary);
+      const fc::uint256_t table_with_index = get_table_index_name(p, primary);
       const auto* t_id = d.find<chain::table_id_object, chain::by_code_scope_table>(boost::make_tuple(p.code, scope, p.table));
       const auto* index_t_id = d.find<chain::table_id_object, chain::by_code_scope_table>(boost::make_tuple(p.code, scope, name(table_with_index)));
       if( t_id != nullptr && index_t_id != nullptr ) {
@@ -502,20 +507,21 @@ public:
       read_only::get_table_rows_result result;
       const auto& d = db.db();
 
-      uint64_t scope = convert_to_type<uint64_t>(p.scope, "scope");
+      fc::uint256_t scope = convert_to_type<fc::uint256_t>(p.scope, "scope");
 
       abi_serializer abis;
       abis.set_abi(abi, abi_serializer::create_yield_function( abi_serializer_max_time ));
       const auto* t_id = d.find<chain::table_id_object, chain::by_code_scope_table>(boost::make_tuple(p.code, name(scope), p.table));
       if( t_id != nullptr ) {
          const auto& idx = d.get_index<IndexType, chain::by_scope_primary>();
-         auto lower_bound_lookup_tuple = std::make_tuple( t_id->id, std::numeric_limits<uint64_t>::lowest() );
-         auto upper_bound_lookup_tuple = std::make_tuple( t_id->id, std::numeric_limits<uint64_t>::max() );
+         auto lower_bound_lookup_tuple = std::make_tuple( t_id->id, std::numeric_limits<fc::uint256_t>::lowest() );
+         auto upper_bound_lookup_tuple = std::make_tuple( t_id->id, std::numeric_limits<fc::uint256_t>::max() );
 
          if( p.lower_bound.size() ) {
             if( p.key_type == "name" ) {
                name s(p.lower_bound);
-               std::get<1>(lower_bound_lookup_tuple) = s.to_uint64_t();
+               //std::get<1>(lower_bound_lookup_tuple) = s.to_uint64_t();
+               std::get<1>(lower_bound_lookup_tuple) = s.to_uint256_t();
             } else {
                auto lv = convert_to_type<typename IndexType::value_type::key_type>( p.lower_bound, "lower_bound" );
                std::get<1>(lower_bound_lookup_tuple) = lv;
@@ -525,7 +531,8 @@ public:
          if( p.upper_bound.size() ) {
             if( p.key_type == "name" ) {
                name s(p.upper_bound);
-               std::get<1>(upper_bound_lookup_tuple) = s.to_uint64_t();
+               //std::get<1>(upper_bound_lookup_tuple) = s.to_uint64_t();
+               std::get<1>(upper_bound_lookup_tuple) = s.to_uint256_t();
             } else {
                auto uv = convert_to_type<typename IndexType::value_type::key_type>( p.upper_bound, "upper_bound" );
                std::get<1>(upper_bound_lookup_tuple) = uv;

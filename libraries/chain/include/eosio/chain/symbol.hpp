@@ -52,6 +52,8 @@ namespace eosio {
          uint64_t value;
 
          operator uint64_t()const { return value; }
+
+         operator uint256_t()const { return uint256_t(value); }
       };
 
       class symbol : fc::reflect_init {

@@ -14,6 +14,8 @@
 
 #include <boost/hana/equal.hpp>
 
+#include <fc/uint256.hpp>
+
 #include <asm/prctl.h>
 #include <sys/prctl.h>
 #include <sys/syscall.h>
@@ -194,6 +196,7 @@ void executor::execute(const code_descriptor& code, const memory& mem, apply_con
    });
 
    void(*apply_func)(uint64_t, uint64_t, uint64_t) = (void(*)(uint64_t, uint64_t, uint64_t))(cb->running_code_base + code.apply_offset);
+   //void(*apply_func)(fc::uint256_t, fc::uint256_t, fc::uint256_t) = (void(*)(fc::uint256_t, fc::uint256_t, fc::uint256_t))(cb->running_code_base + code.apply_offset);
 
    switch(sigsetjmp(*cb->jmp, 0)) {
       case 0:
@@ -208,7 +211,7 @@ void executor::execute(const code_descriptor& code, const memory& mem, apply_con
                start_func();
             }
          });
-         apply_func(context.get_receiver().to_uint64_t(), context.get_action().account.to_uint64_t(), context.get_action().name.to_uint64_t());
+         apply_func(context.get_receiver().to_uint256_t().to_uint64(), context.get_action().account.to_uint256_t().to_uint64(), context.get_action().name.to_uint256_t().to_uint64());
          break;
       //case 1: clean eosio_exit
       case EOSVMOC_EXIT_CHECKTIME_FAIL:

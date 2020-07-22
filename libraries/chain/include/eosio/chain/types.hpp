@@ -17,6 +17,7 @@
 #include <fc/smart_ref_fwd.hpp>
 #include <fc/crypto/ripemd160.hpp>
 #include <fc/fixed_string.hpp>
+#include <fc/uint256.hpp>
 #include <fc/crypto/private_key.hpp>
 
 #include <memory>
@@ -254,6 +255,7 @@ namespace eosio { namespace chain {
    using share_type          = int64_t;
    using int128_t            = __int128;
    using uint128_t           = unsigned __int128;
+   using uint256_t           = fc::uint256_t;
    using bytes               = vector<char>;
 
    struct sha256_less {

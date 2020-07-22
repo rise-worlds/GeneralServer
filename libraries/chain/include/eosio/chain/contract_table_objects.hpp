@@ -56,7 +56,7 @@ namespace eosio { namespace chain {
 
       id_type               id;
       table_id              t_id; //< t_id should not be changed within a chainbase modifier lambda
-      uint64_t              primary_key; //< primary_key should not be changed within a chainbase modifier lambda
+      uint256_t             primary_key; //< primary_key should not be changed within a chainbase modifier lambda
       account_name          payer;
       shared_blob           value;
    };
@@ -68,9 +68,9 @@ namespace eosio { namespace chain {
          ordered_unique<tag<by_scope_primary>,
             composite_key< key_value_object,
                member<key_value_object, table_id, &key_value_object::t_id>,
-               member<key_value_object, uint64_t, &key_value_object::primary_key>
+               member<key_value_object, uint256_t, &key_value_object::primary_key>
             >,
-            composite_key_compare< std::less<table_id>, std::less<uint64_t> >
+            composite_key_compare< std::less<table_id>, std::less<uint256_t> >
          >
       >
    >;
@@ -87,7 +87,7 @@ namespace eosio { namespace chain {
 
          typename chainbase::object<ObjectTypeId,index_object>::id_type       id;
          table_id      t_id; //< t_id should not be changed within a chainbase modifier lambda
-         uint64_t      primary_key; //< primary_key should not be changed within a chainbase modifier lambda
+         uint256_t      primary_key; //< primary_key should not be changed within a chainbase modifier lambda
          account_name  payer;
          SecondaryKey  secondary_key; //< secondary_key should not be changed within a chainbase modifier lambda
       };
@@ -100,17 +100,17 @@ namespace eosio { namespace chain {
             ordered_unique<tag<by_primary>,
                composite_key< index_object,
                   member<index_object, table_id, &index_object::t_id>,
-                  member<index_object, uint64_t, &index_object::primary_key>
+                  member<index_object, uint256_t, &index_object::primary_key>
                >,
-               composite_key_compare< std::less<table_id>, std::less<uint64_t> >
+               composite_key_compare< std::less<table_id>, std::less<uint256_t> >
             >,
             ordered_unique<tag<by_secondary>,
                composite_key< index_object,
                   member<index_object, table_id, &index_object::t_id>,
                   member<index_object, SecondaryKey, &index_object::secondary_key>,
-                  member<index_object, uint64_t, &index_object::primary_key>
+                  member<index_object, uint256_t, &index_object::primary_key>
                >,
-               composite_key_compare< std::less<table_id>, SecondaryKeyLess, std::less<uint64_t> >
+               composite_key_compare< std::less<table_id>, SecondaryKeyLess, std::less<uint256_t> >
             >
          >
       > index_index;

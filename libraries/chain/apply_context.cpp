@@ -572,11 +572,11 @@ int apply_context::get_context_free_data( uint32_t index, char* buffer, size_t b
    return copy_size;
 }
 
-int apply_context::db_store_i64( name scope, name table, const account_name& payer, uint64_t id, const char* buffer, size_t buffer_size ) {
+int apply_context::db_store_i64( name scope, name table, const account_name& payer, uint256_t id, const char* buffer, size_t buffer_size ) {
    return db_store_i64( receiver, scope, table, payer, id, buffer, buffer_size);
 }
 
-int apply_context::db_store_i64( name code, name scope, name table, const account_name& payer, uint64_t id, const char* buffer, size_t buffer_size ) {
+int apply_context::db_store_i64( name code, name scope, name table, const account_name& payer, uint256_t id, const char* buffer, size_t buffer_size ) {
 //   require_write_lock( scope );
    const auto& tab = find_or_create_table( code, scope, table, payer );
    auto tableid = tab.id;
@@ -665,7 +665,7 @@ int apply_context::db_get_i64( int iterator, char* buffer, size_t buffer_size ) 
    return copy_size;
 }
 
-int apply_context::db_next_i64( int iterator, uint64_t& primary ) {
+int apply_context::db_next_i64( int iterator, uint256_t& primary ) {
    if( iterator < -1 ) return -1; // cannot increment past end iterator of table
 
    const auto& obj = keyval_cache.get( iterator ); // Check for iterator != -1 happens in this call
@@ -680,7 +680,7 @@ int apply_context::db_next_i64( int iterator, uint64_t& primary ) {
    return keyval_cache.add( *itr );
 }
 
-int apply_context::db_previous_i64( int iterator, uint64_t& primary ) {
+int apply_context::db_previous_i64( int iterator, uint256_t& primary ) {
    const auto& idx = db.get_index<key_value_index, by_scope_primary>();
 
    if( iterator < -1 ) // is end iterator
@@ -712,7 +712,7 @@ int apply_context::db_previous_i64( int iterator, uint64_t& primary ) {
    return keyval_cache.add(*itr);
 }
 
-int apply_context::db_find_i64( name code, name scope, name table, uint64_t id ) {
+int apply_context::db_find_i64( name code, name scope, name table, uint256_t id ) {
    //require_read_lock( code, scope ); // redundant?
 
    const auto* tab = find_table( code, scope, table );
@@ -726,7 +726,7 @@ int apply_context::db_find_i64( name code, name scope, name table, uint64_t id )
    return keyval_cache.add( *obj );
 }
 
-int apply_context::db_lowerbound_i64( name code, name scope, name table, uint64_t id ) {
+int apply_context::db_lowerbound_i64( name code, name scope, name table, uint256_t id ) {
    //require_read_lock( code, scope ); // redundant?
 
    const auto* tab = find_table( code, scope, table );
@@ -742,7 +742,7 @@ int apply_context::db_lowerbound_i64( name code, name scope, name table, uint64_
    return keyval_cache.add( *itr );
 }
 
-int apply_context::db_upperbound_i64( name code, name scope, name table, uint64_t id ) {
+int apply_context::db_upperbound_i64( name code, name scope, name table, uint256_t id ) {
    //require_read_lock( code, scope ); // redundant?
 
    const auto* tab = find_table( code, scope, table );
