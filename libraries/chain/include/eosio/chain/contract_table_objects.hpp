@@ -126,6 +126,9 @@ namespace eosio { namespace chain {
    typedef secondary_index<key256_t,index256_object_type>::index_object index256_object;
    typedef secondary_index<key256_t,index256_object_type>::index_index  index256_index;
 
+   typedef secondary_index<uint256_t,index256_object_type>::index_object index_u256_object;
+   typedef secondary_index<uint256_t,index256_object_type>::index_index  index_u256_index;
+
    struct soft_double_less {
       bool operator()( const float64_t& lhs, const float64_t& rhs ) const {
          return f64_lt( lhs, rhs );
@@ -212,6 +215,14 @@ namespace eosio { namespace chain {
       static value_type true_highest() {
          return f128_positive_infinity();
       }
+   };
+
+   template<>
+   struct secondary_key_traits<uint256_t> {
+      using value_type = uint256_t;
+
+      static constexpr value_type true_lowest() { return std::numeric_limits<value_type>::lowest(); }
+      static constexpr value_type true_highest() { return std::numeric_limits<value_type>::max(); }
    };
 
    /**

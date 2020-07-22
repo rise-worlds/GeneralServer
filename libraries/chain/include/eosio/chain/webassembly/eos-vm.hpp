@@ -21,7 +21,7 @@ namespace eosio { namespace vm {
       }
       static auto to_wasm(eosio::chain::name val) {
          //return val.to_uint64_t();
-         return val.to_uint256_t().to_uint64();
+         return val.to_uint256_t().low_64_bits();
       }
    };
 

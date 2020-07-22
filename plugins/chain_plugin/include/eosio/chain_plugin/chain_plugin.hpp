@@ -629,10 +629,23 @@ public:
  constexpr const char ripemd160[] = "ripemd160";
  constexpr const char dec[]       = "dec";
  constexpr const char hex[]       = "hex";
+ constexpr const char u256[]      = "u256";
 
 
  template<const char*key_type , const char *encoding=chain_apis::dec>
  struct keytype_converter ;
+
+   template<>
+   struct keytype_converter<chain_apis::u256> {
+      using input_type = chain::uint256_t;
+      using index_type = chain::index_u256_index;
+      static auto function() {
+         return [](const input_type& v) {
+
+           return v;
+         };
+      }
+   };
 
  template<>
  struct keytype_converter<chain_apis::sha256, chain_apis::hex> {

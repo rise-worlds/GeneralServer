@@ -1491,14 +1491,14 @@ read_only::get_table_rows_result read_only::get_table_rows( const read_only::get
    if( primary ) {
       EOS_ASSERT( p.table == table_with_index, chain::contract_table_query_exception, "Invalid table name ${t}", ( "t", p.table ));
       auto table_type = get_table_type( abi, p.table );
-      if( table_type == KEYi64 || p.key_type == "i64" || p.key_type == "name" ) {
+      if( table_type == KEYi64 || p.key_type == "i64" || p.key_type == "name" || table_type == "i256" || p.key_type == "i256") {
          return get_table_rows_ex<key_value_index>(p,abi);
       }
       EOS_ASSERT( false, chain::contract_table_query_exception,  "Invalid table type ${type}", ("type",table_type)("abi",abi));
    } else {
       EOS_ASSERT( !p.key_type.empty(), chain::contract_table_query_exception, "key type required for non-primary index" );
 
-      if (p.key_type == chain_apis::i64 || p.key_type == "name") {
+      if (p.key_type == chain_apis::i64) {
          return get_table_rows_by_seckey<index64_index, uint64_t>(p, abi, [](uint64_t v)->uint64_t {
             return v;
          });
@@ -1508,7 +1508,11 @@ read_only::get_table_rows_result read_only::get_table_rows( const read_only::get
             return v;
          });
       }
-      else if (p.key_type == chain_apis::i256) {
+      else if (p.key_type == "name" ) {
+         using  conv = keytype_converter<chain_apis::u256>;
+         return get_table_rows_by_seckey<conv::index_type, conv::input_type>(p, abi, conv::function());
+      }
+      else if (p.key_type == chain_apis::i256 ) {
          if ( p.encode_type == chain_apis::hex) {
             using  conv = keytype_converter<chain_apis::sha256,chain_apis::hex>;
             return get_table_rows_by_seckey<conv::index_type, conv::input_type>(p, abi, conv::function());
@@ -1656,7 +1660,7 @@ fc::variant get_global_row( const database& db, const abi_def& abi, const abi_se
 
    const auto& kv_index = db.get_index<key_value_index, by_scope_primary>();
    //const auto it = kv_index.find(boost::make_tuple(table_id->id, N(global).to_uint64_t()));
-   const auto it = kv_index.find(boost::make_tuple(table_id->id, N(global).to_uint256_t().to_uint64()));
+   const auto it = kv_index.find(boost::make_tuple(table_id->id, N(global).to_uint256_t()));
    EOS_ASSERT(it != kv_index.end(), chain::contract_table_query_exception, "Missing row in table global");
 
    vector<char> data;
@@ -1677,7 +1681,7 @@ read_only::get_producers_result read_only::get_producers( const read_only::get_p
    const auto* const table_id = d.find<chain::table_id_object, chain::by_code_scope_table>(
            boost::make_tuple(config::system_account_name, config::system_account_name, N(producers)));
    const auto* const secondary_table_id = d.find<chain::table_id_object, chain::by_code_scope_table>(
-           boost::make_tuple(config::system_account_name, config::system_account_name, name(N(producers).to_uint256_t().to_uint64() | secondary_index_num)));
+           boost::make_tuple(config::system_account_name, config::system_account_name, name(N(producers).to_uint256_t() | secondary_index_num)));
    EOS_ASSERT(table_id && secondary_table_id, chain::contract_table_query_exception, "Missing producers table");
 
    const auto& kv_index = d.get_index<key_value_index, by_scope_primary>();
@@ -1690,13 +1694,13 @@ read_only::get_producers_result read_only::get_producers( const read_only::get_p
    vector<char> data;
 
    auto it = [&]{
-      if(lower.to_uint256_t().to_uint64() == 0)
+      if(lower.to_uint256_t() == 0)
          return secondary_index_by_secondary.lower_bound(
             boost::make_tuple(secondary_table_id->id, to_softfloat64(std::numeric_limits<double>::lowest()), 0));
       else
          return secondary_index.project<by_secondary>(
             secondary_index_by_primary.lower_bound(
-               boost::make_tuple(secondary_table_id->id, lower.to_uint256_t().to_uint64())));
+               boost::make_tuple(secondary_table_id->id, lower.to_uint256_t())));
    }();
 
    for( ; it != secondary_index_by_secondary.end() && it->t_id == secondary_table_id->id; ++it ) {
@@ -2222,7 +2226,7 @@ read_only::get_account_results read_only::get_account( const get_account_params&
       t_id = d.find<chain::table_id_object, chain::by_code_scope_table>(boost::make_tuple( config::system_account_name, params.account_name, N(userres) ));
       if (t_id != nullptr) {
          const auto &idx = d.get_index<key_value_index, by_scope_primary>();
-         auto it = idx.find(boost::make_tuple( t_id->id, params.account_name.to_uint256_t().to_uint64() ));
+         auto it = idx.find(boost::make_tuple( t_id->id, params.account_name.to_uint256_t() ));
          if ( it != idx.end() ) {
             vector<char> data;
             copy_inline_row(*it, data);
@@ -2233,7 +2237,7 @@ read_only::get_account_results read_only::get_account( const get_account_params&
       t_id = d.find<chain::table_id_object, chain::by_code_scope_table>(boost::make_tuple( config::system_account_name, params.account_name, N(delband) ));
       if (t_id != nullptr) {
          const auto &idx = d.get_index<key_value_index, by_scope_primary>();
-         auto it = idx.find(boost::make_tuple( t_id->id, params.account_name.to_uint256_t().to_uint64() ));
+         auto it = idx.find(boost::make_tuple( t_id->id, params.account_name.to_uint256_t() ));
          if ( it != idx.end() ) {
             vector<char> data;
             copy_inline_row(*it, data);
@@ -2244,7 +2248,7 @@ read_only::get_account_results read_only::get_account( const get_account_params&
       t_id = d.find<chain::table_id_object, chain::by_code_scope_table>(boost::make_tuple( config::system_account_name, params.account_name, N(refunds) ));
       if (t_id != nullptr) {
          const auto &idx = d.get_index<key_value_index, by_scope_primary>();
-         auto it = idx.find(boost::make_tuple( t_id->id, params.account_name.to_uint256_t().to_uint64() ));
+         auto it = idx.find(boost::make_tuple( t_id->id, params.account_name.to_uint256_t() ));
          if ( it != idx.end() ) {
             vector<char> data;
             copy_inline_row(*it, data);
@@ -2255,7 +2259,7 @@ read_only::get_account_results read_only::get_account( const get_account_params&
       t_id = d.find<chain::table_id_object, chain::by_code_scope_table>(boost::make_tuple( config::system_account_name, config::system_account_name, N(voters) ));
       if (t_id != nullptr) {
          const auto &idx = d.get_index<key_value_index, by_scope_primary>();
-         auto it = idx.find(boost::make_tuple( t_id->id, params.account_name.to_uint256_t().to_uint64() ));
+         auto it = idx.find(boost::make_tuple( t_id->id, params.account_name.to_uint256_t() ));
          if ( it != idx.end() ) {
             vector<char> data;
             copy_inline_row(*it, data);
@@ -2266,7 +2270,7 @@ read_only::get_account_results read_only::get_account( const get_account_params&
       t_id = d.find<chain::table_id_object, chain::by_code_scope_table>(boost::make_tuple( config::system_account_name, config::system_account_name, N(rexbal) ));
       if (t_id != nullptr) {
          const auto &idx = d.get_index<key_value_index, by_scope_primary>();
-         auto it = idx.find(boost::make_tuple( t_id->id, params.account_name.to_uint256_t().to_uint64() ));
+         auto it = idx.find(boost::make_tuple( t_id->id, params.account_name.to_uint256_t() ));
          if( it != idx.end() ) {
             vector<char> data;
             copy_inline_row(*it, data);
