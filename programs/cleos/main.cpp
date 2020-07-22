@@ -1187,8 +1187,8 @@ struct approve_producer_subcommand {
                                ("scope", name(config::system_account_name).to_string())
                                ("table", "voters")
                                ("table_key", "owner")
-                               ("lower_bound", name(voter).to_uint64_t())
-                               ("upper_bound", name(voter).to_uint64_t() + 1)
+                               ("lower_bound", name(voter).to_uint256_t())
+                               ("upper_bound", name(voter).to_uint256_t() + 1)
                                // Less than ideal upper_bound usage preserved so cleos can still work with old buggy nodeos versions
                                // Change to voter.value when cleos no longer needs to support nodeos versions older than 1.5.0
                                ("limit", 1)
@@ -1240,8 +1240,8 @@ struct unapprove_producer_subcommand {
                                ("scope", name(config::system_account_name).to_string())
                                ("table", "voters")
                                ("table_key", "owner")
-                               ("lower_bound", name(voter).to_uint64_t())
-                               ("upper_bound", name(voter).to_uint64_t() + 1)
+                               ("lower_bound", name(voter).to_uint256_t())
+                               ("upper_bound", name(voter).to_uint256_t() + 1)
                                // Less than ideal upper_bound usage preserved so cleos can still work with old buggy nodeos versions
                                // Change to voter.value when cleos no longer needs to support nodeos versions older than 1.5.0
                                ("limit", 1)
@@ -1526,8 +1526,8 @@ struct bidname_info_subcommand {
       list_producers->callback([this] {
          auto rawResult = call(get_table_func, fc::mutable_variant_object("json", true)
                                ("code", "eosio")("scope", "eosio")("table", "namebids")
-                               ("lower_bound", name(newname).to_uint64_t())
-                               ("upper_bound", name(newname).to_uint64_t() + 1)
+                               ("lower_bound", name(newname).to_uint256_t())
+                               ("upper_bound", name(newname).to_uint256_t() + 1)
                                // Less than ideal upper_bound usage preserved so cleos can still work with old buggy nodeos versions
                                // Change to newname.value when cleos no longer needs to support nodeos versions older than 1.5.0
                                ("limit", 1));
@@ -3575,8 +3575,8 @@ int main( int argc, char** argv ) {
                                  ("scope", proposer)
                                  ("table", "proposal")
                                  ("table_key", "")
-                                 ("lower_bound", name(proposal_name).to_uint64_t())
-                                 ("upper_bound", name(proposal_name).to_uint64_t() + 1)
+                                 ("lower_bound", name(proposal_name).to_uint256_t())
+                                 ("upper_bound", name(proposal_name).to_uint256_t() + 1)
                                  // Less than ideal upper_bound usage preserved so cleos can still work with old buggy nodeos versions
                                  // Change to name(proposal_name).value when cleos no longer needs to support nodeos versions older than 1.5.0
                                  ("limit", 1)
@@ -3611,8 +3611,8 @@ int main( int argc, char** argv ) {
                                        ("scope", proposer)
                                        ("table", "approvals2")
                                        ("table_key", "")
-                                       ("lower_bound", name(proposal_name).to_uint64_t())
-                                       ("upper_bound", name(proposal_name).to_uint64_t() + 1)
+                                       ("lower_bound", name(proposal_name).to_uint256_t())
+                                       ("upper_bound", name(proposal_name).to_uint256_t() + 1)
                                        // Less than ideal upper_bound usage preserved so cleos can still work with old buggy nodeos versions
                                        // Change to name(proposal_name).value when cleos no longer needs to support nodeos versions older than 1.5.0
                                        ("limit", 1)
@@ -3643,8 +3643,8 @@ int main( int argc, char** argv ) {
                                        ("scope", proposer)
                                        ("table", "approvals")
                                        ("table_key", "")
-                                       ("lower_bound", name(proposal_name).to_uint64_t())
-                                       ("upper_bound", name(proposal_name).to_uint64_t() + 1)
+                                       ("lower_bound", name(proposal_name).to_uint256_t())
+                                       ("upper_bound", name(proposal_name).to_uint256_t() + 1)
                                        // Less than ideal upper_bound usage preserved so cleos can still work with old buggy nodeos versions
                                        // Change to name(proposal_name).value when cleos no longer needs to support nodeos versions older than 1.5.0
                                        ("limit", 1)
@@ -3676,8 +3676,8 @@ int main( int argc, char** argv ) {
                                           ("scope", "eosio.msig")
                                           ("table", "invals")
                                           ("table_key", "")
-                                          ("lower_bound", a.first.to_uint64_t())
-                                          ("upper_bound", a.first.to_uint64_t() + 1)
+                                          ("lower_bound", a.first.to_uint256_t())
+                                          ("upper_bound", a.first.to_uint256_t() + 1)
                                           // Less than ideal upper_bound usage preserved so cleos can still work with old buggy nodeos versions
                                           // Change to name(proposal_name).value when cleos no longer needs to support nodeos versions older than 1.5.0
                                           ("limit", 1)
