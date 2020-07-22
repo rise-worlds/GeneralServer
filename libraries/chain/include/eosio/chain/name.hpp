@@ -5,7 +5,7 @@
 #include <fc/uint256.hpp>
 
 namespace eosio::chain {
-  //using uint256_t = fc::uint256_t;
+   using capi_name = std::array<uint64_t, 4>;
    struct name;
 }
 namespace fc {
@@ -93,7 +93,10 @@ namespace eosio::chain {
    /// Immutable except for fc::from_variant.
    struct name {
    private:
-      fc::uint256_t value = 0;
+      union {
+         capi_name qwords;
+         fc::uint256_t value = { 0, 0 };
+      };
 
       friend struct fc::reflector<name>;
       friend void fc::from_variant(const fc::variant& v, eosio::chain::name& check);
@@ -107,12 +110,16 @@ namespace eosio::chain {
       explicit name( std::string_view str ) { set( str ); }
       constexpr explicit name( fc::uint256_t v ) : value(v) {}
       constexpr name() = default;
+      // Copy Constructor
+      constexpr name(name& v) : value(v.value) {}
+      constexpr name(const name& v) : value(v.value) {}
 
       name(const std::string& str) { set(str.c_str()); }
       name( const char* str )   { set(str); }
 
       std::string to_string()const;
       constexpr fc::uint256_t to_uint256_t()const { return value; }
+      constexpr const capi_name get_capi_name()const { return qwords; }
 
       friend std::ostream& operator << ( std::ostream& out, const name& n ) {
          return out << n.to_string();

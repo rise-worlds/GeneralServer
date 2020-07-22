@@ -1868,19 +1868,19 @@ REGISTER_INTRINSICS(compiler_builtins,
 );
 
 REGISTER_INTRINSICS(privileged_api,
-   (is_feature_active,                int(int64_t)                          )
-   (activate_feature,                 void(int64_t)                         )
+   (is_feature_active,                int(int64_t)                      )
+   (activate_feature,                 void(int64_t)                     )
    (get_resource_limits,              void(int,int,int,int)             )
    (set_resource_limits,              void(int,int64_t,int64_t,int64_t) )
-   (set_proposed_producers,           int64_t(int,int)                      )
-   (set_proposed_producers_ex,        int64_t(int64_t, int, int)            )
-   (set_standby_producers,            int64_t(int,int)                      )
-   (enable_standby_producers,         int64_t()                             )
-   (get_blockchain_parameters_packed, int(int, int)                         )
-   (set_blockchain_parameters_packed, void(int,int)                         )
+   (set_proposed_producers,           int64_t(int,int)                  )
+   (set_proposed_producers_ex,        int64_t(int64_t, int, int)        )
+   (set_standby_producers,            int64_t(int,int)                  )
+   (enable_standby_producers,         int64_t()                         )
+   (get_blockchain_parameters_packed, int(int, int)                     )
+   (set_blockchain_parameters_packed, void(int,int)                     )
    (is_privileged,                    int(int)                          )
    (set_privileged,                   void(int, int)                    )
-   (preactivate_feature,              void(int)                             )
+   (preactivate_feature,              void(int)                         )
 );
 
 REGISTER_INJECTED_INTRINSICS(transaction_context,
@@ -1892,40 +1892,40 @@ REGISTER_INTRINSICS(producer_api,
 );
 
 #define DB_SECONDARY_INDEX_METHODS_SIMPLE(IDX) \
-   (db_##IDX##_store,          int(int,int,int,int,int) )\
-   (db_##IDX##_remove,         void(int)                                )\
-   (db_##IDX##_update,         void(int,int,int)                    )\
-   (db_##IDX##_find_primary,   int(int,int,int,int,int) )\
+   (db_##IDX##_store,          int(int,int,int,int,int)     )\
+   (db_##IDX##_remove,         void(int)                    )\
+   (db_##IDX##_update,         void(int,int,int)            )\
+   (db_##IDX##_find_primary,   int(int,int,int,int,int)     )\
    (db_##IDX##_find_secondary, int(int,int,int,int,int)     )\
    (db_##IDX##_lowerbound,     int(int,int,int,int,int)     )\
    (db_##IDX##_upperbound,     int(int,int,int,int,int)     )\
    (db_##IDX##_end,            int(int,int,int)             )\
-   (db_##IDX##_next,           int(int, int)                            )\
-   (db_##IDX##_previous,       int(int, int)                            )
+   (db_##IDX##_next,           int(int, int)                )\
+   (db_##IDX##_previous,       int(int, int)                )
 
 #define DB_SECONDARY_INDEX_METHODS_ARRAY(IDX) \
-      (db_##IDX##_store,          int(int,int,int,int,int,int) )\
-      (db_##IDX##_remove,         void(int)                                    )\
-      (db_##IDX##_update,         void(int,int,int,int)                    )\
-      (db_##IDX##_find_primary,   int(int,int,int,int,int,int) )\
+      (db_##IDX##_store,          int(int,int,int,int,int,int)     )\
+      (db_##IDX##_remove,         void(int)                        )\
+      (db_##IDX##_update,         void(int,int,int,int)            )\
+      (db_##IDX##_find_primary,   int(int,int,int,int,int,int)     )\
       (db_##IDX##_find_secondary, int(int,int,int,int,int,int)     )\
       (db_##IDX##_lowerbound,     int(int,int,int,int,int,int)     )\
       (db_##IDX##_upperbound,     int(int,int,int,int,int,int)     )\
       (db_##IDX##_end,            int(int,int,int)                 )\
-      (db_##IDX##_next,           int(int, int)                                )\
-      (db_##IDX##_previous,       int(int, int)                                )
+      (db_##IDX##_next,           int(int, int)                    )\
+      (db_##IDX##_previous,       int(int, int)                    )
 
 REGISTER_INTRINSICS( database_api,
    (db_store_i64,        int(int,int,int,int,int,int) )
-   (db_update_i64,       void(int,int,int,int)                    )
-   (db_remove_i64,       void(int)                                    )
-   (db_get_i64,          int(int, int, int)                           )
-   (db_next_i64,         int(int, int)                                )
-   (db_previous_i64,     int(int, int)                                )
+   (db_update_i64,       void(int,int,int,int)        )
+   (db_remove_i64,       void(int)                    )
+   (db_get_i64,          int(int, int, int)           )
+   (db_next_i64,         int(int, int)                )
+   (db_previous_i64,     int(int, int)                )
    (db_find_i64,         int(int,int,int,int)         )
    (db_lowerbound_i64,   int(int,int,int,int)         )
    (db_upperbound_i64,   int(int,int,int,int)         )
-   (db_end_i64,          int(int,int,int)                 )
+   (db_end_i64,          int(int,int,int)             )
 
    DB_SECONDARY_INDEX_METHODS_SIMPLE(idx64)
    DB_SECONDARY_INDEX_METHODS_SIMPLE(idx128)
@@ -1949,9 +1949,9 @@ REGISTER_INTRINSICS(crypto_api,
 
 
 REGISTER_INTRINSICS(permission_api,
-   (check_transaction_authorization, int(int, int, int, int, int, int)                  )
-   (check_permission_authorization,  int(int, int, int, int, int, int, int64_t) )
-   (get_permission_last_used,        int64_t(int, int)                          )
+   (check_transaction_authorization, int(int, int, int, int, int, int)              )
+   (check_permission_authorization,  int(int, int, int, int, int, int, int64_t)     )
+   (get_permission_last_used,        int64_t(int, int)                              )
    (get_account_creation_time,       int64_t(int)                                   )
 );
 
@@ -1980,7 +1980,7 @@ REGISTER_INTRINSICS(action_api,
 REGISTER_INTRINSICS(authorization_api,
    (require_recipient, void(int)          )
    (require_auth,      void(int)          )
-   (require_auth2,     void(int, int) )
+   (require_auth2,     void(int, int)     )
    (has_auth,          int(int)           )
    (is_account,        int(int)           )
 );
@@ -1995,7 +1995,7 @@ REGISTER_INTRINSICS(console_api,
    (printsf,               void(float)    )
    (printdf,               void(double)   )
    (printqf,               void(int)      )
-   (printn,                void(int)  )
+   (printn,                void(int)      )
    (printhex,              void(int, int) )
 );
 
@@ -2011,7 +2011,7 @@ REGISTER_INTRINSICS(context_free_transaction_api,
 REGISTER_INTRINSICS(transaction_api,
    (send_inline,               void(int, int)                        )
    (send_context_free_inline,  void(int, int)                        )
-   (send_deferred,             void(int, int, int, int, int32_t) )
+   (send_deferred,             void(int, int, int, int, int32_t)     )
    (cancel_deferred,           int(int)                              )
 );
 
