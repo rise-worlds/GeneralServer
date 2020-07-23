@@ -109,6 +109,7 @@ namespace eosio::chain {
 
       explicit name( std::string_view str ) { set( str ); }
       constexpr explicit name( fc::uint256_t v ) : value(v) {}
+      constexpr explicit name( const capi_name& v ) : qwords(v) {}
       constexpr name() = default;
       // Copy Constructor
       constexpr name(name& v) : value(v.value) {}
