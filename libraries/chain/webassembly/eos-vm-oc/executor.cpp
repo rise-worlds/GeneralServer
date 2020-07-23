@@ -195,23 +195,41 @@ void executor::execute(const code_descriptor& code, const memory& mem, apply_con
       tt.set_expiration_callback(nullptr, nullptr);
    });
 
-   void(*apply_func)(uint64_t, uint64_t, uint64_t) = (void(*)(uint64_t, uint64_t, uint64_t))(cb->running_code_base + code.apply_offset);
+   void(*apply_func)(
+           uint64_t, uint64_t, uint64_t, uint64_t,
+           uint64_t, uint64_t, uint64_t, uint64_t,
+           uint64_t, uint64_t, uint64_t, uint64_t
+        ) = (void(*)(
+           uint64_t, uint64_t, uint64_t, uint64_t,
+           uint64_t, uint64_t, uint64_t, uint64_t,
+           uint64_t, uint64_t, uint64_t, uint64_t
+        ))(cb->running_code_base + code.apply_offset);
 
    switch(sigsetjmp(*cb->jmp, 0)) {
       case 0:
+      {
          code.start.visit(overloaded {
-            [&](const no_offset&) {},
-            [&](const intrinsic_ordinal& i) {
-               void(*start_func)() = (void(*)())(*(uintptr_t*)((uintptr_t)mem.zero_page_memory_base() - memory::first_intrinsic_offset - i.ordinal*8));
-               start_func();
-            },
-            [&](const code_offset& offs) {
-               void(*start_func)() = (void(*)())(cb->running_code_base + offs.offset);
-               start_func();
-            }
+                 [&](const no_offset&) {},
+                 [&](const intrinsic_ordinal& i) {
+                   void(*start_func)() = (void(*)())(*(uintptr_t*)((uintptr_t)mem.zero_page_memory_base() - memory::first_intrinsic_offset - i.ordinal*8));
+                   start_func();
+                 },
+                 [&](const code_offset& offs) {
+                   void(*start_func)() = (void(*)())(cb->running_code_base + offs.offset);
+                   start_func();
+                 }
          });
-         apply_func(context.get_receiver().to_uint256_t().low_64_bits(), context.get_action().account.to_uint256_t().low_64_bits(), context.get_action().name.to_uint256_t().low_64_bits());
+
+         const capi_name receiver = context.get_receiver().get_capi_name();
+         const capi_name account = context.get_action().account.get_capi_name();
+         const capi_name name = context.get_action().name.get_capi_name();
+         apply_func(
+                 receiver[0], receiver[1], receiver[2], receiver[3],
+                 account [0], account [1], account [2], account [3],
+                 name    [0], name    [1], name    [2], name    [3]
+                 );
          break;
+      }
       //case 1: clean eosio_exit
       case EOSVMOC_EXIT_CHECKTIME_FAIL:
          context.trx_context.checktime();
