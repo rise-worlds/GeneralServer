@@ -173,7 +173,7 @@ class apply_context {
 
             generic_index( apply_context& c ):context(c){}
 
-            int store( uint256_t scope, uint256_t table, const account_name& payer,
+            int store( name scope, name table, const account_name& payer,
                        uint256_t id, secondary_key_proxy_const_type value )
             {
                EOS_ASSERT( payer != account_name(), invalid_table_payer, "must specify a valid account to pay for new record" );
@@ -243,7 +243,7 @@ class apply_context {
                });
             }
 
-            int find_secondary( uint256_t code, uint256_t scope, uint256_t table, secondary_key_proxy_const_type secondary, uint256_t& primary ) {
+            int find_secondary( name code, name scope, name table, secondary_key_proxy_const_type secondary, uint256_t& primary ) {
                auto tab = context.find_table( name(code), name(scope), name(table) );
                if( !tab ) return -1;
 
@@ -257,7 +257,7 @@ class apply_context {
                return itr_cache.add( *obj );
             }
 
-            int lowerbound_secondary( uint256_t code, uint256_t scope, uint256_t table, secondary_key_proxy_type secondary, uint256_t& primary ) {
+            int lowerbound_secondary( name code, name scope, name table, secondary_key_proxy_type secondary, uint256_t& primary ) {
                auto tab = context.find_table( name(code), name(scope), name(table) );
                if( !tab ) return -1;
 
@@ -274,7 +274,7 @@ class apply_context {
                return itr_cache.add( *itr );
             }
 
-            int upperbound_secondary( uint256_t code, uint256_t scope, uint256_t table, secondary_key_proxy_type secondary, uint256_t& primary ) {
+            int upperbound_secondary( name code, name scope, name table, secondary_key_proxy_type secondary, uint256_t& primary ) {
                auto tab = context.find_table( name(code), name(scope), name(table) );
                if( !tab ) return -1;
 
@@ -291,7 +291,7 @@ class apply_context {
                return itr_cache.add( *itr );
             }
 
-            int end_secondary( uint256_t code, uint256_t scope, uint256_t table ) {
+            int end_secondary( name code, name scope, name table ) {
                auto tab = context.find_table( name(code), name(scope), name(table) );
                if( !tab ) return -1;
 
@@ -345,7 +345,7 @@ class apply_context {
                return itr_cache.add(*itr);
             }
 
-            int find_primary( uint256_t code, uint256_t scope, uint256_t table, secondary_key_proxy_type secondary, uint256_t primary ) {
+            int find_primary( name code, name scope, name table, secondary_key_proxy_type secondary, uint256_t primary ) {
                auto tab = context.find_table( name(code), name(scope), name(table) );
                if( !tab ) return -1;
 
@@ -358,7 +358,7 @@ class apply_context {
                return itr_cache.add( *obj );
             }
 
-            int lowerbound_primary( uint256_t code, uint256_t scope, uint256_t table, uint256_t primary ) {
+            int lowerbound_primary( name code, name scope, name table, uint256_t primary ) {
                auto tab = context.find_table( name(code), name(scope), name(table) );
                if (!tab) return -1;
 
@@ -372,7 +372,7 @@ class apply_context {
                return itr_cache.add(*itr);
             }
 
-            int upperbound_primary( uint256_t code, uint256_t scope, uint256_t table, uint256_t primary ) {
+            int upperbound_primary( name code, name scope, name table, uint256_t primary ) {
                auto tab = context.find_table( name(code), name(scope), name(table) );
                if ( !tab ) return -1;
 
@@ -573,7 +573,7 @@ class apply_context {
    public:
       generic_index<index64_object>                                  idx64;
       generic_index<index128_object>                                 idx128;
-      generic_index<index256_object, uint128_t*, const uint128_t*>   idx256;
+      generic_index<index256_object, uint64_t*, const uint64_t*>     idx256;
       generic_index<index_double_object>                             idx_double;
       generic_index<index_long_double_object>                        idx_long_double;
 

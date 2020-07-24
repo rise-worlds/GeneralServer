@@ -19,6 +19,7 @@
 #include <fc/fixed_string.hpp>
 #include <fc/uint256.hpp>
 #include <fc/crypto/private_key.hpp>
+#include <fc/uint256.hpp>
 
 #include <memory>
 #include <vector>
@@ -80,6 +81,8 @@ namespace eosio { namespace chain {
    using                               fc::ecc::range_proof_type;
    using                               fc::ecc::range_proof_info;
    using                               fc::ecc::commitment_type;
+
+   using uint256_t = fc::uint256_t;
 
    using public_key_type  = fc::crypto::public_key;
    using private_key_type = fc::crypto::private_key;

@@ -51,9 +51,21 @@ class wabt_instantiated_module : public wasm_instantiated_module_interface {
             memset(memory->data.data() + _initial_memory.size(), 0, memory->data.size() - _initial_memory.size());
          }
 
-         _params[0].set_i64(context.get_receiver().to_uint64_t());
-         _params[1].set_i64(context.get_action().account.to_uint64_t());
-         _params[2].set_i64(context.get_action().name.to_uint64_t());
+         name receiver = context.get_receiver();
+         name account = context.get_action().account;
+         name action = context.get_action().name;
+         _params[ 0].set_i64(uint64_t(receiver.qwords[0]));
+         _params[ 1].set_i64(uint64_t(receiver.qwords[1]));
+         _params[ 2].set_i64(uint64_t(receiver.qwords[2]));
+         _params[ 3].set_i64(uint64_t(receiver.qwords[3]));
+         _params[ 4].set_i64(uint64_t(account.qwords[0]));
+         _params[ 5].set_i64(uint64_t(account.qwords[1]));
+         _params[ 6].set_i64(uint64_t(account.qwords[2]));
+         _params[ 7].set_i64(uint64_t(account.qwords[3]));
+         _params[ 8].set_i64(uint64_t(action.qwords[0]));
+         _params[ 9].set_i64(uint64_t(action.qwords[1]));
+         _params[10].set_i64(uint64_t(action.qwords[2]));
+         _params[11].set_i64(uint64_t(action.qwords[3]));
 
          ExecResult res = _executor.RunStartFunction(_instatiated_module);
          EOS_ASSERT( res.result == interp::Result::Ok, wasm_execution_error, "wabt start function failure (${s})", ("s", ResultToString(res.result)) );
@@ -66,7 +78,7 @@ class wabt_instantiated_module : public wasm_instantiated_module_interface {
       std::unique_ptr<interp::Environment>              _env;
       DefinedModule*                                    _instatiated_module;  //this is owned by the Environment
       std::vector<uint8_t>                              _initial_memory;
-      TypedValues                                       _params{3, TypedValue(Type::I64)};
+      TypedValues                                       _params{12, TypedValue(Type::I64)};
       std::vector<std::pair<Global*, TypedValue>>       _initial_globals;
       Limits                                            _initial_memory_configuration;
       Executor                                          _executor;

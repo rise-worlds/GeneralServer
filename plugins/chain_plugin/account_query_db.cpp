@@ -404,7 +404,6 @@ namespace eosio::chain_apis {
                // construct a range between the lower bound of the given account and the lower bound of the
                // next possible account name
                const auto begin = name_bimap.left.lower_bound(weighted<chain::permission_level>::lower_bound_for({a.actor, a.permission}));
-               //const auto next_account_name = chain::name(a.actor.to_uint64_t() + 1);
                const auto next_account_name = chain::name(a.actor.to_uint256_t() + 1);
                const auto end = name_bimap.left.lower_bound(weighted<chain::permission_level>::lower_bound_for({next_account_name, a.permission}));
                push_results(begin, end);

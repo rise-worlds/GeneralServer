@@ -214,6 +214,8 @@ void serialize_secondary_index_data(datastream<ST>& ds, const eosio::chain::key2
    };
    fc::raw::pack(ds, rev(obj[0]));
    fc::raw::pack(ds, rev(obj[1]));
+   fc::raw::pack(ds, rev(obj[2]));
+   fc::raw::pack(ds, rev(obj[3]));
 }
 
 template <typename ST, typename T>
@@ -411,7 +413,7 @@ datastream<ST>& operator<<(datastream<ST>& ds, const history_serial_wrapper<eosi
       }
       fc::raw::pack(ds, as_type<uint256_t>(parent->name.to_uint256_t()));
    } else {
-      fc::raw::pack(ds, as_type<uint64_t>(0));
+      fc::raw::pack(ds, as_type<uint256_t>(0));
    }
    fc::raw::pack(ds, as_type<fc::time_point>(obj.obj.last_updated));
    fc::raw::pack(ds, make_history_serial_wrapper(obj.db, as_type<eosio::chain::shared_authority>(obj.obj.auth)));

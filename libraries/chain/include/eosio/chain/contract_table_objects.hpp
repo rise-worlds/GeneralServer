@@ -51,7 +51,7 @@ namespace eosio { namespace chain {
    struct key_value_object : public chainbase::object<key_value_object_type, key_value_object> {
       OBJECT_CTOR(key_value_object, (value))
 
-      typedef uint64_t key_type;
+      typedef uint256_t key_type;
       static const int number_of_keys = 1;
 
       id_type               id;
@@ -87,7 +87,7 @@ namespace eosio { namespace chain {
 
          typename chainbase::object<ObjectTypeId,index_object>::id_type       id;
          table_id      t_id; //< t_id should not be changed within a chainbase modifier lambda
-         uint256_t      primary_key; //< primary_key should not be changed within a chainbase modifier lambda
+         uint256_t     primary_key; //< primary_key should not be changed within a chainbase modifier lambda
          account_name  payer;
          SecondaryKey  secondary_key; //< secondary_key should not be changed within a chainbase modifier lambda
       };
@@ -122,7 +122,7 @@ namespace eosio { namespace chain {
    typedef secondary_index<uint128_t,index128_object_type>::index_object index128_object;
    typedef secondary_index<uint128_t,index128_object_type>::index_index  index128_index;
 
-   typedef std::array<uint128_t, 2> key256_t;
+   typedef std::array<uint64_t, 4> key256_t;
    typedef secondary_index<key256_t,index256_object_type>::index_object index256_object;
    typedef secondary_index<key256_t,index256_object_type>::index_index  index256_index;
 
@@ -166,6 +166,28 @@ namespace eosio { namespace chain {
 
       static constexpr value_type true_lowest() { return std::numeric_limits<value_type>::lowest(); }
       static constexpr value_type true_highest() { return std::numeric_limits<value_type>::max(); }
+   };
+
+   template<size_t N>
+   struct secondary_key_traits<std::array<uint64_t, N>> {
+   private:
+      static_assert( std::numeric_limits<uint64_t>::max() == std::numeric_limits<uint64_t>::max(), "numeric_limits for uint64_t is not properly defined" );
+
+   public:
+      using value_type = std::array<uint64_t, N>;
+
+      static value_type true_lowest() {
+         value_type arr;
+         return arr;
+      }
+
+      static value_type true_highest() {
+         value_type arr;
+         for( auto& v : arr ) {
+            v = std::numeric_limits<uint64_t>::max();
+         }
+         return arr;
+      }
    };
 
    template<size_t N>

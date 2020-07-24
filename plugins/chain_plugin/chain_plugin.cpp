@@ -1324,15 +1324,11 @@ read_only::get_info_results read_only::get_info(const read_only::get_info_params
    };
 }
 
-fc::uint256_t read_only::get_table_index_name(const read_only::get_table_rows_params& p, bool& primary) {
+uint256_t read_only::get_table_index_name(const read_only::get_table_rows_params& p, bool& primary) {
    using boost::algorithm::starts_with;
    // see multi_index packing of index name
-   //const uint64_t table = p.table.to_uint64_t();
-   const uint64_t table = p.table.to_uint256_t().low_64_bits();
-   uint64_t index = table & 0xFFFFFFFFFFFFFFF0ULL;
-
-   fc::uint256_t ret = p.table.to_uint256_t();
-
+   const uint256_t table = p.table.value;
+   uint256_t index = table & uint256_t("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF0");
    EOS_ASSERT( index == table, chain::contract_table_query_exception, "Unsupported table name: ${n}", ("n", p.table) );
 
    primary = false;
@@ -1369,8 +1365,8 @@ fc::uint256_t read_only::get_table_index_name(const read_only::get_table_rows_pa
          pos -= 2;
       }
    }
-   ret |= fc::uint256_t(uint64_t(pos & 0x000000000000000FULL));
-   return ret;
+   index |= (pos & uint64_t(0x000000000000000FULL));
+   return index;
 }
 
 template<>
@@ -1380,13 +1376,22 @@ uint64_t convert_to_type(const string& str, const string& desc) {
       return boost::lexical_cast<uint64_t>(str.c_str(), str.size());
    } catch( ... ) { }
 
-
    if (str.find(',') != string::npos) { // fix #6274 only match formats like 4,EOS
       try {
          auto symb = eosio::chain::symbol::from_string(str);
          return symb.value();
       } catch( ... ) { }
    }
+}
+
+template<>
+uint256_t convert_to_type(const string& str, const string& desc) {
+   try {
+      auto trimmed_str = str;
+      boost::trim(trimmed_str);
+      name s(trimmed_str);
+      return s.to_uint256_t();
+   } catch( ... ) { }
 
    try {
       return ( eosio::chain::string_to_symbol( 0, str.c_str() ) >> 8 );
@@ -1442,9 +1447,9 @@ string convert_to_string(const chain::key256_t& source, const string& key_type, 
          fc::sha256 val(reinterpret_cast<char *>(byte_array.data()), byte_array.size());
          return std::string("0x") + std::string(val);
       } else if (key_type == chain_apis::ripemd160) {
-         auto byte_array = fixed_bytes<20>(source).extract_as_byte_array();
+         auto byte_array = fixed_bytes<32>(source).extract_as_byte_array();
          fc::ripemd160 val;
-         memcpy(val._hash, byte_array.data(), byte_array.size() );
+         memcpy(val._hash, byte_array.data(), 20 );
          return std::string(val);
       }
       EOS_ASSERT( false, chain_type_exception, "Incompatible key_type and encode_type for key256_t next_key" );
@@ -1663,7 +1668,6 @@ fc::variant get_global_row( const database& db, const abi_def& abi, const abi_se
    EOS_ASSERT(table_id, chain::contract_table_query_exception, "Missing table global");
 
    const auto& kv_index = db.get_index<key_value_index, by_scope_primary>();
-   //const auto it = kv_index.find(boost::make_tuple(table_id->id, N(global).to_uint64_t()));
    const auto it = kv_index.find(boost::make_tuple(table_id->id, N(global).to_uint256_t()));
    EOS_ASSERT(it != kv_index.end(), chain::contract_table_query_exception, "Missing row in table global");
 

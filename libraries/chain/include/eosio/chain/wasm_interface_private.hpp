@@ -1,6 +1,7 @@
 #pragma once
 
 #include <eosio/chain/wasm_interface.hpp>
+#include <eosio/chain/webassembly/wavm.hpp>
 #include <eosio/chain/webassembly/wabt.hpp>
 #ifdef EOSIO_EOS_VM_OC_RUNTIME_ENABLED
 #include <eosio/chain/webassembly/eos-vm-oc.hpp>
@@ -227,6 +228,7 @@ namespace eosio { namespace chain {
 #define _WRAPPED_SEQ(SEQ) BOOST_PP_CAT(_ADD_PAREN_1 SEQ, _END)
 
 #define _REGISTER_INTRINSIC_EXPLICIT(CLS, MOD, METHOD, WASM_SIG, NAME, SIG)\
+   _REGISTER_WAVM_INTRINSIC(CLS, MOD, METHOD, WASM_SIG, NAME, SIG)         \
    _REGISTER_WABT_INTRINSIC(CLS, MOD, METHOD, WASM_SIG, NAME, SIG)         \
    _REGISTER_EOS_VM_INTRINSIC(CLS, MOD, METHOD, WASM_SIG, NAME, SIG)       \
    _REGISTER_EOSVMOC_INTRINSIC(CLS, MOD, METHOD, WASM_SIG, NAME, SIG)
