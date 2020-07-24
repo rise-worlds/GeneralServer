@@ -188,10 +188,13 @@ inline auto convert_native_to_literal(const wabt_apply_instance_vars&, const dou
    return tv;
 }
 
-inline auto convert_native_to_literal(const wabt_apply_instance_vars&, const name &val) {
-   TypedValue tv(Type::I64);
-   tv.set_i64(val.to_uint64_t());
-   return tv;
+inline auto convert_native_to_literal(const wabt_apply_instance_vars& vars, const name &val) {
+   const char* base = vars.memory->data.data();
+   const char* top_of_memory = base + vars.memory->data.size();
+   EOS_ASSERT(val.bytes.data() >= base && val.bytes.data() < top_of_memory, wasm_execution_error, "returning pointer not in linear memory");
+   Value v;
+   v.i32 = (int)(val.bytes.data() - base);
+   return TypedValue(Type::I32, v);
 }
 
 inline auto convert_native_to_literal(const wabt_apply_instance_vars& vars, char* ptr) {

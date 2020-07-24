@@ -14,13 +14,14 @@
 // eosio specific specializations
 namespace eosio { namespace vm {
 
-   template<>
-   struct wasm_type_converter<eosio::chain::name> {
-      static auto from_wasm(uint64_t val) {
-         return eosio::chain::name{val};
+   struct wasm_type_converter<eosio::chain::name> : linear_memory_access {
+      auto from_wasm(void* ptr) {
+         EOS_VM_ASSERT( ptr != 0, wasm_memory_exception, "references cannot be created for null pointers" );
+         validate_ptr<eosio::chain::name>(ptr, sizeof(eosio::chain::name));
+         return eosio::chain::name{eosio::chain::array_ptr<eosio::chain::name>((eosio::chain::name*)ptr)->value};
       }
-      static auto to_wasm(eosio::chain::name val) {
-         return val.to_uint64_t();
+      void* to_wasm(eosio::chain::name val) {
+         return val.bytes.data();
       }
    };
 

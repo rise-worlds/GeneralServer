@@ -208,7 +208,8 @@ void executor::execute(const code_descriptor& code, const memory& mem, apply_con
                start_func();
             }
          });
-         apply_func(context.get_receiver().to_uint64_t(), context.get_action().account.to_uint64_t(), context.get_action().name.to_uint64_t());
+         // TODO: 
+         // apply_func(context.get_receiver().to_uint64_t(), context.get_action().account.to_uint64_t(), context.get_action().name.to_uint64_t());
          break;
       //case 1: clean eosio_exit
       case EOSVMOC_EXIT_CHECKTIME_FAIL:

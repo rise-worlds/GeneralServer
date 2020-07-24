@@ -197,7 +197,15 @@ inline auto convert_native_to_wasm(T val) {
 }
 
 inline auto convert_native_to_wasm(const name &val) {
-   return native_to_wasm_t<const name &>(val.to_uint64_t());
+   constexpr int cb_full_linear_memory_start_offset = OFFSET_OF_CONTROL_BLOCK_MEMBER(full_linear_memory_start);
+   char* full_linear_memory_start;
+   asm("mov %%gs:%c[fullLinearMemOffset], %[fullLinearMem]\n"
+      : [fullLinearMem] "=r" (full_linear_memory_start)
+      : [fullLinearMemOffset] "i" (cb_full_linear_memory_start_offset)
+      );
+   U64 delta = (U64)(val.bytes.data() - full_linear_memory_start);
+   array_ptr_impl<char>(delta, 1);
+   return (U32)delta;
 }
 
 inline auto convert_native_to_wasm(const fc::time_point_sec& val) {

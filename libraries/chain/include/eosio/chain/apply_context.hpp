@@ -173,8 +173,8 @@ class apply_context {
 
             generic_index( apply_context& c ):context(c){}
 
-            int store( uint64_t scope, uint64_t table, const account_name& payer,
-                       uint64_t id, secondary_key_proxy_const_type value )
+            int store( name scope, name table, const account_name& payer,
+                       uint256_t id, secondary_key_proxy_const_type value )
             {
                EOS_ASSERT( payer != account_name(), invalid_table_payer, "must specify a valid account to pay for new record" );
 
@@ -243,7 +243,7 @@ class apply_context {
                });
             }
 
-            int find_secondary( uint64_t code, uint64_t scope, uint64_t table, secondary_key_proxy_const_type secondary, uint64_t& primary ) {
+            int find_secondary( name code, name scope, name table, secondary_key_proxy_const_type secondary, uint256_t& primary ) {
                auto tab = context.find_table( name(code), name(scope), name(table) );
                if( !tab ) return -1;
 
@@ -257,7 +257,7 @@ class apply_context {
                return itr_cache.add( *obj );
             }
 
-            int lowerbound_secondary( uint64_t code, uint64_t scope, uint64_t table, secondary_key_proxy_type secondary, uint64_t& primary ) {
+            int lowerbound_secondary( name code, name scope, name table, secondary_key_proxy_type secondary, uint256_t& primary ) {
                auto tab = context.find_table( name(code), name(scope), name(table) );
                if( !tab ) return -1;
 
@@ -274,7 +274,7 @@ class apply_context {
                return itr_cache.add( *itr );
             }
 
-            int upperbound_secondary( uint64_t code, uint64_t scope, uint64_t table, secondary_key_proxy_type secondary, uint64_t& primary ) {
+            int upperbound_secondary( name code, name scope, name table, secondary_key_proxy_type secondary, uint256_t& primary ) {
                auto tab = context.find_table( name(code), name(scope), name(table) );
                if( !tab ) return -1;
 
@@ -291,14 +291,14 @@ class apply_context {
                return itr_cache.add( *itr );
             }
 
-            int end_secondary( uint64_t code, uint64_t scope, uint64_t table ) {
+            int end_secondary( name code, name scope, name table ) {
                auto tab = context.find_table( name(code), name(scope), name(table) );
                if( !tab ) return -1;
 
                return itr_cache.cache_table( *tab );
             }
 
-            int next_secondary( int iterator, uint64_t& primary ) {
+            int next_secondary( int iterator, uint256_t& primary ) {
                if( iterator < -1 ) return -1; // cannot increment past end iterator of index
 
                const auto& obj = itr_cache.get(iterator); // Check for iterator != -1 happens in this call
@@ -313,7 +313,7 @@ class apply_context {
                return itr_cache.add(*itr);
             }
 
-            int previous_secondary( int iterator, uint64_t& primary ) {
+            int previous_secondary( int iterator, uint256_t& primary ) {
                const auto& idx = context.db.get_index<typename chainbase::get_index_type<ObjectType>::type, by_secondary>();
 
                if( iterator < -1 ) // is end iterator
@@ -345,7 +345,7 @@ class apply_context {
                return itr_cache.add(*itr);
             }
 
-            int find_primary( uint64_t code, uint64_t scope, uint64_t table, secondary_key_proxy_type secondary, uint64_t primary ) {
+            int find_primary( name code, name scope, name table, secondary_key_proxy_type secondary, uint256_t primary ) {
                auto tab = context.find_table( name(code), name(scope), name(table) );
                if( !tab ) return -1;
 
@@ -358,7 +358,7 @@ class apply_context {
                return itr_cache.add( *obj );
             }
 
-            int lowerbound_primary( uint64_t code, uint64_t scope, uint64_t table, uint64_t primary ) {
+            int lowerbound_primary( name code, name scope, name table, uint256_t primary ) {
                auto tab = context.find_table( name(code), name(scope), name(table) );
                if (!tab) return -1;
 
@@ -372,7 +372,7 @@ class apply_context {
                return itr_cache.add(*itr);
             }
 
-            int upperbound_primary( uint64_t code, uint64_t scope, uint64_t table, uint64_t primary ) {
+            int upperbound_primary( name code, name scope, name table, uint256_t primary ) {
                auto tab = context.find_table( name(code), name(scope), name(table) );
                if ( !tab ) return -1;
 
@@ -387,7 +387,7 @@ class apply_context {
                return itr_cache.add(*itr);
             }
 
-            int next_primary( int iterator, uint64_t& primary ) {
+            int next_primary( int iterator, uint256_t& primary ) {
                if( iterator < -1 ) return -1; // cannot increment past end iterator of table
 
                const auto& obj = itr_cache.get(iterator); // Check for iterator != -1 happens in this call
@@ -402,7 +402,7 @@ class apply_context {
                return itr_cache.add(*itr);
             }
 
-            int previous_primary( int iterator, uint64_t& primary ) {
+            int previous_primary( int iterator, uint256_t& primary ) {
                const auto& idx = context.db.get_index<typename chainbase::get_index_type<ObjectType>::type, by_primary>();
 
                if( iterator < -1 ) // is end iterator
@@ -434,7 +434,7 @@ class apply_context {
                return itr_cache.add(*itr);
             }
 
-            void get( int iterator, uint64_t& primary, secondary_key_proxy_type secondary ) {
+            void get( int iterator, uint256_t& primary, secondary_key_proxy_type secondary ) {
                const auto& obj = itr_cache.get( iterator );
                primary   = obj.primary_key;
                secondary_key_helper_t::get(secondary, obj.secondary_key);
@@ -510,15 +510,15 @@ class apply_context {
 
       void update_db_usage( const account_name& payer, int64_t delta );
 
-      int  db_store_i64( name scope, name table, const account_name& payer, uint64_t id, const char* buffer, size_t buffer_size );
+      int  db_store_i64( name scope, name table, const account_name& payer, uint256_t id, const char* buffer, size_t buffer_size );
       void db_update_i64( int iterator, account_name payer, const char* buffer, size_t buffer_size );
       void db_remove_i64( int iterator );
       int  db_get_i64( int iterator, char* buffer, size_t buffer_size );
-      int  db_next_i64( int iterator, uint64_t& primary );
-      int  db_previous_i64( int iterator, uint64_t& primary );
-      int  db_find_i64( name code, name scope, name table, uint64_t id );
-      int  db_lowerbound_i64( name code, name scope, name table, uint64_t id );
-      int  db_upperbound_i64( name code, name scope, name table, uint64_t id );
+      int  db_next_i64( int iterator, uint256_t& primary );
+      int  db_previous_i64( int iterator, uint256_t& primary );
+      int  db_find_i64( name code, name scope, name table, uint256_t id );
+      int  db_lowerbound_i64( name code, name scope, name table, uint256_t id );
+      int  db_upperbound_i64( name code, name scope, name table, uint256_t id );
       int  db_end_i64( name code, name scope, name table );
 
    private:
@@ -527,7 +527,7 @@ class apply_context {
       const table_id_object& find_or_create_table( name code, name scope, name table, const account_name &payer );
       void                   remove_table( const table_id_object& tid );
 
-      int  db_store_i64( name code, name scope, name table, const account_name& payer, uint64_t id, const char* buffer, size_t buffer_size );
+      int  db_store_i64( name code, name scope, name table, const account_name& payer, uint256_t id, const char* buffer, size_t buffer_size );
 
 
    /// Misc methods:
@@ -573,7 +573,7 @@ class apply_context {
    public:
       generic_index<index64_object>                                  idx64;
       generic_index<index128_object>                                 idx128;
-      generic_index<index256_object, uint128_t*, const uint128_t*>   idx256;
+      generic_index<index256_object, uint64_t*, const uint64_t*>     idx256;
       generic_index<index_double_object>                             idx_double;
       generic_index<index_long_double_object>                        idx_long_double;
 
