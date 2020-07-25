@@ -1382,6 +1382,7 @@ uint64_t convert_to_type(const string& str, const string& desc) {
          return symb.value();
       } catch( ... ) { }
    }
+   return uint64_t{ 0 };
 }
 
 template<>
@@ -1397,22 +1398,10 @@ uint256_t convert_to_type(const string& str, const string& desc) {
       return ( eosio::chain::string_to_symbol( 0, str.c_str() ) >> 8 );
    } catch( ... ) {
       EOS_ASSERT( false, chain_type_exception, "Could not convert ${desc} string '${str}' to any of the following: "
-                        "uint64_t, valid name, or valid symbol (with or without the precision)",
+                        "uint256_t, valid name, or valid symbol (with or without the precision)",
                   ("desc", desc)("str", str));
    }
-}
-
-template<>
-fc::uint256 convert_to_type(const string& str, const string& desc) {
-
-   try {
-      auto trimmed_str = str;
-      boost::trim(trimmed_str);
-      name s(trimmed_str);
-      return s.to_uint256_t();
-   } catch( ... ) { }
-
-   return fc::uint256_t(0);
+   return uint256_t{ 0, 0 };
 }
 
 template<>
@@ -1518,7 +1507,7 @@ read_only::get_table_rows_result read_only::get_table_rows( const read_only::get
          });
       }
       else if (p.key_type == "name" ) {
-         using  conv = keytype_converter<chain_apis::u256>;
+         using  conv = keytype_converter<chain_apis::i256>;
          return get_table_rows_by_seckey<conv::index_type, conv::input_type>(p, abi, conv::function());
       }
       else if (p.key_type == chain_apis::i256 ) {

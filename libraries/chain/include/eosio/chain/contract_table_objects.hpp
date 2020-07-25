@@ -126,9 +126,6 @@ namespace eosio { namespace chain {
    typedef secondary_index<key256_t,index256_object_type>::index_object index256_object;
    typedef secondary_index<key256_t,index256_object_type>::index_index  index256_index;
 
-   typedef secondary_index<uint256_t,index256_object_type>::index_object index_u256_object;
-   typedef secondary_index<uint256_t,index256_object_type>::index_index  index_u256_index;
-
    struct soft_double_less {
       bool operator()( const float64_t& lhs, const float64_t& rhs ) const {
          return f64_lt( lhs, rhs );

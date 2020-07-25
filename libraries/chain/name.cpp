@@ -29,7 +29,6 @@ namespace eosio::chain {
 
       boost::algorithm::trim_right_if( str, []( char c ){ return c == '.'; } );
       return str;
-       */
    }
 
 } // eosio::chain

@@ -128,9 +128,6 @@ namespace eosio::chain {
       constexpr name(name& v) : value(v.value) {}
       constexpr name(const name& v) : value(v.value) {}
 
-      name(const std::string& str) { set(str.c_str()); }
-      name( const char* str )   { set(str); }
-
       std::string to_string()const;
       constexpr uint256_t to_uint256_t()const { return value; }
       // name& operator=( const uint256_t& v ) {

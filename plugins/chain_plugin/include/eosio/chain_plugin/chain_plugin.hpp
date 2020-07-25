@@ -631,23 +631,10 @@ public:
  constexpr const char ripemd160[] = "ripemd160";
  constexpr const char dec[]       = "dec";
  constexpr const char hex[]       = "hex";
- constexpr const char u256[]      = "u256";
 
 
  template<const char*key_type , const char *encoding=chain_apis::dec>
  struct keytype_converter ;
-
-   template<>
-   struct keytype_converter<chain_apis::u256> {
-      using input_type = chain::uint256_t;
-      using index_type = chain::index_u256_index;
-      static auto function() {
-         return [](const input_type& v) {
-
-           return v;
-         };
-      }
-   };
 
  template<>
  struct keytype_converter<chain_apis::sha256, chain_apis::hex> {
@@ -676,7 +663,7 @@ public:
             // The input is in big endian, i.e. 83a83a3876c64c33f66f33c54f1869edef5b5d4a000000000000000000000000
             // fixed_bytes will convert the input to array of 2 uint128_t in little endian, i.e. ed69184fc5336ff6334cc676383aa883 0000000000000000000000004a5d5bef
             // which is the format used by secondary index
-            uint8_t buffer[20];
+            uint8_t buffer[32] = { 0 };
             memcpy(buffer, v.data(), 20);
             fixed_bytes<32> fb(buffer); 
             return chain::key256_t(fb.get_array());
@@ -698,6 +685,7 @@ public:
             fixed_bytes<32> fb(buffer); 
             return chain::key256_t(fb.get_array());
             // chain::key256_t k;
+            // uint8_t buffer[32];
             // boost::multiprecision::export_bits(v, buffer, 8, false);
             // memcpy(&k[0], buffer + 16, 16);
             // memcpy(&k[1], buffer, 16);
